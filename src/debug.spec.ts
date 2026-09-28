@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { loadImage } from '@napi-rs/canvas'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { parseFvg, type FvgNode } from './parse.js'
 import { initFontsForMeasure } from './fonts.js'
 import { debugFvg } from './render.js'
-import { layoutDebugSheet } from './debug.js'
+import { guideAxes } from './debug.js'
 import { layoutSource } from './layout.js'
 import { buildReport } from './report.js'
 
@@ -19,17 +19,6 @@ beforeAll(async () => {
     if (await initFontsForMeasure({ fontsCacheDir: dir })) break
   }
 })
-
-async function pixelSampler(png: Buffer) {
-  const img = await loadImage(png)
-  const canvas = createCanvas(img.width, img.height)
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(img, 0, 0)
-  return (x: number, y: number) => {
-    const p = ctx.getImageData(x, y, 1, 1).data
-    return [p[0]!, p[1]!, p[2]!] as const
-  }
-}
 
 describe('parse line numbers', () => {
   it('注释保留行号', () => {
@@ -65,7 +54,7 @@ describe('debugFvg', () => {
     expect(index).toMatch(/L\d+/)
   })
 
-  it('debug.png 画面与原图一致，标注在外侧', async () => {
+  it('debug.png 只画横纵线，尺寸与原图相同', async () => {
     const source = await readFile(helloPath, 'utf8')
     const { renderPng, debugPng, report } = await debugFvg(source, {
       baseDir: join(pkgDir, 'examples'),
@@ -73,16 +62,15 @@ describe('debugFvg', () => {
     })
     const render = await loadImage(renderPng)
     const debug = await loadImage(debugPng)
-    expect(debug.width).toBeGreaterThan(render.width)
-    expect(debug.height).toBeGreaterThan(render.height)
-    const sheet = layoutDebugSheet(report, 0.5)
-    const sampleRender = await pixelSampler(renderPng)
-    const sampleDebug = await pixelSampler(debugPng)
-    expect(sampleDebug(sheet.posterX + 24, sheet.posterY + 24)).toEqual(sampleRender(24, 24))
-    expect(sampleDebug(4, 4)).not.toEqual(sampleRender(4, 4))
-    expect(sheet.labels.every((l) => l.x + l.w <= sheet.posterX || l.x >= sheet.posterX + sheet.posterW)).toBe(true)
-    expect(sheet.dims.some((d) => d.kind === 'gap' && d.text.startsWith('gap '))).toBe(true)
-    expect(sheet.dims.some((d) => d.kind === 'pad' && d.text.startsWith('pad '))).toBe(true)
+    expect(debug.width).toBe(render.width)
+    expect(debug.height).toBe(render.height)
+    expect(renderPng.equals(debugPng)).toBe(false)
+    const guides = guideAxes(report)
+    expect(guides.x.length).toBeGreaterThan(2)
+    expect(guides.y.length).toBeGreaterThan(2)
+    const gaps: number[] = []
+    for (let i = 1; i < guides.y.length; i++) gaps.push(guides.y[i]! - guides.y[i - 1]!)
+    expect(gaps.some((d) => Math.abs(d - 32) < 1)).toBe(true)
   })
 
   it('focus 裁图与 id 解析', async () => {

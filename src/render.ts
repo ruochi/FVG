@@ -1,6 +1,6 @@
 import {
   cropFocusFromCanvas,
-  focusDeviceRect,
+  focusCropRect,
   formatDebugIndex,
   renderDebugSheet,
   resolveFocusIndex,
@@ -71,8 +71,7 @@ export async function debugFvg(source: string, options: DebugOptions = {}): Prom
   const canvas = paintDocumentCanvas(doc.root, paintOpts)
   const renderPng = canvas.toBuffer('image/png')
 
-  const debugSheet = renderDebugSheet(canvas, report, scale)
-  const debugPng = debugSheet.canvas.toBuffer('image/png')
+  const debugPng = renderDebugSheet(canvas, report, scale).toBuffer('image/png')
 
   const focusTokens = options.focus ?? []
   const focusIndices: number[] = []
@@ -88,8 +87,8 @@ export async function debugFvg(source: string, options: DebugOptions = {}): Prom
     for (const n of focusIndices) {
       const el = report.elements[n]
       if (!el) continue
-      const crop = focusDeviceRect(sheet1.layout, el, n)
-      focus.push({ n, png: cropFocusFromCanvas(sheet1.canvas, crop) })
+      const crop = focusCropRect(el, doc)
+      focus.push({ n, png: cropFocusFromCanvas(sheet1, crop) })
     }
   }
 
