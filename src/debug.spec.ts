@@ -74,7 +74,7 @@ describe('debugFvg', () => {
     expect(gaps.some((d) => Math.abs(d - 32) < 1)).toBe(true)
   })
 
-  it('线只伸向离元素更近的一侧', () => {
+  it('框线停在元素边上', () => {
     const report = {
       width: 100,
       height: 100,
@@ -98,10 +98,8 @@ describe('debugFvg', () => {
     const segs = guideSegments(report)
     const horizontal = segs.filter((s) => s.axis === 'h')
     const vertical = segs.filter((s) => s.axis === 'v')
-    expect(horizontal).toHaveLength(2)
-    expect(horizontal.every((s) => s.from === 0 && s.to === 30)).toBe(true)
-    expect(vertical).toHaveLength(2)
-    expect(vertical.every((s) => s.from === 60 && s.to === 100)).toBe(true)
+    expect(horizontal.every((s) => s.from === 10 && s.to === 30)).toBe(true)
+    expect(vertical.every((s) => s.from === 60 && s.to === 80)).toBe(true)
   })
 
   it('focus 裁图与 id 解析', async () => {

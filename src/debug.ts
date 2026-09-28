@@ -26,7 +26,7 @@ export function guideAxes(report: FvgReport): { x: number[]; y: number[] } {
   return { x, y }
 }
 
-/** 横线画向更近的左或右，纵线画向更近的上或下，停在元素远端，不贯穿整张图。 */
+/** 只沿元素盒子的四条边画，不延伸到画面上。 */
 export function guideSegments(report: FvgReport): Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> {
   const segs: Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> = []
   const seen = new Set<string>()
@@ -39,25 +39,17 @@ export function guideSegments(report: FvgReport): Array<{ axis: 'h' | 'v'; pos: 
     seen.add(key)
     segs.push({ axis, pos, from: a, to: b })
   }
-  const width = report.width
-  const height = report.height
   for (const el of report.elements) {
     const box = el.box
-    const toLeft = box.centerX <= width / 2
-    const toTop = box.centerY <= height / 2
-    const x0 = toLeft ? 0 : box.left
-    const x1 = toLeft ? box.right : width
-    const y0 = toTop ? 0 : box.top
-    const y1 = toTop ? box.bottom : height
-    add('h', box.top, x0, x1)
-    add('h', box.bottom, x0, x1)
-    add('v', box.left, y0, y1)
-    add('v', box.right, y0, y1)
+    add('h', box.top, box.left, box.right)
+    add('h', box.bottom, box.left, box.right)
+    add('v', box.left, box.top, box.bottom)
+    add('v', box.right, box.top, box.bottom)
   }
   return segs
 }
 
-/** 在原图上画横线和纵线，不写数字。每条线只画向离元素更近的那一侧。 */
+/** 在原图上画出每个元素的框，不写数字。框线停在元素边上。 */
 export function renderDebugSheet(poster: Canvas, report: FvgReport, scale: number): Canvas {
   const canvas = createCanvas(poster.width, poster.height)
   const ctx = canvas.getContext('2d')
@@ -202,7 +194,7 @@ export function formatDebugIndex(
   lines.push(`- 元素：${report.elements.length} 个`)
   lines.push(`- 问题：error ${errors} · warn ${warns} · info ${infos}`)
   lines.push('')
-  lines.push('调试图画出元素盒子的横线和纵线，不标数字。横线只画向更近的左边或右边，纵线只画向更近的上边或下边，不贯穿整张图。精确坐标看下面的元素表。')
+  lines.push('调试图沿每个元素的盒子画框，不标数字，线不延伸到元素外面。靠得很近的边会并成一对线。精确坐标看下面的元素表。')
   lines.push('')
 
   lines.push('## 问题')
