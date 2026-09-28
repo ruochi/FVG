@@ -75,6 +75,8 @@ export type ElementReport = {
   path: string
   id?: string
   tag: string
+  /** 开标签在源码中的行号（1-based） */
+  line?: number
   box: Rect
   ink: Rect
   /** 阴影和光晕实际可能画到的范围 */
@@ -142,6 +144,7 @@ export type LayoutNodeBase = {
   path: string
   id?: string
   tag: string
+  line?: number
   x: number
   y: number
   width: number

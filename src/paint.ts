@@ -251,25 +251,6 @@ function drawEffect(
     2 * (state.canvasWidth + state.canvasHeight) +
     4 * k * (node.width + node.height + Math.abs(effect.spread) + effect.blur) +
     Math.abs(devX)
-  if (process.env.FVG_GLOW_LOG && (node.tag === 'Path' || node.tag === 'Circle')) {
-    console.log(
-      '[glow] tag=%s blend=%s blur=%s spread=%s color=%s dx=%s dy=%s k=%s far=%s shadowBlur=%s offset=%s,%s box=%sx%s',
-      node.tag,
-      blend,
-      effect.blur,
-      effect.spread,
-      effect.color,
-      effect.dx,
-      effect.dy,
-      k.toFixed(3),
-      Math.round(far),
-      effect.blur * k,
-      Math.round(devX + far),
-      Math.round(devY),
-      Math.round(node.width),
-      Math.round(node.height),
-    )
-  }
   ctx.save()
   ctx.setTransform(m.a, m.b, m.c, m.d, m.e - far, m.f)
   ctx.globalCompositeOperation = blend
@@ -355,10 +336,7 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, state: Paint
   ctx.restore()
 }
 
-export function paintDocument(
-  root: LayerLayoutNode,
-  opts: PaintOptions,
-): Buffer {
+export function paintDocumentCanvas(root: LayerLayoutNode, opts: PaintOptions) {
   const w = Math.round(opts.width * opts.scale)
   const h = Math.round(opts.height * opts.scale)
   const canvas = createCanvas(w, h)
@@ -373,5 +351,12 @@ export function paintDocument(
   for (const ch of root.children) paintNode(ctx, ch, state)
   if (opts.debug) drawDebugOverlay(ctx, root)
   ctx.restore()
-  return canvas.toBuffer('image/png')
+  return canvas
+}
+
+export function paintDocument(
+  root: LayerLayoutNode,
+  opts: PaintOptions,
+): Buffer {
+  return paintDocumentCanvas(root, opts).toBuffer('image/png')
 }

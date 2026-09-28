@@ -36,6 +36,7 @@ function walk(node: LayoutNode, ox: number, oy: number, elements: ElementReport[
     path: node.path,
     id: node.id,
     tag: node.tag,
+    line: node.line,
     box: boxToRect(rawBox),
     ink: boxToRect(rawInk),
   }

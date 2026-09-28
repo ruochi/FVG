@@ -237,6 +237,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
       "path": "fvg/Column[0]/h1[0]",
       "id": "title",
       "tag": "h1",
+      "line": 12,
       "box": { "x": 330, "y": 600, "width": 420, "height": 106, "left": 330, "top": 600, "right": 750, "bottom": 706, "centerX": 540, "centerY": 653 },
       "ink": { "...": "字形或图形实际着墨的范围，字段同 box" },
       "effect": { "...": "有阴影或光晕时才有：效果可能画到的范围，字段同 box" },
@@ -256,6 +257,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - `ink`：实际着墨范围。文字是字形的真实边界，形状包含描边宽度。
 - `effect`：阴影剪影按偏移平移、光晕剪影原地，各自四边外扩 `spread + blur × 2`，再取并集。
 - `shadow`、`glow`：补全默认值之后的实际取值。
+- `line`：该元素开标签在 `.fvg` 源码中的行号（1-based），便于和 `fvg debug` 对照。
 
 检查项：
 
@@ -282,7 +284,26 @@ fvg render scene.fvg -o scene.png --report scene.json   # 渲染 PNG + 报告
 fvg render scene.fvg --debug                             # 叠加画出盒子（蓝）和着墨范围（红）
 fvg render scene.fvg --scale 0.5                         # 缩小输出，方便 AI 快速查看
 fvg check scene.fvg                                      # 只输出检查结果，不出图
+fvg debug scene.fvg                                      # 输出调试目录（见下）
 ```
+
+### `fvg debug`
+
+一次生成给 AI 和人读的调试包，默认目录为 `<文件名>.debug/`：
+
+| 文件 | 说明 |
+| --- | --- |
+| `index.md` | 先读这个：画布、倍率、问题列表、元素表（`#n` 对应图上标签） |
+| `render.png` | 原图 |
+| `debug.png` | 原图 + 100px 网格、安全区、盒子（蓝）/着墨（红）/效果（黄虚线）、`#n` 标签 |
+| `report.json` | 完整报告；`elements[n]` 的下标就是 `#n` |
+| `focus-N.png` | 指定 `--focus` 时才有：元素附近放大裁图 |
+
+```bash
+fvg debug scene.fvg -o scene.debug --scale 0.5 --focus title --focus 18
+```
+
+`index.md` 会同时打印到标准输出。有 error 时退出码为 1。
 
 默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/fvg/fonts`。
 
