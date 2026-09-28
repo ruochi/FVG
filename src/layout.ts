@@ -742,6 +742,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ink: { x: contentOffsetX, y: contentOffsetY, width: contentW, height: contentH },
     ...appearance,
     direction,
+    gap,
     children: laidChildren,
   }
 }

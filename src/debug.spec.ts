@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { parseFvg, type FvgNode } from './parse.js'
 import { initFontsForMeasure } from './fonts.js'
 import { debugFvg } from './render.js'
+import { layoutDebugSheet } from './debug.js'
 import { layoutSource } from './layout.js'
 import { buildReport } from './report.js'
 
@@ -64,17 +65,24 @@ describe('debugFvg', () => {
     expect(index).toMatch(/L\d+/)
   })
 
-  it('debug.png 与 render.png 不同且含网格线', async () => {
+  it('debug.png 画面与原图一致，标注在外侧', async () => {
     const source = await readFile(helloPath, 'utf8')
-    const { renderPng, debugPng } = await debugFvg(source, {
+    const { renderPng, debugPng, report } = await debugFvg(source, {
       baseDir: join(pkgDir, 'examples'),
       scale: 0.5,
     })
-    expect(renderPng.equals(debugPng)).toBe(false)
+    const render = await loadImage(renderPng)
+    const debug = await loadImage(debugPng)
+    expect(debug.width).toBeGreaterThan(render.width)
+    expect(debug.height).toBeGreaterThan(render.height)
+    const sheet = layoutDebugSheet(report, 0.5)
     const sampleRender = await pixelSampler(renderPng)
     const sampleDebug = await pixelSampler(debugPng)
-    const x = 50
-    expect(sampleRender(x, 0)).not.toEqual(sampleDebug(x, 0))
+    expect(sampleDebug(sheet.posterX + 24, sheet.posterY + 24)).toEqual(sampleRender(24, 24))
+    expect(sampleDebug(4, 4)).not.toEqual(sampleRender(4, 4))
+    expect(sheet.labels.every((l) => l.x + l.w <= sheet.posterX || l.x >= sheet.posterX + sheet.posterW)).toBe(true)
+    expect(sheet.dims.some((d) => d.kind === 'gap' && d.text.startsWith('gap '))).toBe(true)
+    expect(sheet.dims.some((d) => d.kind === 'pad' && d.text.startsWith('pad '))).toBe(true)
   })
 
   it('focus 裁图与 id 解析', async () => {

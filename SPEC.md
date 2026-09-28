@@ -295,7 +295,7 @@ fvg debug scene.fvg                                      # 输出调试目录（
 | --- | --- |
 | `index.md` | 先读这个：画布、倍率、问题列表、元素表（`#n` 对应图上标签） |
 | `render.png` | 原图 |
-| `debug.png` | 原图 + 100px 网格、安全区、盒子（蓝）/着墨（红）/效果（黄虚线）、`#n` 标签 |
+| `debug.png` | 原图居中，不改动画面。`#n`、`gap`、`padding` 用引线标在四周空白里 |
 | `report.json` | 完整报告；`elements[n]` 的下标就是 `#n` |
 | `focus-N.png` | 指定 `--focus` 时才有：元素附近放大裁图 |
 
