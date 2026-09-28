@@ -3,11 +3,13 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { checkFvg, renderFvg } from './render.js'
 import { formatIssueLine } from './report.js'
+import { formatSelfTest, runSelfTest } from './selftest.js'
 
 function usage(): never {
   console.error(`用法:
   fvg render <file.fvg> [-o out.png] [--report out.json] [--scale 0.5] [--debug]
-  fvg check <file.fvg> [--report out.json]`)
+  fvg check <file.fvg> [--report out.json]
+  fvg selftest`)
   process.exit(2)
 }
 
@@ -31,6 +33,13 @@ function parseArgs(argv: string[]) {
 }
 
 async function main() {
+  if (process.argv[2] === 'selftest') {
+    const results = await runSelfTest()
+    console.log(formatSelfTest(results))
+    if (results.some((r) => !r.ok)) process.exit(1)
+    return
+  }
+
   const { cmd, file, out, report, scale, debug } = parseArgs(process.argv.slice(2))
   const abs = resolve(file)
   const source = await readFile(abs, 'utf8')

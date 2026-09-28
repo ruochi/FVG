@@ -62,6 +62,14 @@ export type Anchor =
   | 'bottom-left'
   | 'bottom-right'
 
+/** 旋转、缩放的原点。数字是相对布局盒子左上角的像素；关键字是盒子边上的点。 */
+export type TransformOrigin = {
+  x: number | 'left' | 'center' | 'right'
+  y: number | 'top' | 'center' | 'bottom'
+}
+
+export const CENTER_ORIGIN: TransformOrigin = { x: 'center', y: 'center' }
+
 export type TextLineReport = {
   text: string
   box: Rect
@@ -137,6 +145,7 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
+  origin: TransformOrigin
   background?: string
   border?: { width: number; color: string }
   borderRadius?: number

@@ -1,5 +1,6 @@
 import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
+import { resolveOrigin } from './style.js'
 import type {
   FlexLayoutNode,
   LayerLayoutNode,
@@ -36,27 +37,27 @@ function drawBoxChrome(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   if (node.background && node.background !== 'transparent') {
     ctx.fillStyle = node.background
     if (node.borderRadius && node.borderRadius > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
+      roundRectPath(ctx, 0, 0, node.width, node.height, node.borderRadius)
       ctx.fill()
     } else {
-      ctx.fillRect(node.x, node.y, node.width, node.height)
+      ctx.fillRect(0, 0, node.width, node.height)
     }
   }
   if (node.border && node.border.width > 0) {
     ctx.strokeStyle = node.border.color
     ctx.lineWidth = node.border.width
     if (node.borderRadius && node.borderRadius > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
+      roundRectPath(ctx, 0, 0, node.width, node.height, node.borderRadius)
       ctx.stroke()
     } else {
-      ctx.strokeRect(node.x + node.border.width / 2, node.y + node.border.width / 2, node.width - node.border.width, node.height - node.border.width)
+      ctx.strokeRect(node.border.width / 2, node.border.width / 2, node.width - node.border.width, node.height - node.border.width)
     }
   }
 }
 
 function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
-  const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
-  const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
+  const contentX = node.padding.left + (node.border?.width ?? 0)
+  const contentY = node.padding.top + (node.border?.width ?? 0)
   for (const line of node.textLayout.lines) {
     let offsetX = 0
     if (node.textAlign === 'center') offsetX = (node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width) / 2
@@ -71,13 +72,6 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
 }
 
 function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
-  const cx = node.x + node.width / 2
-  const cy = node.y + node.height / 2
-  ctx.save()
-  ctx.translate(cx, cy)
-  ctx.rotate((node.rotate * Math.PI) / 180)
-  ctx.scale(node.scale, node.scale)
-  ctx.translate(-node.width / 2, -node.height / 2)
   if (node.shape === 'rect') {
     const r = node.rx ?? 0
     if (r > 0) {
@@ -127,7 +121,6 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
       ctx.stroke()
     }
   }
-  ctx.restore()
 }
 
 function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, head: number) {
@@ -142,7 +135,6 @@ function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
 
 function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
   ctx.save()
-  ctx.translate(node.x, node.y)
   ctx.strokeStyle = node.stroke
   ctx.fillStyle = node.stroke
   ctx.lineWidth = node.strokeWidth
@@ -182,6 +174,7 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
     }
     ctx.stroke()
   } else if (g.kind === 'path') {
+    ctx.translate(-node.x, -node.y)
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill
@@ -198,15 +191,23 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.save()
   ctx.strokeStyle = 'rgba(0, 120, 255, 0.85)'
   ctx.lineWidth = 1
-  ctx.strokeRect(node.x + 0.5, node.y + 0.5, node.width, node.height)
+  ctx.strokeRect(0.5, 0.5, node.width, node.height)
   ctx.strokeStyle = 'rgba(255, 40, 40, 0.85)'
-  ctx.strokeRect(node.x + node.ink.x + 0.5, node.y + node.ink.y + 0.5, node.ink.width, node.ink.height)
+  ctx.strokeRect(node.ink.x + 0.5, node.ink.y + 0.5, node.ink.width, node.ink.height)
   ctx.restore()
 }
 
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
   ctx.save()
   ctx.globalAlpha *= node.opacity
+  ctx.translate(node.x, node.y)
+  const origin = resolveOrigin(node.origin, node.width, node.height)
+  if (node.rotate !== 0 || node.scale !== 1) {
+    ctx.translate(origin.x, origin.y)
+    ctx.scale(node.scale, node.scale)
+    ctx.rotate((node.rotate * Math.PI) / 180)
+    ctx.translate(-origin.x, -origin.y)
+  }
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
     drawTextNode(ctx, node)
@@ -236,8 +237,7 @@ export function paintDocument(
   }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  for (const ch of root.children) paintNode(ctx, ch, opts.debug)
-  if (opts.debug) drawDebugOverlay(ctx, root)
+  paintNode(ctx, root, opts.debug)
   ctx.restore()
   return canvas.toBuffer('image/png')
 }

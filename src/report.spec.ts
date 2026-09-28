@@ -15,6 +15,7 @@ function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
     opacity: 1,
     rotate: 0,
     scale: 1,
+    origin: { x: 'center', y: 'center' },
     padding: { top: 0, right: 0, bottom: 0, left: 0 },
     textAlign: 'left',
     textLayout: {
@@ -40,6 +41,7 @@ function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
     opacity: 1,
     rotate: 0,
     scale: 1,
+    origin: { x: 'center', y: 'center' },
     padding: { top: 0, right: 0, bottom: 0, left: 0 },
     children: [text],
   }

@@ -310,8 +310,13 @@ function wrapParagraph(units: Unit[], maxWidth: number): Unit[][] {
     if (u.isSpace && line.length === 0) continue
     const w = u.width
     if (line.length > 0 && curW + w > maxWidth + 1e-3) {
-      flush()
-      if (u.isSpace) continue
+      const prev = line[line.length - 1]!
+      const stick =
+        LINE_HEAD_FORBIDDEN.has(u.text[0] ?? '') || LINE_TAIL_FORBIDDEN.has(prev.text[prev.text.length - 1] ?? '')
+      if (!stick) {
+        flush()
+        if (u.isSpace) continue
+      }
     }
     if (!u.isSpace && w > maxWidth + 1e-3 && line.length === 0) {
       lines.push([u])

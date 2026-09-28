@@ -17,6 +17,7 @@ import {
   parseNumber,
   parsePx,
   parseStyle,
+  parseTransformOrigin,
   ZERO_EDGES,
   type Edges,
 } from './style.js'
@@ -41,7 +42,7 @@ import type {
   ShapeLayoutNode,
   TextLayoutNode,
 } from './types.js'
-import { emptyBox, translateBox, unionBoxes } from './types.js'
+import { CENTER_ORIGIN, emptyBox, translateBox, unionBoxes } from './types.js'
 import { ensureYoga } from './yoga.js'
 
 export type LayoutContext = {
@@ -105,6 +106,22 @@ function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
 }
 
+function readOrigin(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
+  const raw = style['transform-origin'] ?? attrs['transform-origin']
+  if (raw == null || raw.trim() === '') return CENTER_ORIGIN
+  const parsed = parseTransformOrigin(raw)
+  if (!parsed) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `无法解析 transform-origin「${raw}」，只接受像素或九宫格关键字`,
+    })
+    return CENTER_ORIGIN
+  }
+  return parsed
+}
+
 function readAppearance(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
   const padding = parseEdges(style.padding) ?? ZERO_EDGES
   const border = parseBorder(style.border)
@@ -118,6 +135,7 @@ function readAppearance(attrs: Record<string, string>, style: Record<string, str
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
+    origin: readOrigin(attrs, style, ctx),
   }
 }
 
@@ -335,6 +353,8 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
 }
 
 function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
+  const style = parseStyle(node.attrs.style)
+  const appearance = readAppearance(node.attrs, style, ctx)
   let geom: LineGeometry
   if (node.tag === 'Line' || node.tag === 'Arrow') {
     geom = {
@@ -373,10 +393,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     width: box.width,
     height: box.height,
     ink: { x: 0, y: 0, width: box.width, height: box.height },
-    opacity: parseNumber(node.attrs.opacity) ?? 1,
-    rotate: parseNumber(node.attrs.rotate) ?? 0,
-    scale: parseNumber(node.attrs.scale) ?? 1,
-    padding: ZERO_EDGES,
+    ...appearance,
     geometry: localGeom,
     stroke,
     strokeWidth,
@@ -625,10 +642,16 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     p.child.y = tl.y
   }
 
+  // 线条的坐标就是 Layer 局部坐标，不用 cx / cy / anchor 再摆一次。
+  const place = (p: (typeof placed)[0], lw: number, lh: number) => {
+    if (p.child.kind === 'line') return
+    positionOne(p, lw, lh)
+  }
+
   if (layerW > 0 && layerH > 0) {
-    for (const p of placed) positionOne(p, layerW, layerH)
+    for (const p of placed) place(p, layerW, layerH)
   } else {
-    for (const p of placed) positionOne(p, 0, 0)
+    for (const p of placed) place(p, 0, 0)
     let union = emptyBox()
     for (const p of placed) {
       union = unionBoxes(union, { x: p.child.x, y: p.child.y, width: p.child.width, height: p.child.height })
@@ -636,6 +659,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     layerW = fixedW ?? Math.max(union.width, 0)
     layerH = fixedH ?? Math.max(union.height, 0)
     for (const p of placed) {
+      if (p.child.kind === 'line') continue
       if (p.useDefaultCenter) {
         p.cx = layerW / 2
         p.cy = layerH / 2
