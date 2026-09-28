@@ -211,4 +211,66 @@ describe('layoutSource', () => {
     expect(act.textLayout.lines).toHaveLength(1)
     expect(act.textLayout.autoWrap).toBe(false)
   })
+
+  it('写死宽度的 row 保留 justify-content 和 flex-grow', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:800px; height:400px">
+        <row cx="400" cy="100" style="width:700px; padding:10px; justify-content:space-between">
+          <rect style="width:80px; height:40px" /><rect style="width:80px; height:40px" />
+        </row>
+        <row cx="400" cy="300" style="width:700px; padding:10px; gap:10px">
+          <rect style="width:80px; height:40px" /><rect style="width:80px; height:40px; flex-grow:1" />
+        </row>
+      </fvg>`,
+      process.cwd(),
+    )
+    const spaced = doc.root.children[0]
+    const grown = doc.root.children[1]
+    if (spaced?.kind !== 'flex' || grown?.kind !== 'flex') throw new Error('expected flex')
+    const last = spaced.children[1]!
+    expect(last.x + last.width).toBeCloseTo(690, 0)
+    expect(grown.children[1]!.width).toBeCloseTo(590, 0)
+  })
+
+  it('align-self 和 stretch 改变交叉轴', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:800px; height:400px">
+        <row style="width:400px; height:120px; padding:10px; align-items:start">
+          <rect style="width:40px; height:40px" />
+          <rect style="width:40px; height:40px; align-self:end" />
+        </row>
+        <column style="width:400px; padding:10px; align-items:stretch">
+          <p style="text-align:center">拉伸</p>
+        </column>
+      </fvg>`,
+      process.cwd(),
+    )
+    const row = doc.root.children[0]
+    const column = doc.root.children[1]
+    if (row?.kind !== 'flex' || column?.kind !== 'flex') throw new Error('expected flex')
+    expect(row.children[1]!.y).toBeGreaterThan(row.children[0]!.y + 20)
+    expect(column.children[0]!.width).toBeGreaterThan(300)
+  })
+
+  it('curve 用 points，开口不填充，闭合才填充', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:400px; height:300px">
+        <curve points="30,100 100,40 170,100" style="fill:#ff0000; stroke:#ffff00" />
+        <curve points="40,40 160,40 100,140" closed style="fill:#00ff00; stroke:none" />
+        <row><curve points="0,0 10,10" /></row>
+      </fvg>`,
+      process.cwd(),
+    )
+    const open = doc.root.children[0]
+    const closed = doc.root.children[1]
+    if (open?.kind !== 'line' || closed?.kind !== 'line') throw new Error('expected line')
+    expect(open.tag).toBe('curve')
+    expect(open.fill).toBe('none')
+    expect(open.geometry.kind).toBe('path')
+    if (open.geometry.kind === 'path') expect(open.geometry.d.startsWith('M 30 100')).toBe(true)
+    expect(open.x).toBeLessThan(40)
+    expect(closed.fill).toBe('#00ff00')
+    expect(doc.issues.some((i) => i.code === 'open-curve-fill')).toBe(true)
+    expect(doc.issues.some((i) => i.code === 'invalid-child')).toBe(true)
+  })
 })

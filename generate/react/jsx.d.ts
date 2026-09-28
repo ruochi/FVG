@@ -37,6 +37,7 @@ declare global {
       polyline: FvgCommon & { points?: string }
       polygon: FvgCommon & { points?: string }
       path: FvgCommon & { d?: string }
+      curve: FvgCommon & { points?: string; closed?: boolean | string }
       h1: FvgPositioned
       h2: FvgPositioned
       h3: FvgPositioned

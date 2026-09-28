@@ -1,3 +1,8 @@
+import { CENTER_ORIGIN, type TransformOrigin } from './style.js'
+
+export type { TransformOrigin }
+export { CENTER_ORIGIN }
+
 export type Box = {
   x: number
   y: number
@@ -158,6 +163,8 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
+  /** 旋转和缩放的原点，相对布局盒子。默认中心 */
+  origin: TransformOrigin
   shadow?: ShadowSpec
   glow?: GlowSpec
   background?: string

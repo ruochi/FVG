@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseBorder, parseDashArray, parseEdges, parseFontWeight, parseGlow, parsePx, parseShadow } from './style.js'
+import { parseBorder, parseDashArray, parseEdges, parseFontWeight, parseGlow, parsePx, parseShadow, parseTransformOrigin, resolveOrigin } from './style.js'
 
 describe('style', () => {
   it('parsePx', () => {
@@ -34,6 +34,14 @@ describe('style', () => {
     expect(parseGlow('12 4')).toEqual({ blur: 12, spread: 4, color: undefined })
     expect(parseGlow('-3px')).toBeUndefined()
     expect(parseGlow('#fff')).toBeUndefined()
+  })
+
+  it('parseTransformOrigin', () => {
+    expect(parseTransformOrigin('bottom')).toEqual({ x: 'center', y: 'bottom' })
+    expect(parseTransformOrigin('40px 12px')).toEqual({ x: 40, y: 12 })
+    expect(parseTransformOrigin('left top')).toEqual({ x: 'left', y: 'top' })
+    expect(parseTransformOrigin('50%')).toBeUndefined()
+    expect(resolveOrigin({ x: 'right', y: 'bottom' }, 80, 40)).toEqual({ x: 80, y: 40 })
   })
 
   it('parseDashArray', () => {

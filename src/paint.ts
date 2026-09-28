@@ -1,5 +1,6 @@
 import { createCanvas, Path2D, type SKRSContext2D as CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
+import { resolveOrigin } from './style.js'
 import type {
   GlowSpec,
   LayerLayoutNode,
@@ -185,17 +186,18 @@ function drawShapeSilhouette(ctx: CanvasRenderingContext2D, node: ShapeLayoutNod
   ctx.stroke()
 }
 
-/** 绕元素中心旋转、缩放。只包绘制，调试框在外面画，仍是布局盒子。 */
+/** 绕 transform-origin 旋转、缩放。先缩放再旋转。只包绘制，调试框在外面画，仍是布局盒子。 */
 function withLocalTransform(ctx: CanvasRenderingContext2D, node: LayoutNode, draw: () => void) {
   if (!node.rotate && node.scale === 1) {
     draw()
     return
   }
+  const origin = resolveOrigin(node.origin, node.width, node.height)
   ctx.save()
-  ctx.translate(node.width / 2, node.height / 2)
+  ctx.translate(origin.x, origin.y)
   if (node.rotate) ctx.rotate((node.rotate * Math.PI) / 180)
   if (node.scale !== 1) ctx.scale(node.scale, node.scale)
-  ctx.translate(-node.width / 2, -node.height / 2)
+  ctx.translate(-origin.x, -origin.y)
   draw()
   ctx.restore()
 }

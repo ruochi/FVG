@@ -7,6 +7,7 @@ import {
   Justify,
   type Node as YogaNode,
 } from 'yoga-layout/load'
+import { catmullRomPath } from './curve.js'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
 import { registerFontsFromDocument } from './fonts.js'
@@ -21,6 +22,8 @@ import {
   parsePx,
   parseShadow,
   parseStyle,
+  parseTransformOrigin,
+  CENTER_ORIGIN,
   ZERO_EDGES,
   type Edges,
   type StyleMap,
@@ -120,7 +123,7 @@ const DEFAULT_SHADOW_COLOR = '#00000066'
 
 const POSITION_ATTRS = ['cx', 'cy', 'anchor'] as const
 
-const EFFECT_KEYS = ['opacity', 'rotate', 'scale', 'shadow', 'glow']
+const EFFECT_KEYS = ['opacity', 'rotate', 'scale', 'transform-origin', 'shadow', 'glow']
 const BOX_KEYS = ['background', 'background-color', 'border', 'border-radius']
 const FLEX_CHILD_KEYS = ['flex', 'flex-grow', 'flex-shrink', 'align-self']
 
@@ -206,10 +209,26 @@ function readEffects(node: FvgNode, style: StyleMap, ctx: LayoutContext, glowCol
     pushIssue(ctx, { level: 'warn', code: 'invalid-attr', path: ctx.pathPrefix, message: `无法解析 glow: ${glowRaw}` })
   }
 
+  const originRaw = readProp(node, style, 'transform-origin', ctx)
+  let origin = CENTER_ORIGIN
+  if (originRaw) {
+    const parsed = parseTransformOrigin(originRaw)
+    if (parsed) origin = parsed
+    else {
+      pushIssue(ctx, {
+        level: 'warn',
+        code: 'invalid-attr',
+        path: ctx.pathPrefix,
+        message: `无法解析 transform-origin「${originRaw}」，只接受像素或九宫格关键字`,
+      })
+    }
+  }
+
   return {
     opacity: parseNumber(readProp(node, style, 'opacity', ctx)) ?? 1,
     rotate: parseAngle(readProp(node, style, 'rotate', ctx)) ?? 0,
     scale: parseNumber(readProp(node, style, 'scale', ctx)) ?? 1,
+    origin,
     shadow,
     glow,
   }
@@ -253,15 +272,21 @@ function mapJustify(v: string | undefined): Justify {
 }
 
 function mapAlign(v: string | undefined): Align {
-  switch ((v ?? 'center').trim()) {
+  return mapAlignNamed(v) ?? Align.Center
+}
+
+function mapAlignNamed(v: string | undefined): Align | undefined {
+  switch (v?.trim()) {
     case 'start':
       return Align.FlexStart
+    case 'center':
+      return Align.Center
     case 'end':
       return Align.FlexEnd
     case 'stretch':
       return Align.Stretch
     default:
-      return Align.Center
+      return undefined
   }
 }
 
@@ -453,10 +478,29 @@ function layoutShape(node: FvgNode, ctx: LayoutContext): ShapeLayoutNode {
 const LINE_CAPS = new Set(['butt', 'round', 'square'])
 const LINE_JOINS = new Set(['miter', 'round', 'bevel'])
 
+function parsePointList(raw: string | undefined): Array<{ x: number; y: number }> {
+  return (raw ?? '')
+    .trim()
+    .split(/\s+/)
+    .map((pair) => {
+      const [xs, ys] = pair.split(',')
+      return { x: Number(xs), y: Number(ys) }
+    })
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
+}
+
+/** `closed` 不写值也算打开。`false` / `0` 仍是开口。 */
+function isClosedFlag(value: string | undefined): boolean {
+  if (value == null) return false
+  const text = value.trim().toLowerCase()
+  return text !== 'false' && text !== '0' && text !== 'no'
+}
+
 function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
   const style = parseStyle(node.attrs.style)
   checkStyleKeys(node, style, 'line', ctx)
   let geom: LineGeometry
+  const curveClosed = node.tag === 'curve' && isClosedFlag(node.attrs.closed)
   if (node.tag === 'line' || node.tag === 'arrow') {
     geom = {
       kind: node.tag === 'arrow' ? 'arrow' : 'line',
@@ -467,21 +511,24 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
       head: node.tag === 'arrow' ? parsePx(readProp(node, style, 'head', ctx)) : undefined,
     }
   } else if (node.tag === 'polyline' || node.tag === 'polygon') {
-    const pts = (node.attrs.points ?? '')
-      .trim()
-      .split(/\s+/)
-      .map((pair) => {
-        const [xs, ys] = pair.split(',')
-        return { x: Number(xs), y: Number(ys) }
-      })
-      .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    geom = { kind: node.tag === 'polygon' ? 'polygon' : 'polyline', points: pts }
+    geom = { kind: node.tag === 'polygon' ? 'polygon' : 'polyline', points: parsePointList(node.attrs.points) }
+  } else if (node.tag === 'curve') {
+    geom = { kind: 'path', d: catmullRomPath(parsePointList(node.attrs.points), curveClosed) }
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
   const strokeWidth = parsePx(readProp(node, style, 'stroke-width', ctx)) ?? 4
   const stroke = readProp(node, style, 'stroke', ctx) ?? defaultStroke
-  const fill = readProp(node, style, 'fill', ctx) ?? 'none'
+  let fill = readProp(node, style, 'fill', ctx) ?? 'none'
+  if (node.tag === 'curve' && !curveClosed && fill !== 'none') {
+    pushIssue(ctx, {
+      level: 'info',
+      code: 'open-curve-fill',
+      path: ctx.pathPrefix,
+      message: '开口的 curve 不填充，避免首尾被连成一块色',
+    })
+    fill = 'none'
+  }
   const cap = readProp(node, style, 'stroke-linecap', ctx)?.trim()
   const join = readProp(node, style, 'stroke-linejoin', ctx)?.trim()
   const dash = parseDashArray(readProp(node, style, 'stroke-dasharray', ctx))
@@ -668,13 +715,25 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     yn.setFlexGrow(grow)
     yn.setFlexShrink(shrink)
     yn.setFlexBasisAuto()
+    const selfRaw = chParsed['align-self']?.trim()
+    const self = mapAlignNamed(selfRaw)
+    if (selfRaw && !self) {
+      pushIssue(ctx, {
+        level: 'warn',
+        code: 'invalid-attr',
+        path: m.node.path,
+        message: `无法解析 align-self: ${selfRaw}`,
+      })
+    }
+    if (self) yn.setAlignSelf(self)
+    const stretch = (self ?? alignItems) === Align.Stretch
     if (direction === 'row') {
       yn.setWidth(m.preferredMain)
-      yn.setHeight(m.preferredCross === Infinity ? m.preferredCross : m.preferredCross)
+      if (!stretch && Number.isFinite(m.preferredCross)) yn.setHeight(m.preferredCross)
       yn.setMinWidth(m.minMain)
     } else {
-      yn.setWidth(columnWidths[i]!)
       yn.setHeight(m.preferredMain)
+      if (!stretch) yn.setWidth(columnWidths[i]!)
       yn.setMinWidth(m.isText ? m.minMain : 0)
     }
     yogaChildren.push(yn)
@@ -708,6 +767,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
           y: layout.top + contentOffsetY,
         }
       }
+      if (direction === 'column' && layout.width > child.width + 0.5) child = { ...child, width: layout.width }
+      if (direction === 'row' && layout.height > child.height + 0.5) child = { ...child, height: layout.height }
     } else {
       child = {
         ...child,

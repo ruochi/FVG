@@ -46,7 +46,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | 容器 | `layer`、`row`、`column` |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 形状 | `rect`、`circle`、`ellipse` |
-| 线条 | `line`、`arrow`、`polyline`、`polygon`、`path` |
+| 线条 | `line`、`arrow`、`polyline`、`polygon`、`path`、`curve` |
 
 - 标签全部小写，和 SVG、HTML 一致。解析时大小写不敏感，`<Column>` 会按 `column` 处理。
 - 后写的元素画在上面。
@@ -87,11 +87,12 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | 属性 | 说明 |
 | --- | --- |
 | `opacity` | 0 到 1，连同阴影和光晕一起变淡 |
-| `rotate` | 绕元素中心旋转，单位度，顺时针为正。文字、容器、形状、线条都生效 |
-| `scale` | 绕元素中心缩放。文字、容器、形状、线条都生效 |
+| `rotate` | 绕 `transform-origin` 旋转，单位度，顺时针为正。文字、容器、形状、线条都生效 |
+| `scale` | 绕同一个原点缩放。文字、容器、形状、线条都生效 |
+| `transform-origin` | 旋转和缩放的原点，默认 `center`。九宫格关键字，或相对盒子左上角的两个像素（先横后纵）。不接受百分比和 em |
 | `shadow`、`glow` | 阴影和光晕，见第 8 节 |
 
-`rotate`、`scale` 只影响绘制，不影响布局；报告里的盒子是变换前的。文字连同背景、边框和字形一起转。容器连同背景、边框和子元素一起转。
+`rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的；`ink` 是变换后的着墨范围。`anchor` 仍只决定未旋转时哪一点落在 `cx`、`cy`。文字连同背景、边框和字形一起转。容器连同背景、边框和子元素一起转。一组元素绕同一个点转时，旋转外面的容器。
 
 ### 3.3 旧写法
 
@@ -196,6 +197,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `line`、`arrow` | `x1`、`y1`、`x2`、`y2` |
 | `polyline`、`polygon` | `points="x,y x,y …"` |
 | `path` | `d`（SVG 路径语法） |
+| `curve` | `points="x,y x,y …"`，可选 `closed` |
 
 ```html
 <arrow x1="280" y1="200" x2="420" y2="200" style="stroke:#333; stroke-width:6px" />
@@ -205,6 +207,16 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - `style` 里写 `stroke`（默认全局 `color`）、`stroke-width`（默认 4；注意和 SVG 不同，SVG 默认不描边，线条会看不见）、`stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
 - `polygon`、`path` 可以写 `fill`，默认 `none`。
 - `arrow` 可以写 `head`：箭头长度，默认 `stroke-width` 的 4 倍，最小 12。
+- `curve` 给几个点，画一条穿过这些点的光滑曲线（Catmull-Rom，绘制时转成贝塞尔）。不用自己算控制点。
+
+```html
+<curve points="80,420 220,180 420,260 640,120" style="stroke:#f7931a; stroke-width:8" />
+<curve points="100,100 200,40 320,140" closed style="fill:#f7931a; stroke:none" />
+```
+
+- `closed` 默认不开。只有闭合时才填充；开口曲线即使写了 `fill` 也不填，避免首尾被连成一块色。
+- 只有两个点时退化为直线。
+- 可以绕 `transform-origin` 旋转，默认是曲线盒子的中心。
 
 ## 8. 阴影和光晕
 
@@ -259,7 +271,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 ```
 
 - `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。
-- `ink`：实际着墨范围。文字是字形的真实边界。形状的描边画在盒子内，着墨等于盒子，包含描边宽度。
+- `ink`：实际着墨范围，已按 `transform-origin` 做旋转和缩放。文字是字形的真实边界。形状的描边画在盒子内，未旋转时着墨等于盒子，包含描边宽度。
 - `effect`：阴影剪影按偏移平移、光晕剪影原地，各自四边外扩 `spread + blur × 2`，再取并集。
 - `shadow`、`glow`：补全默认值之后的实际取值。
 - `line`：该元素开标签在 `.fvg` 源码中的行号（1-based），便于和 `fvg debug` 对照。

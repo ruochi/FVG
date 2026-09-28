@@ -17,7 +17,7 @@
 | 文字盒子 | `h1`、`h2`、`h3`、`p`、`div`、`span` | 盒子里只能放文字和行内标签 |
 | 行内 | `span`、`strong`、`b`、`em`、`br` | 写在文字盒子内部，不单独占一个布局盒 |
 | 形状 | `rect`、`circle`、`ellipse` | `layer` 里定位，或放进 `row`、`column` |
-| 线条 | `line`、`arrow`、`polyline`、`polygon`、`path` | 只能放在 `layer` 里，坐标写在属性上 |
+| 线条 | `line`、`arrow`、`polyline`、`polygon`、`path`、`curve` | 只能放在 `layer` 里，坐标写在属性上 |
 
 后写的元素画在上面。
 
@@ -43,8 +43,9 @@
 | 属性 | 默认 | 说明 |
 | --- | --- | --- |
 | `opacity` | `1` | 0 到 1，本体、阴影、光晕一起变淡 |
-| `rotate` | `0` | 度，顺时针。绕元素中心。文字（背景、边框、字形）、容器（背景、边框、子元素）、形状、线条都生效 |
-| `scale` | `1` | 绕元素中心缩放。作用范围同 `rotate` |
+| `rotate` | `0` | 度，顺时针。绕 `transform-origin`。文字（背景、边框、字形）、容器（背景、边框、子元素）、形状、线条都生效 |
+| `scale` | `1` | 绕同一个原点缩放。作用范围同 `rotate` |
+| `transform-origin` | `center` | 九宫格关键字，或两个像素（相对盒子左上角，先横后纵）。不接受百分比 |
 | `shadow` | 无 | `x y [blur] [spread] [color]`。默认 blur 0、spread 0、颜色 `#00000066` |
 | `glow` | 无 | `blur [spread] [color]`。默认 spread 0，颜色取本体 |
 
@@ -164,6 +165,7 @@
 | `line`、`arrow` | `x1`、`y1`、`x2`、`y2` | 线段两端 |
 | `polyline`、`polygon` | `points` | `x,y x,y …` |
 | `path` | `d` | SVG 路径 |
+| `curve` | `points`，可选 `closed` | 穿过这些点的光滑曲线。`closed` 默认不开 |
 
 `style`：
 
@@ -174,7 +176,7 @@
 | `stroke-linecap` | 无 | `butt`、`round`、`square` |
 | `stroke-linejoin` | 无 | `miter`、`round`、`bevel` |
 | `stroke-dasharray` | 无 | |
-| `fill` | `none` | 仅 `polygon`、`path` |
+| `fill` | `none` | `polygon`、`path`，以及写了 `closed` 的 `curve`。开口曲线不填充 |
 | `head` | `stroke-width` 的 4 倍，至少 12 | 仅 `arrow`，箭头长度 |
 
 另加共用效果。

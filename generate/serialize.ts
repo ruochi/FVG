@@ -13,6 +13,7 @@ export const FVG_ATTR_KEYS = [
   'y2',
   'points',
   'd',
+  'closed',
 ] as const
 
 const ATTR_SET = new Set<string>(FVG_ATTR_KEYS)

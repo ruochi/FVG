@@ -167,4 +167,34 @@ describe('paint', () => {
     expect(square(100, 84)[0]).toBeGreaterThan(200)
     expect(square(100, 84)[2]).toBeGreaterThan(200)
   })
+
+  it('curve 穿过点，开口不填，闭合才填，两个点是直线', async () => {
+    const smooth = await render(
+      scene(`<curve points="30,100 100,40 170,100" style="fill:#ff0000; stroke:#ffff00; stroke-width:4" />`),
+    )
+    expect(smooth(100, 40)[0]).toBeGreaterThan(200)
+    expect(smooth(100, 40)[1]).toBeGreaterThan(200)
+    expect(smooth(100, 100)[0]).toBeLessThan(20)
+    const closed = await render(
+      scene(`<curve points="40,40 160,40 100,150" closed style="fill:#ff0000; stroke:none" />`),
+    )
+    expect(closed(100, 80)[0]).toBeGreaterThan(200)
+    const straight = await render(scene(`<curve points="40,100 160,100" style="stroke:#00ff00; stroke-width:6" />`))
+    expect(straight(100, 100)[1]).toBeGreaterThan(200)
+    expect(straight(100, 80)[1]).toBeLessThan(15)
+  })
+
+  it('curve 绕中心旋转', async () => {
+    const px = await render(scene(`<curve points="40,100 160,100" style="stroke:#ff0000; stroke-width:8; rotate:90" />`))
+    expect(px(100, 150)[0]).toBeGreaterThan(200)
+    expect(px(150, 100)[0]).toBeLessThan(15)
+  })
+
+  it('transform-origin 决定旋转钉住的点', async () => {
+    const px = await render(
+      scene(`<rect cx="100" cy="100" style="width:60px; height:16px; fill:#ff0000; rotate:90; transform-origin:bottom" />`),
+    )
+    expect(px(108, 108)[0]).toBeGreaterThan(200)
+    expect(px(100, 70)[0]).toBeLessThan(15)
+  })
 })
