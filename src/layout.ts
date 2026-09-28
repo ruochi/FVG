@@ -405,10 +405,10 @@ function layoutShape(node: FvgNode, ctx: LayoutContext): ShapeLayoutNode {
   let r: number | undefined
   let rx: number | undefined
   let ry: number | undefined
-  if (node.tag === 'Circle') {
+  if (node.tag === 'circle') {
     r = length('r') ?? 0
     w = h = r * 2
-  } else if (node.tag === 'Ellipse') {
+  } else if (node.tag === 'ellipse') {
     rx = length('rx') ?? 0
     ry = length('ry') ?? 0
     w = rx * 2
@@ -423,6 +423,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext): ShapeLayoutNode {
   const strokeWidth = length('stroke-width') ?? 1
   const dash = parseDashArray(readProp(node, style, 'stroke-dasharray', ctx))
   const effects = readEffects(node, style, ctx, fill !== 'none' ? fill : stroke)
+  // 描边画在盒子内部，外缘贴着盒子边缘，着墨等于盒子，因此盖住描边。
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
     kind: 'shape',
@@ -437,14 +438,14 @@ function layoutShape(node: FvgNode, ctx: LayoutContext): ShapeLayoutNode {
     ink,
     padding: ZERO_EDGES,
     ...effects,
-    shape: node.tag === 'Rect' ? 'rect' : node.tag === 'Circle' ? 'circle' : 'ellipse',
+    shape: node.tag === 'rect' ? 'rect' : node.tag === 'circle' ? 'circle' : 'ellipse',
     fill,
     stroke,
     strokeWidth,
     dash,
-    rx: node.tag === 'Rect' ? rx : undefined,
+    rx: node.tag === 'rect' ? rx : undefined,
     r,
-    rxEllipse: node.tag === 'Ellipse' ? rx : undefined,
+    rxEllipse: node.tag === 'ellipse' ? rx : undefined,
     ry,
   }
 }
@@ -456,16 +457,16 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   const style = parseStyle(node.attrs.style)
   checkStyleKeys(node, style, 'line', ctx)
   let geom: LineGeometry
-  if (node.tag === 'Line' || node.tag === 'Arrow') {
+  if (node.tag === 'line' || node.tag === 'arrow') {
     geom = {
-      kind: node.tag === 'Arrow' ? 'arrow' : 'line',
+      kind: node.tag === 'arrow' ? 'arrow' : 'line',
       x1: parseNumber(node.attrs.x1) ?? 0,
       y1: parseNumber(node.attrs.y1) ?? 0,
       x2: parseNumber(node.attrs.x2) ?? 0,
       y2: parseNumber(node.attrs.y2) ?? 0,
-      head: node.tag === 'Arrow' ? parsePx(readProp(node, style, 'head', ctx)) : undefined,
+      head: node.tag === 'arrow' ? parsePx(readProp(node, style, 'head', ctx)) : undefined,
     }
-  } else if (node.tag === 'Polyline' || node.tag === 'Polygon') {
+  } else if (node.tag === 'polyline' || node.tag === 'polygon') {
     const pts = (node.attrs.points ?? '')
       .trim()
       .split(/\s+/)
@@ -474,7 +475,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
         return { x: Number(xs), y: Number(ys) }
       })
       .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    geom = { kind: node.tag === 'Polygon' ? 'polygon' : 'polyline', points: pts }
+    geom = { kind: node.tag === 'polygon' ? 'polygon' : 'polyline', points: pts }
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
@@ -521,7 +522,7 @@ type FlexMeasure = {
 
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
   if (isLineTag(node.tag)) {
-    ctx.issues.push({ level: 'warn', code: 'invalid-child', path: ctx.pathPrefix, message: '线条不能放在 Row/Column 内' })
+    ctx.issues.push({ level: 'warn', code: 'invalid-child', path: ctx.pathPrefix, message: '线条不能放在 row/column 内' })
     return null
   }
   if (isTextBoxTag(node.tag)) {
@@ -557,7 +558,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       isText: false,
     }
   }
-  if (ROOT_TAGS.has(node.tag) || node.tag === 'Layer') {
+  if (ROOT_TAGS.has(node.tag)) {
     const nested = await layoutLayer(node, ctx)
     return {
       node: nested,
@@ -573,7 +574,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
 }
 
 async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayoutNode> {
-  const direction = node.tag === 'Row' ? 'row' : 'column'
+  const direction = node.tag === 'row' ? 'row' : 'column'
   const style = parseStyle(node.attrs.style)
   checkStyleKeys(node, style, 'flex', ctx)
   const appearance = readAppearance(node, style, ctx)
@@ -623,7 +624,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.setAlignItems(alignItems)
   if (gap > 0) root.setGap(direction === 'row' ? Gutter.Column : Gutter.Row, gap)
 
-  /** Column 里的文字按列宽换行后，高度要跟着重新量 */
+  /** column 里的文字按列宽换行后，高度要跟着重新量 */
   const columnWidths = measures.map((m, i) => {
     const cross = m.preferredCross === Infinity ? crossAvailable : m.preferredCross
     if (direction !== 'column' || !m.isText || m.node.kind !== 'text') return cross
@@ -691,15 +692,22 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     const layout = yn.getComputedLayout()
     let child = m.node
     if (m.isText && child.kind === 'text') {
-      const assignedW =
-        direction === 'column'
-          ? layout.width
-          : layout.width
+      const assignedW = layout.width
       const innerW = assignedW - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
-      const re = layoutTextBox(measuredNodes[i]!, { ...ctx, parent: 'flex', pathPrefix: child.path }, innerW)
-      re.x = layout.left + contentOffsetX
-      re.y = layout.top + contentOffsetY
-      child = re
+      const currentInner = child.width - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
+      // Yoga 会把宽度收成整数。差不到 1px 时沿用已排好的单行，避免误触发换行。
+      if (innerW < currentInner - 1) {
+        const re = layoutTextBox(measuredNodes[i]!, { ...ctx, parent: 'flex', pathPrefix: child.path }, innerW)
+        re.x = layout.left + contentOffsetX
+        re.y = layout.top + contentOffsetY
+        child = re
+      } else {
+        child = {
+          ...child,
+          x: layout.left + contentOffsetX,
+          y: layout.top + contentOffsetY,
+        }
+      }
     } else {
       child = {
         ...child,
@@ -723,10 +731,10 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 
   const outer = outerFromContent(contentW, contentH, appearance.padding, appearance.border)
   if (fixedW != null && outer.width > fixedW + 1e-3) {
-    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 width' })
+    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'row/column 内容超出写死的 width' })
   }
   if (fixedH != null && outer.height > fixedH + 1e-3) {
-    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 height' })
+    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'row/column 内容超出写死的 height' })
   }
 
   return {
@@ -742,6 +750,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ink: { x: contentOffsetX, y: contentOffsetY, width: contentW, height: contentH },
     ...appearance,
     direction,
+    gap,
     children: laidChildren,
   }
 }
@@ -773,7 +782,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext, isRoot = false): P
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx)
     else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
-    else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
+    else if (ROOT_TAGS.has(ch.tag)) laid = await layoutLayer(ch, subCtx)
     else {
       ctx.issues.push({ level: 'warn', code: 'unknown-tag', path, message: `未知标签 ${ch.tag}` })
       continue
@@ -868,7 +877,7 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
       rootNode = n
     }
   }
-  if (!rootNode) throw new Error('FVG 缺少根元素 <fvg> 或 <Layer>')
+  if (!rootNode) throw new Error('FVG 缺少根元素 <fvg> 或 <layer>')
   await registerFontsFromDocument(fontNodes.filter((f) => f.family && f.src), baseDir)
 
   const style = parseStyle(rootNode.attrs.style)
@@ -884,7 +893,7 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
   const maxContentWidth = width - safe.left - safe.right
 
   const root = await layoutLayer(
-    rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer' } : rootNode,
+    rootNode.tag === 'fvg' ? { ...rootNode, tag: 'layer' } : rootNode,
     {
       color,
       fontFamily,

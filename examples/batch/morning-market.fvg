@@ -1,0 +1,31 @@
+<fvg style="width: 1080px; height: 1620px; background: #fff6ea; color: #2a140c; safe: 40">
+  <rect cx="540" cy="160" style="width: 1080px; height: 220px; fill: #d23a2a" />
+  <h1 cx="540" cy="160" anchor="center" style="font-size: 84px; color: #fff6ea; white-space: nowrap">早市</h1>
+  <column cx="80" cy="320" anchor="top-left" style="width: 920px; gap: 20px; align-items: start">
+    <row style="width: 920px; height: 120px; align-items: center; background: #ffffff; padding: 0 28px">
+      <p style="width: 28px; height: 72px; background: #d23a2a" />
+      <p style="width: 36px" />
+      <p style="width: 520px; font-size: 40px; white-space: nowrap">豆腐</p>
+      <p style="font-size: 32px; color: #8a5a3a; white-space: nowrap">东棚</p>
+    </row>
+    <row style="width: 920px; height: 120px; align-items: center; background: #ffffff; padding: 0 28px">
+      <p style="width: 28px; height: 72px; background: #e07a2f" />
+      <p style="width: 36px" />
+      <p style="width: 520px; font-size: 40px; white-space: nowrap">鲜花</p>
+      <p style="font-size: 32px; color: #8a5a3a; white-space: nowrap">中棚</p>
+    </row>
+    <row style="width: 920px; height: 120px; align-items: center; background: #ffffff; padding: 0 28px">
+      <p style="width: 28px; height: 72px; background: #2f6b8a" />
+      <p style="width: 36px" />
+      <p style="width: 520px; font-size: 40px; white-space: nowrap">鲜鱼</p>
+      <p style="font-size: 32px; color: #8a5a3a; white-space: nowrap">西棚</p>
+    </row>
+    <row style="width: 920px; height: 120px; align-items: center; background: #ffffff; padding: 0 28px">
+      <p style="width: 28px; height: 72px; background: #3d8a4a" />
+      <p style="width: 36px" />
+      <p style="width: 520px; font-size: 40px; white-space: nowrap">青菜</p>
+      <p style="font-size: 32px; color: #8a5a3a; white-space: nowrap">南棚</p>
+    </row>
+  </column>
+  <p cx="540" cy="1520" anchor="center" style="font-size: 26px; color: #8a5a3a; white-space: nowrap">周六 6:00 — 11:00</p>
+</fvg>

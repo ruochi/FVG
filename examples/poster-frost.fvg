@@ -1,0 +1,87 @@
+<!-- 霜降书市 · 1080×1620 海报 -->
+<fvg style="width:1080px; height:1620px; background:#1a1220; color:#1c1612; safe:56">
+  <line x1="760" y1="8" x2="760" y2="168" style="stroke:#c9a27a; stroke-width:3px" />
+  <circle cx="760" cy="380" style="r:156px; fill:#ffc56a; opacity:0.28; glow:64px 8px #ff9a3c" />
+  <circle cx="760" cy="380" style="r:122px; fill:#ffe7c2; glow:28px 4px #fff1d4" />
+  <circle cx="760" cy="380" style="r:96px; fill:#f0a04a" />
+  <circle cx="760" cy="380" style="r:72px; fill:#fff8ee" />
+  <p cx="760" cy="380" anchor="center" style="font-size:64px; font-weight:700; color:#6a3414">霜</p>
+
+  <circle cx="148" cy="120" style="r:3px; fill:#f6efe4; glow:16px" />
+  <circle cx="96" cy="248" style="r:2px; fill:#f6efe4; opacity:0.7" />
+  <circle cx="220" cy="188" style="r:4px; fill:#f6efe4; opacity:0.85; glow:20px" />
+  <circle cx="310" cy="96" style="r:2px; fill:#e8a23a; glow:14px" />
+  <circle cx="420" cy="210" style="r:3px; fill:#f6efe4; opacity:0.6" />
+  <circle cx="180" cy="420" style="r:2px; fill:#f6efe4; opacity:0.55" />
+  <circle cx="520" cy="140" style="r:2px; fill:#f6efe4; opacity:0.8; glow:12px" />
+  <circle cx="980" cy="96" style="r:3px; fill:#f6efe4; opacity:0.7" />
+
+  <p cx="72" cy="72" anchor="top-left" style="font-size:28px; letter-spacing:6px; color:#f6efe4">南巷旧书</p>
+  <p cx="1008" cy="72" anchor="top-right" style="font-size:28px; letter-spacing:4px; color:#f6efe4">二〇二六</p>
+  <p cx="120" cy="470" anchor="center" style="width:48px; font-size:32px; line-height:1.35; color:#f6efe4; text-align:center">十月廿三</p>
+
+  <rect cx="540" cy="1170" style="width:1080px; height:900px; fill:#f6f1e8; shadow:0 -18px 36px #00000066" />
+  <rect cx="540" cy="728" style="width:1080px; height:8px; fill:#e07a2f" />
+
+  <column cx="72" cy="768" anchor="top-left" style="width:936px; gap:16px; align-items:start">
+    <column style="gap:6px; align-items:start">
+      <p style="font-size:26px; letter-spacing:8px; color:#e07a2f; white-space:nowrap">FIRST FROST</p>
+      <h1 style="font-size:128px; letter-spacing:12px; color:#1c1612; line-height:1.02">霜降</h1>
+      <p style="font-size:36px; color:#1c1612">夜读书市</p>
+    </column>
+
+    <p style="font-size:34px; color:#3f3832; width:820px; line-height:1.45">灯还亮着的时候，把没看完的那本带来。</p>
+
+    <row style="width:936px; gap:24px; align-items:start">
+      <layer style="width:296px; height:136px">
+        <rect style="width:296px; height:136px; fill:#fffdf8; shadow:0 10px 18px #3a241433" />
+        <rect cx="24" cy="0" anchor="top-left" style="width:8px; height:136px; fill:#e07a2f" />
+        <p cx="36" cy="28" anchor="top-left" style="font-size:24px; letter-spacing:4px; color:#8a8175">换书</p>
+        <p cx="36" cy="64" anchor="top-left" style="font-size:34px; font-weight:700; color:#1c1612">旧换旧</p>
+      </layer>
+      <layer style="width:296px; height:136px">
+        <rect style="width:296px; height:136px; fill:#fffdf8; shadow:0 10px 18px #3a241433" />
+        <rect cx="24" cy="0" anchor="top-left" style="width:8px; height:136px; fill:#c45c26" />
+        <p cx="36" cy="28" anchor="top-left" style="font-size:24px; letter-spacing:4px; color:#8a8175">朗读</p>
+        <p cx="36" cy="64" anchor="top-left" style="font-size:34px; font-weight:700; color:#1c1612">三首诗</p>
+      </layer>
+      <layer style="width:296px; height:136px">
+        <rect style="width:296px; height:136px; fill:#fffdf8; shadow:0 10px 18px #3a241433" />
+        <rect cx="24" cy="0" anchor="top-left" style="width:8px; height:136px; fill:#6a3414" />
+        <p cx="36" cy="28" anchor="top-left" style="font-size:24px; letter-spacing:4px; color:#8a8175">热茶</p>
+        <p cx="36" cy="64" anchor="top-left" style="font-size:34px; font-weight:700; color:#1c1612">免费</p>
+      </layer>
+    </row>
+
+    <column style="width:936px; gap:12px; align-items:start">
+      <row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e07a2f">18:30</p>
+        <p style="font-size:34px; color:#1c1612">开门，领一本书签</p>
+      </row>
+      <rect style="width:936px; height:2px; fill:#e6ddd2" />
+      <row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e07a2f">19:40</p>
+        <p style="font-size:34px; color:#1c1612">换书开始</p>
+      </row>
+      <rect style="width:936px; height:2px; fill:#e6ddd2" />
+      <row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e07a2f">20:30</p>
+        <p style="font-size:34px; color:#1c1612">窗边朗读</p>
+      </row>
+      <rect style="width:936px; height:2px; fill:#e6ddd2" />
+      <row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e07a2f">22:00</p>
+        <p style="font-size:34px; color:#1c1612">打烊</p>
+      </row>
+    </column>
+  </column>
+
+  <rect cx="540" cy="1572" style="width:1080px; height:96px; fill:#241820" />
+  <row cx="540" cy="1572" anchor="center" style="gap:22px; align-items:center">
+    <p style="font-size:30px; color:#f6f1e8">南巷 12 号</p>
+    <p style="font-size:30px; color:#e07a2f">·</p>
+    <p style="font-size:30px; color:#f6f1e8">免费入场</p>
+    <p style="font-size:30px; color:#e07a2f">·</p>
+    <p style="font-size:30px; color:#f6f1e8">自带旧书</p>
+  </row>
+</fvg>

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { decodeEntities, parseFvg } from './parse.js'
 
 describe('parseFvg', () => {
-  it('保留标签大小写', () => {
-    const nodes = parseFvg('<Row><Column /></Row>')
-    expect(nodes[0]?.tag).toBe('Row')
+  it('标签统一为小写，闭标签大小写可以不同', () => {
+    const nodes = parseFvg('<Row><Column /></row>')
+    expect(nodes[0]?.tag).toBe('row')
     const row = nodes[0]!
-    expect((row.children[0] as { tag: string }).tag).toBe('Column')
+    expect((row.children[0] as { tag: string }).tag).toBe('column')
   })
 
   it('解析 br 与注释', () => {

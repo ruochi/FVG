@@ -1,74 +1,74 @@
 <!-- 夏至放映 · 1080×1620 海报 -->
 <fvg style="width:1080px; height:1620px; background:#0e1116; color:#1c1916; safe:48">
-  <Path d="M 731.2 290.3 A 230 230 0 1 0 855.3 706.0 A 226 226 0 0 1 731.2 290.3 Z"
+  <path d="M 731.2 290.3 A 230 230 0 1 0 855.3 706.0 A 226 226 0 0 1 731.2 290.3 Z"
         style="fill:#f6f1e7; stroke:#f6f1e7; stroke-width:1px; glow:140px 16px #fff4d8" />
 
-  <Circle cx="132" cy="168" style="r:3px; fill:#f6f1e7; glow:18px" />
-  <Circle cx="214" cy="246" style="r:2px; fill:#f6f1e7; opacity:0.7" />
-  <Circle cx="168" cy="390" style="r:4px; fill:#f6f1e7; opacity:0.85; glow:22px" />
-  <Circle cx="286" cy="148" style="r:2px; fill:#f6f1e7; opacity:0.55" />
-  <Circle cx="360" cy="268" style="r:3px; fill:#f6f1e7; glow:16px" />
-  <Circle cx="246" cy="520" style="r:2px; fill:#f6f1e7; opacity:0.6" />
-  <Circle cx="470" cy="176" style="r:2px; fill:#e39b3a; glow:18px" />
-  <Circle cx="96" cy="560" style="r:3px; fill:#f6f1e7; opacity:0.8" />
-  <Circle cx="980" cy="150" style="r:3px; fill:#f6f1e7; opacity:0.75; glow:16px" />
-  <Circle cx="920" cy="240" style="r:2px; fill:#f6f1e7; opacity:0.5" />
+  <circle cx="132" cy="168" style="r:3px; fill:#f6f1e7; glow:18px" />
+  <circle cx="214" cy="246" style="r:2px; fill:#f6f1e7; opacity:0.7" />
+  <circle cx="168" cy="390" style="r:4px; fill:#f6f1e7; opacity:0.85; glow:22px" />
+  <circle cx="286" cy="148" style="r:2px; fill:#f6f1e7; opacity:0.55" />
+  <circle cx="360" cy="268" style="r:3px; fill:#f6f1e7; glow:16px" />
+  <circle cx="246" cy="520" style="r:2px; fill:#f6f1e7; opacity:0.6" />
+  <circle cx="470" cy="176" style="r:2px; fill:#e39b3a; glow:18px" />
+  <circle cx="96" cy="560" style="r:3px; fill:#f6f1e7; opacity:0.8" />
+  <circle cx="980" cy="150" style="r:3px; fill:#f6f1e7; opacity:0.75; glow:16px" />
+  <circle cx="920" cy="240" style="r:2px; fill:#f6f1e7; opacity:0.5" />
 
   <p cx="72" cy="64" anchor="top-left" style="font-size:28px; letter-spacing:6px; color:#f6f1e7">北岸码头</p>
   <p cx="1008" cy="64" anchor="top-right" style="font-size:28px; letter-spacing:4px; color:#f6f1e7">二〇二六</p>
   <p cx="96" cy="430" anchor="center" style="width:48px; font-size:32px; line-height:1.35; color:#f6f1e7; text-align:center">六月廿一</p>
 
-  <Rect cx="540" cy="1164" style="width:1080px; height:912px; fill:#f3eee4" />
-  <Rect cx="540" cy="712" style="width:1080px; height:8px; fill:#e23b2f" />
+  <rect cx="540" cy="1164" style="width:1080px; height:912px; fill:#f3eee4" />
+  <rect cx="540" cy="712" style="width:1080px; height:8px; fill:#e23b2f" />
 
-  <Column cx="72" cy="760" anchor="top-left" style="width:936px; gap:22px; align-items:start">
-    <Row style="width:936px; gap:48px; align-items:center; justify-content:start">
-      <Column style="gap:6px; align-items:start">
+  <column cx="72" cy="760" anchor="top-left" style="width:936px; gap:22px; align-items:start">
+    <row style="width:936px; gap:48px; align-items:center; justify-content:start">
+      <column style="gap:6px; align-items:start">
         <p style="font-size:26px; letter-spacing:8px; color:#e23b2f; white-space:nowrap">SOLSTICE</p>
         <h1 style="font-size:168px; letter-spacing:18px; color:#1c1916; line-height:1.02">夏至</h1>
         <p style="font-size:40px; color:#1c1916">露天电影夜</p>
-      </Column>
-      <Layer style="width:148px; height:148px">
-        <Circle style="r:70px; fill:#e23b2f; shadow:0 10px 18px #5a1a1266" />
-        <Circle style="r:58px; fill:none; stroke:#f3eee4; stroke-width:3px" />
+      </column>
+      <layer style="width:148px; height:148px">
+        <circle style="r:70px; fill:#e23b2f; shadow:0 10px 18px #5a1a1266" />
+        <circle style="r:58px; fill:none; stroke:#f3eee4; stroke-width:3px" />
         <p style="font-size:36px; font-weight:700; color:#ffffff">夜场</p>
-      </Layer>
-    </Row>
+      </layer>
+    </row>
 
     <p style="font-size:34px; color:#3f3832; width:760px; line-height:1.4">江风比人先到。灯一灭，字幕就亮了。</p>
 
-    <Column style="width:936px; gap:18px; align-items:start">
+    <column style="width:936px; gap:18px; align-items:start">
       <p style="font-size:24px; letter-spacing:8px; color:#8a8175">放映</p>
-      <Row style="width:936px; gap:28px; align-items:center">
+      <row style="width:936px; gap:28px; align-items:center">
         <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">19:30</p>
         <p style="font-size:34px; color:#1c1916">入场，铺开毯子</p>
-      </Row>
-      <Rect style="width:936px; height:2px; fill:#e4dbd0" />
-      <Row style="width:936px; gap:28px; align-items:center">
+      </row>
+      <rect style="width:936px; height:2px; fill:#e4dbd0" />
+      <row style="width:936px; gap:28px; align-items:center">
         <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">20:05</p>
         <p style="font-size:34px; color:#1c1916">短片《热风》《未明》</p>
-      </Row>
-      <Rect style="width:936px; height:2px; fill:#e4dbd0" />
-      <Row style="width:936px; gap:28px; align-items:center">
+      </row>
+      <rect style="width:936px; height:2px; fill:#e4dbd0" />
+      <row style="width:936px; gap:28px; align-items:center">
         <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">21:10</p>
         <p style="font-size:34px; color:#1c1916">长片《江心》</p>
-      </Row>
-      <Rect style="width:936px; height:2px; fill:#e4dbd0" />
-      <Row style="width:936px; gap:28px; align-items:center">
+      </row>
+      <rect style="width:936px; height:2px; fill:#e4dbd0" />
+      <row style="width:936px; gap:28px; align-items:center">
         <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">23:00</p>
         <p style="font-size:34px; color:#1c1916">散场</p>
-      </Row>
-    </Column>
+      </row>
+    </column>
 
     <p style="font-size:28px; color:#514c46">自带毯子。不设座位。小雨改至次日。</p>
-  </Column>
+  </column>
 
-  <Rect cx="540" cy="1572" style="width:1080px; height:96px; fill:#1a1714" />
-  <Row cx="540" cy="1572" anchor="center" style="gap:22px; align-items:center">
+  <rect cx="540" cy="1572" style="width:1080px; height:96px; fill:#1a1714" />
+  <row cx="540" cy="1572" anchor="center" style="gap:22px; align-items:center">
     <p style="font-size:30px; color:#f3eee4">江畔草坪</p>
     <p style="font-size:30px; color:#e23b2f">·</p>
     <p style="font-size:30px; color:#f3eee4">免费入场</p>
     <p style="font-size:30px; color:#e23b2f">·</p>
     <p style="font-size:30px; color:#f3eee4">日落开场</p>
-  </Row>
+  </row>
 </fvg>

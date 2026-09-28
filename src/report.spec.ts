@@ -35,7 +35,7 @@ function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
   const root: LayerLayoutNode = {
     kind: 'layer',
     path: 'fvg',
-    tag: 'Layer',
+    tag: 'layer',
     x: 0,
     y: 0,
     width: 1080,
@@ -83,10 +83,10 @@ describe('效果范围', () => {
 
   it('effect 覆盖偏移后的阴影和外扩的光晕', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Rect cx="200" cy="200" style="width:100px; height:100px; shadow:0 20px 10px 5px; glow:4px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><rect cx="200" cy="200" style="width:100px; height:100px; shadow:0 20px 10px 5px; glow:4px" /></fvg>`,
       { fontsCacheDir },
     )
-    const rect = rep.elements.find((e) => e.tag === 'Rect')!
+    const rect = rep.elements.find((e) => e.tag === 'rect')!
     expect(rect.shadow).toEqual({ x: 0, y: 20, blur: 10, spread: 5, color: '#00000066' })
     expect(rect.glow).toEqual({ blur: 4, spread: 0, color: '#000000' })
     expect(rect.effect).toMatchObject({ left: 125, top: 142, right: 275, bottom: 295 })
@@ -95,7 +95,7 @@ describe('效果范围', () => {
 
   it('本体在画布内、效果出界时记 effect-clipped', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Circle cx="30" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><circle cx="30" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
       { fontsCacheDir },
     )
     expect(rep.issues.map((i) => i.code)).toEqual(['effect-clipped'])
@@ -103,10 +103,10 @@ describe('效果范围', () => {
 
   it('本体出界时只记 overflow-canvas', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Circle cx="10" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><circle cx="10" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
       { fontsCacheDir },
     )
-    const codes = rep.issues.filter((i) => i.path === 'fvg/Circle[0]').map((i) => i.code)
+    const codes = rep.issues.filter((i) => i.path === 'fvg/circle[0]').map((i) => i.code)
     expect(codes).toEqual(['overflow-canvas'])
   })
 })

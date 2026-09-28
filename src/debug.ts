@@ -1,145 +1,86 @@
-import { createCanvas, type Canvas, type SKRSContext2D as CanvasRenderingContext2D } from '@napi-rs/canvas'
-import type { ElementReport, FvgDocument, FvgReport, Issue, Rect } from './types.js'
-
-export type DebugOverlayOptions = {
-  scale: number
-}
+import { createCanvas, type Canvas } from '@napi-rs/canvas'
+import type { ElementReport, FvgDocument, FvgReport, Rect } from './types.js'
 
 export type DebugIndexMeta = {
   sourceFile: string
   scale: number
 }
 
-function pathsWithProblems(issues: Issue[]): Set<string> {
-  const out = new Set<string>()
-  for (const i of issues) {
-    if (i.level === 'error' || i.level === 'warn') out.add(i.path)
-  }
-  return out
+function pushUnique(list: number[], value: number) {
+  if (list.some((n) => Math.abs(n - value) < 0.5)) return
+  list.push(value)
 }
 
-function strokeDashedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  dash: number[],
-) {
-  ctx.beginPath()
-  ctx.setLineDash(dash)
-  ctx.strokeRect(x + 0.5, y + 0.5, w, h)
-  ctx.setLineDash([])
+/** 每个元素盒子的左右、上下。重合的边收成一条线，靠近的边各自保留。 */
+export function guideAxes(report: FvgReport): { x: number[]; y: number[] } {
+  const x: number[] = []
+  const y: number[] = []
+  for (const el of report.elements) {
+    pushUnique(x, el.box.left)
+    pushUnique(x, el.box.right)
+    pushUnique(y, el.box.top)
+    pushUnique(y, el.box.bottom)
+  }
+  x.sort((a, b) => a - b)
+  y.sort((a, b) => a - b)
+  return { x, y }
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, scale: number) {
-  ctx.strokeStyle = 'rgba(180, 180, 200, 0.45)'
-  ctx.lineWidth = 1 / scale
-  ctx.fillStyle = 'rgba(80, 80, 100, 0.85)'
-  ctx.font = `${11}px sans-serif`
-  ctx.textBaseline = 'top'
-
-  for (let x = 0; x <= width; x += 100) {
-    ctx.beginPath()
-    ctx.moveTo(x + 0.5, 0)
-    ctx.lineTo(x + 0.5, height)
-    ctx.stroke()
+/** 只沿元素盒子的四条边画，不延伸到画面上。 */
+export function guideSegments(report: FvgReport): Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> {
+  const segs: Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> = []
+  const seen = new Set<string>()
+  const add = (axis: 'h' | 'v', pos: number, from: number, to: number) => {
+    const a = Math.min(from, to)
+    const b = Math.max(from, to)
+    if (b - a < 0.5) return
+    const key = `${axis}|${Math.round(pos * 2)}|${Math.round(a)}|${Math.round(b)}`
+    if (seen.has(key)) return
+    seen.add(key)
+    segs.push({ axis, pos, from: a, to: b })
   }
-  for (let y = 0; y <= height; y += 100) {
-    ctx.beginPath()
-    ctx.moveTo(0, y + 0.5)
-    ctx.lineTo(width, y + 0.5)
-    ctx.stroke()
-  }
-
-  ctx.save()
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  for (let x = 0; x <= width; x += 100) {
-    ctx.fillText(String(x), x * scale + 2, 2)
-  }
-  ctx.textBaseline = 'bottom'
-  for (let y = 0; y <= height; y += 100) {
-    if (y === 0) continue
-    ctx.fillText(String(y), 2, y * scale - 2)
-  }
-  ctx.restore()
-}
-
-function drawSafeArea(
-  ctx: CanvasRenderingContext2D,
-  doc: FvgDocument,
-) {
-  const { width, height, safe } = doc
-  const x = safe.left
-  const y = safe.top
-  const w = width - safe.left - safe.right
-  const h = height - safe.top - safe.bottom
-  ctx.strokeStyle = 'rgba(120, 120, 140, 0.75)'
-  ctx.lineWidth = 1
-  strokeDashedRect(ctx, x, y, w, h, [6, 4])
-}
-
-function drawElementBadge(ctx: CanvasRenderingContext2D, n: number, srcX: number, srcY: number, scale: number) {
-  const label = `#${n}`
-  const padX = 4
-  const padY = 2
-  const fontSize = 11
-  ctx.save()
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.font = `600 ${fontSize}px sans-serif`
-  const tw = ctx.measureText(label).width
-  const bx = srcX * scale
-  const by = srcY * scale
-  const bw = tw + padX * 2
-  const bh = fontSize + padY * 2
-  ctx.fillStyle = 'rgba(20, 24, 40, 0.88)'
-  ctx.fillRect(bx, by, bw, bh)
-  ctx.fillStyle = '#ffffff'
-  ctx.textBaseline = 'top'
-  ctx.fillText(label, bx + padX, by + padY)
-  ctx.restore()
-}
-
-/** 在已渲染的画布上叠加调试信息（坐标为源文件像素） */
-export function drawDebugOverlay(
-  ctx: CanvasRenderingContext2D,
-  report: FvgReport,
-  doc: FvgDocument,
-  opts: DebugOverlayOptions,
-) {
-  const { scale } = opts
-  const problems = pathsWithProblems(report.issues)
-
-  ctx.save()
-  ctx.scale(scale, scale)
-  drawGrid(ctx, doc.width, doc.height, scale)
-  drawSafeArea(ctx, doc)
-
-  for (let n = 0; n < report.elements.length; n++) {
-    const el = report.elements[n]!
-    const problem = problems.has(el.path)
+  for (const el of report.elements) {
     const box = el.box
-    const ink = el.ink
+    add('h', box.top, box.left, box.right)
+    add('h', box.bottom, box.left, box.right)
+    add('v', box.left, box.top, box.bottom)
+    add('v', box.right, box.top, box.bottom)
+  }
+  return segs
+}
 
-    ctx.lineWidth = problem ? 2.5 : 1
-    ctx.strokeStyle = problem ? 'rgba(220, 40, 40, 0.95)' : 'rgba(0, 120, 255, 0.85)'
-    ctx.strokeRect(box.left + 0.5, box.top + 0.5, box.width, box.height)
-
-    ctx.lineWidth = 1
-    ctx.strokeStyle = 'rgba(255, 40, 40, 0.85)'
-    ctx.strokeRect(ink.left + 0.5, ink.top + 0.5, ink.width, ink.height)
-
-    if (el.effect) {
-      ctx.strokeStyle = 'rgba(230, 180, 0, 0.9)'
-      strokeDashedRect(ctx, el.effect.left, el.effect.top, el.effect.width, el.effect.height, [5, 3])
+/** 在原图上画出每个元素的框，不写数字。框线停在元素边上。 */
+export function renderDebugSheet(poster: Canvas, report: FvgReport, scale: number): Canvas {
+  const canvas = createCanvas(poster.width, poster.height)
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(poster as unknown as Canvas, 0, 0)
+  const marks = new Set<string>()
+  const mark = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return
+    marks.add(`${x},${y}`)
+  }
+  for (const seg of guideSegments(report)) {
+    if (seg.axis === 'h') {
+      const py = Math.round(seg.pos * scale)
+      const x0 = Math.round(seg.from * scale)
+      const x1 = Math.round(seg.to * scale)
+      for (let x = x0; x <= x1; x++) mark(x, py)
+    } else {
+      const px = Math.round(seg.pos * scale)
+      const y0 = Math.round(seg.from * scale)
+      const y1 = Math.round(seg.to * scale)
+      for (let y = y0; y <= y1; y++) mark(px, y)
     }
   }
-  ctx.restore()
-
-  for (let n = 0; n < report.elements.length; n++) {
-    const el = report.elements[n]!
-    drawElementBadge(ctx, n, el.box.left, el.box.top, scale)
+  ctx.save()
+  ctx.globalCompositeOperation = 'difference'
+  ctx.fillStyle = '#ffffff'
+  for (const key of marks) {
+    const [x, y] = key.split(',')
+    ctx.fillRect(Number(x), Number(y), 1, 1)
   }
+  ctx.restore()
+  return canvas
 }
 
 export function resolveFocusIndex(report: FvgReport, token: string): number | undefined {
@@ -177,13 +118,16 @@ function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 }
 
-/** 从 1 倍已绘制的调试图裁出 focus 区域，长边不超过 1024 */
-export function cropFocusFromCanvas(canvas: Canvas, crop: Rect, maxLongEdge = 1024): Buffer {
-  const scale = 1
-  const sx = Math.round(crop.left * scale)
-  const sy = Math.round(crop.top * scale)
-  const sw = Math.max(1, Math.round(crop.width * scale))
-  const sh = Math.max(1, Math.round(crop.height * scale))
+/** 从调试图上按设备像素裁出一块，长边不超过 1024 */
+export function cropFocusFromCanvas(
+  canvas: Canvas,
+  crop: { x: number; y: number; width: number; height: number },
+  maxLongEdge = 1024,
+): Buffer {
+  const sx = Math.max(0, Math.round(crop.x))
+  const sy = Math.max(0, Math.round(crop.y))
+  const sw = Math.max(1, Math.round(crop.width))
+  const sh = Math.max(1, Math.round(crop.height))
   let outW = sw
   let outH = sh
   const long = Math.max(outW, outH)
@@ -250,7 +194,7 @@ export function formatDebugIndex(
   lines.push(`- 元素：${report.elements.length} 个`)
   lines.push(`- 问题：error ${errors} · warn ${warns} · info ${infos}`)
   lines.push('')
-  lines.push('编号 `#n` = `report.json` 的 `elements[n]`；坐标均为源文件像素。')
+  lines.push('调试图沿每个元素的盒子画框，不标数字，线不延伸到元素外面。靠得很近的边会并成一对线。精确坐标看下面的元素表。')
   lines.push('')
 
   lines.push('## 问题')

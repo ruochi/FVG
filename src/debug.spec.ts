@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { loadImage } from '@napi-rs/canvas'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { parseFvg, type FvgNode } from './parse.js'
 import { initFontsForMeasure } from './fonts.js'
 import { debugFvg } from './render.js'
+import { guideAxes, guideSegments } from './debug.js'
+import type { FvgReport } from './types.js'
 import { layoutSource } from './layout.js'
 import { buildReport } from './report.js'
 
@@ -19,22 +21,12 @@ beforeAll(async () => {
   }
 })
 
-async function pixelSampler(png: Buffer) {
-  const img = await loadImage(png)
-  const canvas = createCanvas(img.width, img.height)
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(img, 0, 0)
-  return (x: number, y: number) => {
-    const p = ctx.getImageData(x, y, 1, 1).data
-    return [p[0]!, p[1]!, p[2]!] as const
-  }
-}
-
 describe('parse line numbers', () => {
   it('注释保留行号', () => {
-    const source = ['<Layer>', '<!-- comment -->', '<p>hi</p>', '</Layer>'].join('\n')
+    const source = ['<layer>', '<!-- comment -->', '<p>hi</p>', '</layer>'].join('\n')
     const nodes = parseFvg(source)
     const layer = nodes[0]!
+    expect(layer.tag).toBe('layer')
     expect(layer.line).toBe(1)
     const p = layer.children.find((c): c is FvgNode => typeof c !== 'string' && c.tag === 'p')
     expect(p?.line).toBe(3)
@@ -64,17 +56,51 @@ describe('debugFvg', () => {
     expect(index).toMatch(/L\d+/)
   })
 
-  it('debug.png 与 render.png 不同且含网格线', async () => {
+  it('debug.png 只画横纵线，尺寸与原图相同', async () => {
     const source = await readFile(helloPath, 'utf8')
-    const { renderPng, debugPng } = await debugFvg(source, {
+    const { renderPng, debugPng, report } = await debugFvg(source, {
       baseDir: join(pkgDir, 'examples'),
       scale: 0.5,
     })
+    const render = await loadImage(renderPng)
+    const debug = await loadImage(debugPng)
+    expect(debug.width).toBe(render.width)
+    expect(debug.height).toBe(render.height)
     expect(renderPng.equals(debugPng)).toBe(false)
-    const sampleRender = await pixelSampler(renderPng)
-    const sampleDebug = await pixelSampler(debugPng)
-    const x = 50
-    expect(sampleRender(x, 0)).not.toEqual(sampleDebug(x, 0))
+    const guides = guideAxes(report)
+    expect(guides.x.length).toBeGreaterThan(2)
+    expect(guides.y.length).toBeGreaterThan(2)
+    const gaps: number[] = []
+    for (let i = 1; i < guides.y.length; i++) gaps.push(guides.y[i]! - guides.y[i - 1]!)
+    expect(gaps.some((d) => Math.abs(d - 32) < 1)).toBe(true)
+  })
+
+  it('框线停在元素边上', () => {
+    const report = {
+      width: 100,
+      height: 100,
+      elements: [
+        {
+          box: {
+            x: 10,
+            y: 60,
+            width: 20,
+            height: 20,
+            left: 10,
+            right: 30,
+            top: 60,
+            bottom: 80,
+            centerX: 20,
+            centerY: 70,
+          },
+        },
+      ],
+    } as FvgReport
+    const segs = guideSegments(report)
+    const horizontal = segs.filter((s) => s.axis === 'h')
+    const vertical = segs.filter((s) => s.axis === 'v')
+    expect(horizontal.every((s) => s.from === 10 && s.to === 30)).toBe(true)
+    expect(vertical.every((s) => s.from === 60 && s.to === 80)).toBe(true)
   })
 
   it('focus 裁图与 id 解析', async () => {

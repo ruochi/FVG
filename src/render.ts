@@ -1,8 +1,8 @@
 import {
   cropFocusFromCanvas,
-  drawDebugOverlay,
   focusCropRect,
   formatDebugIndex,
+  renderDebugSheet,
   resolveFocusIndex,
 } from './debug.js'
 import { layoutSource } from './layout.js'
@@ -71,9 +71,7 @@ export async function debugFvg(source: string, options: DebugOptions = {}): Prom
   const canvas = paintDocumentCanvas(doc.root, paintOpts)
   const renderPng = canvas.toBuffer('image/png')
 
-  const dbgCtx = canvas.getContext('2d')
-  drawDebugOverlay(dbgCtx, report, doc, { scale })
-  const debugPng = canvas.toBuffer('image/png')
+  const debugPng = renderDebugSheet(canvas, report, scale).toBuffer('image/png')
 
   const focusTokens = options.focus ?? []
   const focusIndices: number[] = []
@@ -84,14 +82,13 @@ export async function debugFvg(source: string, options: DebugOptions = {}): Prom
 
   const focus: DebugFocusImage[] = []
   if (focusIndices.length > 0) {
-    const canvas1 = paintDocumentCanvas(doc.root, { ...paintOpts, scale: 1 })
-    const ctx1 = canvas1.getContext('2d')
-    drawDebugOverlay(ctx1, report, doc, { scale: 1 })
+    const poster1 = paintDocumentCanvas(doc.root, { ...paintOpts, scale: 1 })
+    const sheet1 = renderDebugSheet(poster1, report, 1)
     for (const n of focusIndices) {
       const el = report.elements[n]
       if (!el) continue
       const crop = focusCropRect(el, doc)
-      focus.push({ n, png: cropFocusFromCanvas(canvas1, crop) })
+      focus.push({ n, png: cropFocusFromCanvas(sheet1, crop) })
     }
   }
 

@@ -43,6 +43,13 @@ function walk(node: LayoutNode, ox: number, oy: number, elements: ElementReport[
   if (effect) entry.effect = boxToRect(effect)
   if (node.shadow) entry.shadow = node.shadow
   if (node.glow) entry.glow = node.glow
+  const pad = node.padding
+  if (pad.top || pad.right || pad.bottom || pad.left) entry.padding = { ...pad }
+  if (node.border && node.border.width > 0) entry.border = node.border.width
+  if (node.kind === 'flex') {
+    entry.gap = node.gap
+    entry.direction = node.direction
+  }
   if (node.kind === 'text') {
     entry.fontSize = node.textLayout.fontSize
     entry.lines = node.textLayout.lines.map((line) => ({

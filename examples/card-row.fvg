@@ -1,12 +1,12 @@
 <fvg style="width:1080px; height:800px; background:#fafafa; color:#222">
-  <Row cx="540" cy="400" style="gap:20px; padding:24px; align-items:stretch">
-    <Column style="width:300px; gap:12px; padding:20px; background:#fff; border-radius:16px; align-items:start; shadow:0 8px 24px #00000022">
+  <row cx="540" cy="400" style="gap:20px; padding:24px; align-items:stretch">
+    <column style="width:300px; gap:12px; padding:20px; background:#fff; border-radius:16px; align-items:start; shadow:0 8px 24px #00000022">
       <h3 style="color:#f7931a">减半</h3>
       <p style="font-size:32px">区块奖励减少一半，大约每四年发生一次。</p>
-    </Column>
-    <Column style="width:300px; gap:12px; padding:20px; background:#fff; border-radius:16px; align-items:start; shadow:0 8px 24px #00000022">
+    </column>
+    <column style="width:300px; gap:12px; padding:20px; background:#fff; border-radius:16px; align-items:start; shadow:0 8px 24px #00000022">
       <h3>供应</h3>
       <p style="font-size:32px">总量上限 2100 万枚。</p>
-    </Column>
-  </Row>
+    </column>
+  </row>
 </fvg>

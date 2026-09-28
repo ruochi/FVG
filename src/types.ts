@@ -85,6 +85,11 @@ export type ElementReport = {
   glow?: GlowSpec
   fontSize?: number
   lines?: TextLineReport[]
+  padding?: { top: number; right: number; bottom: number; left: number }
+  border?: number
+  /** row/column 写明的 gap */
+  gap?: number
+  direction?: 'row' | 'column'
 }
 
 export type FvgReport = {
@@ -169,6 +174,7 @@ export type LayerLayoutNode = LayoutNodeBase & {
 export type FlexLayoutNode = LayoutNodeBase & {
   kind: 'flex'
   direction: 'row' | 'column'
+  gap: number
   children: LayoutNode[]
 }
 

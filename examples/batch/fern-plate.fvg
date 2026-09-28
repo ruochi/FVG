@@ -1,0 +1,9 @@
+<fvg style="width: 980px; height: 1400px; background: #f7f3ea; color: #2a3228; safe: 48">
+  <ellipse cx="490" cy="460" style="rx: 220px; ry: 280px; fill: #e4efe0; stroke: #2f6b45; stroke-width: 3px" />
+  <ellipse cx="490" cy="460" style="rx: 70px; ry: 150px; fill: #2f6b45" />
+  <line x1="120" y1="860" x2="860" y2="860" style="stroke: #2a3228; stroke-width: 1px" />
+  <p cx="120" cy="900" anchor="top-left" style="font-size: 22px; letter-spacing: 4px; color: #6d7a68; white-space: nowrap">PLATE 07</p>
+  <h1 cx="120" cy="950" anchor="top-left" style="font-size: 64px; white-space: nowrap">肾蕨</h1>
+  <p cx="120" cy="1040" anchor="top-left" style="font-size: 28px; color: #4d5c48; white-space: nowrap">Nephrolepis cordifolia</p>
+  <p cx="120" cy="1120" anchor="top-left" style="font-size: 26px; color: #4d5c48; width: 740px">林下阴湿处。羽片对生，孢子囊群沿叶缘排列。</p>
+</fvg>
