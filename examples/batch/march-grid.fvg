@@ -1,0 +1,153 @@
+<fvg style="width: 1100px; height: 1100px; background: #f2f4f7; color: #1d2430; safe: 36">
+  <h1 cx="64" cy="48" anchor="top-left" style="font-size: 64px; white-space: nowrap">三月</h1>
+  <p cx="1036" cy="72" anchor="top-right" style="font-size: 28px; color: #6b7688; white-space: nowrap">2026</p>
+  <row cx="64" cy="160" anchor="top-left" style="gap: 8px">
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">一</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">二</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">三</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">四</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">五</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">六</p>
+    <p style="width: 132px; font-size: 22px; color: #6b7688; text-align: center; white-space: nowrap">日</p>
+  </row>
+  <column cx="64" cy="220" anchor="top-left" style="gap: 8px">
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #d23a2a">1</p>
+      </div>
+    </row>
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">2</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">3</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">4</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">5</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">6</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">7</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #d23a2a">8</p>
+      </div>
+    </row>
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">9</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">10</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">11</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">12</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">13</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">14</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #d23a2a">15</p>
+      </div>
+    </row>
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">16</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">17</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">18</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">19</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">20</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">21</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">22</p>
+      </div>
+    </row>
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">23</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">24</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">25</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">26</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">27</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #d23a2a">28</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">29</p>
+      </div>
+    </row>
+    <row style="gap: 8px">
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">30</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: #ffffff; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430">31</p>
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+      <div style="width: 132px; height: 120px; background: transparent; padding: 12px">
+        <p style="font-size: 28px; color: #1d2430" />
+      </div>
+    </row>
+  </column>
+</fvg>

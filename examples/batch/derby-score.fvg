@@ -1,0 +1,9 @@
+<fvg style="width: 1500px; height: 860px; background: #0e1a14; color: #f4f7f2; safe: 32">
+  <rect cx="375" cy="430" style="width: 750px; height: 860px; fill: #143024" />
+  <rect cx="1125" cy="430" style="width: 750px; height: 860px; fill: #10243a" />
+  <p cx="375" cy="180" anchor="center" style="font-size: 32px; letter-spacing: 6px; color: #8fbfa2; white-space: nowrap">主队</p>
+  <p cx="1125" cy="180" anchor="center" style="font-size: 32px; letter-spacing: 6px; color: #8eb4d6; white-space: nowrap">客队</p>
+  <h1 cx="375" cy="400" anchor="center" style="font-size: 200px; white-space: nowrap">2</h1>
+  <h1 cx="1125" cy="400" anchor="center" style="font-size: 200px; white-space: nowrap">1</h1>
+  <p cx="750" cy="430" anchor="center" style="font-size: 48px; color: #f4f7f2; white-space: nowrap">终场</p>
+</fvg>

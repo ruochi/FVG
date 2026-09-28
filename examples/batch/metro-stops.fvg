@@ -1,0 +1,24 @@
+<fvg style="width: 1680px; height: 840px; background: #f4f1ea; color: #1c1a17; safe: 40">
+  <p cx="64" cy="48" anchor="top-left" style="font-size: 28px; letter-spacing: 4px; color: #8a8175; white-space: nowrap">市域线路</p>
+  <h1 cx="64" cy="96" anchor="top-left" style="font-size: 64px; white-space: nowrap">今日停靠</h1>
+  <line x1="120" y1="280" x2="1560" y2="280" style="stroke: #e23b2f; stroke-width: 14px" />
+  <line x1="120" y1="460" x2="1560" y2="460" style="stroke: #1f7a4d; stroke-width: 14px" />
+  <line x1="120" y1="640" x2="1560" y2="640" style="stroke: #2458a6; stroke-width: 14px" />
+  <circle cx="280" cy="280" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="760" cy="280" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="1240" cy="280" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="420" cy="460" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="980" cy="460" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="560" cy="640" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <circle cx="1100" cy="640" style="r: 16px; fill: #f4f1ea; stroke: #1c1a17; stroke-width: 4px" />
+  <p cx="280" cy="316" anchor="top" style="font-size: 22px; white-space: nowrap">江湾</p>
+  <p cx="760" cy="316" anchor="top" style="font-size: 22px; white-space: nowrap">人民广场</p>
+  <p cx="1240" cy="316" anchor="top" style="font-size: 22px; white-space: nowrap">徐汇</p>
+  <p cx="420" cy="496" anchor="top" style="font-size: 22px; white-space: nowrap">北站</p>
+  <p cx="980" cy="496" anchor="top" style="font-size: 22px; white-space: nowrap">静安</p>
+  <p cx="560" cy="676" anchor="top" style="font-size: 22px; white-space: nowrap">南码头</p>
+  <p cx="1100" cy="676" anchor="top" style="font-size: 22px; white-space: nowrap">世博</p>
+  <p cx="64" cy="280" anchor="left" style="font-size: 26px; color: #e23b2f; white-space: nowrap">1</p>
+  <p cx="64" cy="460" anchor="left" style="font-size: 26px; color: #1f7a4d; white-space: nowrap">2</p>
+  <p cx="64" cy="640" anchor="left" style="font-size: 26px; color: #2458a6; white-space: nowrap">3</p>
+</fvg>

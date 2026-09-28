@@ -1,0 +1,39 @@
+<fvg style="width: 780px; height: 1200px; background: #1a0b0c; color: #f4e6d4; safe: 36">
+  <rect cx="390" cy="28" style="width: 780px; height: 16px; fill: #e23b2f" />
+  <p cx="48" cy="72" anchor="top-left" style="font-size: 22px; letter-spacing: 6px; color: #e23b2f; white-space: nowrap">ADMIT ONE</p>
+  <p cx="732" cy="72" anchor="top-right" style="font-size: 22px; color: #c4a48a; white-space: nowrap">NO. 0841</p>
+  <h1 cx="390" cy="280" anchor="center" style="font-size: 220px; color: #f4e6d4; white-space: nowrap">A12</h1>
+  <p cx="390" cy="430" anchor="center" style="font-size: 28px; letter-spacing: 8px; color: #c4a48a; white-space: nowrap">座号</p>
+  <line x1="80" y1="500" x2="700" y2="500" style="stroke: #5a3030; stroke-width: 2px; stroke-dasharray: 8 8" />
+  <column cx="80" cy="540" anchor="top-left" style="width: 620px; gap: 18px; align-items: start">
+    <row style="width: 620px; align-items: center">
+      <p style="font-size: 26px; color: #c4a48a; width: 160px; white-space: nowrap">场次</p>
+      <p style="font-size: 32px; color: #f4e6d4; white-space: nowrap">03 月 21 日 19:30</p>
+    </row>
+    <row style="width: 620px; align-items: center">
+      <p style="font-size: 26px; color: #c4a48a; width: 160px; white-space: nowrap">厅</p>
+      <p style="font-size: 32px; color: #f4e6d4; white-space: nowrap">北厅</p>
+    </row>
+    <row style="width: 620px; align-items: center">
+      <p style="font-size: 26px; color: #c4a48a; width: 160px; white-space: nowrap">票价</p>
+      <p style="font-size: 32px; color: #f4e6d4; white-space: nowrap">¥ 180</p>
+    </row>
+  </column>
+  <row cx="390" cy="1080" anchor="center" style="gap: 8px">
+    <rect style="width: 6px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 10px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 4px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 14px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 8px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 18px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 6px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 12px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 4px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 16px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 8px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 6px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 20px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 10px; height: 72px; fill: #f4e6d4" />
+    <rect style="width: 4px; height: 72px; fill: #f4e6d4" />
+  </row>
+</fvg>

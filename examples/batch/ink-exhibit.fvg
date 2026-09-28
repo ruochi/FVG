@@ -1,0 +1,8 @@
+<fvg style="width: 1080px; height: 1620px; background: #f3efe6; color: #1a1814; safe: 64">
+  <line x1="80" y1="80" x2="80" y2="1540" style="stroke: #1a1814; stroke-width: 2px" />
+  <p cx="110" cy="90" anchor="top-left" style="font-size: 24px; letter-spacing: 6px; white-space: nowrap">美术馆 三月</p>
+  <h1 cx="140" cy="620" anchor="left" style="font-size: 280px; white-space: nowrap">墨</h1>
+  <p cx="140" cy="980" anchor="top-left" style="font-size: 36px; white-space: nowrap">纸本水墨 · 十二件</p>
+  <p cx="140" cy="1040" anchor="top-left" style="font-size: 28px; color: #5c564c; white-space: nowrap">3.12 — 5.02 免费预约</p>
+  <rect cx="860" cy="1480" style="width: 280px; height: 8px; fill: #1a1814" />
+</fvg>

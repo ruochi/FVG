@@ -1,0 +1,33 @@
+<fvg style="width: 900px; height: 1500px; background: #d7eef8; color: #14324a; safe: 40">
+  <p cx="60" cy="70" anchor="top-left" style="font-size: 28px; color: #3d6d88; white-space: nowrap">上海 · 晴间多云</p>
+  <h1 cx="60" cy="160" anchor="top-left" style="font-size: 220px; color: #14324a; white-space: nowrap">18°</h1>
+  <p cx="60" cy="420" anchor="top-left" style="font-size: 36px; color: #3d6d88; white-space: nowrap">体感 16° 东北风 3 级</p>
+  <rect cx="450" cy="980" style="width: 780px; height: 640px; rx: 28px; fill: #ffffff; shadow: 0 12px 24px #14324a22" />
+  <column cx="110" cy="700" anchor="top-left" style="width: 680px; gap: 8px; align-items: start">
+    <row style="width: 680px; align-items: center">
+      <p style="width: 140px; font-size: 30px; color: #3d6d88; white-space: nowrap">08:00</p>
+      <p style="width: 220px; font-size: 30px; color: #14324a; white-space: nowrap">多云</p>
+      <p style="font-size: 34px; color: #14324a; white-space: nowrap">14°</p>
+    </row>
+    <row style="width: 680px; align-items: center">
+      <p style="width: 140px; font-size: 30px; color: #3d6d88; white-space: nowrap">11:00</p>
+      <p style="width: 220px; font-size: 30px; color: #14324a; white-space: nowrap">晴</p>
+      <p style="font-size: 34px; color: #14324a; white-space: nowrap">17°</p>
+    </row>
+    <row style="width: 680px; align-items: center">
+      <p style="width: 140px; font-size: 30px; color: #3d6d88; white-space: nowrap">14:00</p>
+      <p style="width: 220px; font-size: 30px; color: #14324a; white-space: nowrap">晴</p>
+      <p style="font-size: 34px; color: #14324a; white-space: nowrap">18°</p>
+    </row>
+    <row style="width: 680px; align-items: center">
+      <p style="width: 140px; font-size: 30px; color: #3d6d88; white-space: nowrap">17:00</p>
+      <p style="width: 220px; font-size: 30px; color: #14324a; white-space: nowrap">阴</p>
+      <p style="font-size: 34px; color: #14324a; white-space: nowrap">16°</p>
+    </row>
+    <row style="width: 680px; align-items: center">
+      <p style="width: 140px; font-size: 30px; color: #3d6d88; white-space: nowrap">20:00</p>
+      <p style="width: 220px; font-size: 30px; color: #14324a; white-space: nowrap">小雨</p>
+      <p style="font-size: 34px; color: #14324a; white-space: nowrap">13°</p>
+    </row>
+  </column>
+</fvg>
