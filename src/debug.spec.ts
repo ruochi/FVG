@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 describe('parse line numbers', () => {
   it('注释保留行号', () => {
-    const source = ['<Layer>', '<!-- comment -->', '<p>hi</p>', '</Layer>'].join('\n')
+    const source = ['<layer>', '<!-- comment -->', '<p>hi</p>', '</layer>'].join('\n')
     const nodes = parseFvg(source)
     const layer = nodes[0]!
     expect(layer.tag).toBe('layer')

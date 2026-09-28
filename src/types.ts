@@ -87,7 +87,7 @@ export type ElementReport = {
   lines?: TextLineReport[]
   padding?: { top: number; right: number; bottom: number; left: number }
   border?: number
-  /** Row/Column 写明的 gap */
+  /** row/column 写明的 gap */
   gap?: number
   direction?: 'row' | 'column'
 }

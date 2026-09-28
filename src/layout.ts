@@ -623,7 +623,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.setAlignItems(alignItems)
   if (gap > 0) root.setGap(direction === 'row' ? Gutter.Column : Gutter.Row, gap)
 
-  /** Column 里的文字按列宽换行后，高度要跟着重新量 */
+  /** column 里的文字按列宽换行后，高度要跟着重新量 */
   const columnWidths = measures.map((m, i) => {
     const cross = m.preferredCross === Infinity ? crossAvailable : m.preferredCross
     if (direction !== 'column' || !m.isText || m.node.kind !== 'text') return cross

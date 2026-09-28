@@ -28,7 +28,7 @@ AI 应始终把 **`.fvg` 或生成它的脚本**当作可版本化的产物；PN
 
 适合海报、单帧、结构不复杂的画面。遵守一条分界：
 
-- **Layer 坐标 / 线条几何** → 标签**属性**：`cx`、`cy`、`anchor`、`x1`、`y1`、`x2`、`y2`、`points`、`d`、`id`
+- **layer 坐标 / 线条几何** → 标签**属性**：`cx`、`cy`、`anchor`、`x1`、`y1`、`x2`、`y2`、`points`、`d`、`id`
 - **其余一切** → **`style="..."`**：`width`、`r`、`fill`、`gap`、`font-size`、`shadow`、`glow` …
 
 标签**全部小写**（与 SVG、HTML 一致）：`fvg`、`layer`、`column`、`circle`、`h1` …

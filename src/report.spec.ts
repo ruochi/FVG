@@ -83,7 +83,7 @@ describe('效果范围', () => {
 
   it('effect 覆盖偏移后的阴影和外扩的光晕', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Rect cx="200" cy="200" style="width:100px; height:100px; shadow:0 20px 10px 5px; glow:4px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><rect cx="200" cy="200" style="width:100px; height:100px; shadow:0 20px 10px 5px; glow:4px" /></fvg>`,
       { fontsCacheDir },
     )
     const rect = rep.elements.find((e) => e.tag === 'rect')!
@@ -95,7 +95,7 @@ describe('效果范围', () => {
 
   it('本体在画布内、效果出界时记 effect-clipped', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Circle cx="30" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><circle cx="30" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
       { fontsCacheDir },
     )
     expect(rep.issues.map((i) => i.code)).toEqual(['effect-clipped'])
@@ -103,7 +103,7 @@ describe('效果范围', () => {
 
   it('本体出界时只记 overflow-canvas', async () => {
     const rep = await checkFvg(
-      `<fvg style="width:400px; height:400px"><Circle cx="10" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
+      `<fvg style="width:400px; height:400px"><circle cx="10" cy="200" style="r:20px; fill:#fff; glow:12px" /></fvg>`,
       { fontsCacheDir },
     )
     const codes = rep.issues.filter((i) => i.path === 'fvg/circle[0]').map((i) => i.code)
