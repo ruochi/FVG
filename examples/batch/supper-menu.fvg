@@ -1,0 +1,27 @@
+<fvg style="width: 860px; height: 1500px; background: #24160f; color: #f6efe6; safe: 40">
+  <p cx="430" cy="80" anchor="center" style="font-size: 24px; letter-spacing: 8px; color: #e07a3a; white-space: nowrap">SUPPER</p>
+  <h1 cx="430" cy="130" anchor="center" style="font-size: 72px; white-space: nowrap">晚饭</h1>
+  <column cx="70" cy="280" anchor="top-left" style="width: 720px; gap: 22px; align-items: start">
+    <row style="width: 720px; align-items: center">
+      <p style="width: 460px; font-size: 34px; white-space: nowrap">番茄牛腩</p>
+      <p style="font-size: 32px; color: #e07a3a; white-space: nowrap">68</p>
+    </row>
+    <row style="width: 720px; align-items: center">
+      <p style="width: 460px; font-size: 34px; white-space: nowrap">清炒时蔬</p>
+      <p style="font-size: 32px; color: #e07a3a; white-space: nowrap">32</p>
+    </row>
+    <row style="width: 720px; align-items: center">
+      <p style="width: 460px; font-size: 34px; white-space: nowrap">米饭</p>
+      <p style="font-size: 32px; color: #e07a3a; white-space: nowrap">4</p>
+    </row>
+    <row style="width: 720px; align-items: center">
+      <p style="width: 460px; font-size: 34px; white-space: nowrap">酸梅汤</p>
+      <p style="font-size: 32px; color: #e07a3a; white-space: nowrap">12</p>
+    </row>
+    <row style="width: 720px; align-items: center">
+      <p style="width: 460px; font-size: 34px; white-space: nowrap">桂花糕</p>
+      <p style="font-size: 32px; color: #e07a3a; white-space: nowrap">18</p>
+    </row>
+  </column>
+  <p cx="430" cy="1400" anchor="center" style="font-size: 24px; color: #a89080; white-space: nowrap">当日售罄即止</p>
+</fvg>

@@ -1,10 +1,12 @@
-import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
+import { createCanvas, Path2D, type SKRSContext2D as CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
+import { resolveOrigin } from './style.js'
 import type {
-  FlexLayoutNode,
+  GlowSpec,
   LayerLayoutNode,
   LayoutNode,
   LineLayoutNode,
+  ShadowSpec,
   ShapeLayoutNode,
   TextLayoutNode,
 } from './types.js'
@@ -16,6 +18,15 @@ export type PaintOptions = {
   scale: number
   debug: boolean
 }
+
+type PaintState = {
+  debug: boolean
+  canvasWidth: number
+  canvasHeight: number
+}
+
+/** 剪影用的颜色；真正的颜色来自 shadowColor */
+const SILHOUETTE = '#000000'
 
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const rad = Math.min(r, w / 2, h / 2)
@@ -33,104 +44,165 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 }
 
 function drawBoxChrome(ctx: CanvasRenderingContext2D, node: LayoutNode) {
+  const x = node.x
+  const y = node.y
+  const w = node.width
+  const h = node.height
+  const radius = node.borderRadius ?? 0
   if (node.background && node.background !== 'transparent') {
     ctx.fillStyle = node.background
-    if (node.borderRadius && node.borderRadius > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
+    if (radius > 0) {
+      roundRectPath(ctx, x, y, w, h, radius)
       ctx.fill()
     } else {
-      ctx.fillRect(node.x, node.y, node.width, node.height)
+      ctx.fillRect(x, y, w, h)
     }
   }
-  if (node.border && node.border.width > 0) {
-    ctx.strokeStyle = node.border.color
-    ctx.lineWidth = node.border.width
-    if (node.borderRadius && node.borderRadius > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
-      ctx.stroke()
-    } else {
-      ctx.strokeRect(node.x + node.border.width / 2, node.y + node.border.width / 2, node.width - node.border.width, node.height - node.border.width)
-    }
-  }
-}
-
-function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
-  const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
-  const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
-  for (const line of node.textLayout.lines) {
-    let offsetX = 0
-    if (node.textAlign === 'center') offsetX = (node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width) / 2
-    if (node.textAlign === 'right') offsetX = node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width
-    for (const seg of line.segments) {
-      ctx.font = buildFontString(seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize)
-      ctx.fillStyle = seg.style.color
-      ctx.letterSpacing = `${seg.style.letterSpacing}px`
-      ctx.fillText(seg.text, contentX + offsetX + seg.x, contentY + line.baselineY)
-    }
-  }
-}
-
-function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
-  const cx = node.x + node.width / 2
-  const cy = node.y + node.height / 2
+  const bw = node.border?.width ?? 0
+  if (!node.border || bw <= 0 || w <= 0 || h <= 0) return
+  // 直角和圆角都把描边中心向内收半个线宽，再裁到盒子里，外缘贴着盒子边缘。
   ctx.save()
-  ctx.translate(cx, cy)
-  ctx.rotate((node.rotate * Math.PI) / 180)
-  ctx.scale(node.scale, node.scale)
-  ctx.translate(-node.width / 2, -node.height / 2)
-  if (node.shape === 'rect') {
-    const r = node.rx ?? 0
-    if (r > 0) {
-      roundRectPath(ctx, 0, 0, node.width, node.height, r)
-      if (node.fill !== 'none') {
-        ctx.fillStyle = node.fill
-        ctx.fill()
-      }
-      if (node.stroke !== 'none') {
-        ctx.strokeStyle = node.stroke
-        ctx.lineWidth = node.strokeWidth
-        ctx.stroke()
-      }
-    } else {
-      if (node.fill !== 'none') {
-        ctx.fillStyle = node.fill
-        ctx.fillRect(0, 0, node.width, node.height)
-      }
-      if (node.stroke !== 'none') {
-        ctx.strokeStyle = node.stroke
-        ctx.lineWidth = node.strokeWidth
-        ctx.strokeRect(0, 0, node.width, node.height)
-      }
-    }
-  } else if (node.shape === 'circle') {
+  if (radius > 0) roundRectPath(ctx, x, y, w, h, radius)
+  else {
     ctx.beginPath()
-    ctx.arc(node.width / 2, node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
+    ctx.rect(x, y, w, h)
+  }
+  ctx.clip()
+  ctx.strokeStyle = node.border.color
+  ctx.lineWidth = bw
+  if (w <= bw || h <= bw) {
+    ctx.fillStyle = node.border.color
+    if (radius > 0) {
+      roundRectPath(ctx, x, y, w, h, radius)
       ctx.fill()
-    }
-    if (node.stroke !== 'none') {
-      ctx.strokeStyle = node.stroke
-      ctx.lineWidth = node.strokeWidth
-      ctx.stroke()
-    }
+    } else ctx.fillRect(x, y, w, h)
+  } else if (radius > 0) {
+    const inset = bw / 2
+    roundRectPath(ctx, x + inset, y + inset, w - bw, h - bw, Math.max(0, radius - inset))
+    ctx.stroke()
   } else {
-    ctx.beginPath()
-    ctx.ellipse(node.width / 2, node.height / 2, node.rxEllipse ?? node.width / 2, node.ry ?? node.height / 2, 0, 0, Math.PI * 2)
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
-      ctx.fill()
-    }
-    if (node.stroke !== 'none') {
-      ctx.strokeStyle = node.stroke
-      ctx.lineWidth = node.strokeWidth
-      ctx.stroke()
-    }
+    ctx.strokeRect(x + bw / 2, y + bw / 2, w - bw, h - bw)
   }
   ctx.restore()
 }
 
-function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, head: number) {
+/** silhouetteSpread 有值时只画剪影：字形用当前 fillStyle，并按 spread 描边外扩 */
+function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode, silhouetteSpread?: number) {
+  const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
+  const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
+  const innerW = node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2
+  const spread = Math.max(0, silhouetteSpread ?? 0)
+  for (const line of node.textLayout.lines) {
+    let offsetX = 0
+    if (node.textAlign === 'center') offsetX = (innerW - line.width) / 2
+    if (node.textAlign === 'right') offsetX = innerW - line.width
+    for (const seg of line.segments) {
+      ctx.font = buildFontString(seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize)
+      ctx.letterSpacing = `${seg.style.letterSpacing}px`
+      const x = contentX + offsetX + seg.x
+      const y = contentY + line.baselineY
+      if (silhouetteSpread == null) ctx.fillStyle = seg.style.color
+      ctx.fillText(seg.text, x, y)
+      if (spread > 0) {
+        ctx.lineWidth = spread * 2
+        ctx.lineJoin = 'round'
+        ctx.strokeText(seg.text, x, y)
+      }
+    }
+  }
+}
+
+/** 形状外轮廓按 grow 外扩后的路径 */
+function shapePath(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode, grow: number) {
+  const cx = node.width / 2
+  const cy = node.height / 2
+  ctx.beginPath()
+  if (node.shape === 'rect') {
+    const w = node.width + grow * 2
+    const h = node.height + grow * 2
+    if (w <= 0 || h <= 0) return
+    const r = node.rx ?? 0
+    if (r > 0) roundRectPath(ctx, -grow, -grow, w, h, Math.max(0, r + grow))
+    else ctx.rect(-grow, -grow, w, h)
+  } else if (node.shape === 'circle') {
+    ctx.arc(cx, cy, Math.max(0, (node.r ?? cx) + grow), 0, Math.PI * 2)
+  } else {
+    const rx = Math.max(0, (node.rxEllipse ?? cx) + grow)
+    const ry = Math.max(0, (node.ry ?? cy) + grow)
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+  }
+}
+
+/** 描边比盒子还厚时，整块填满，避免中心线收到零以后线宽又冒出盒子 */
+function shapeStrokeFills(node: ShapeLayoutNode): boolean {
+  const sw = node.strokeWidth
+  if (node.shape === 'circle') return (node.r ?? node.width / 2) <= sw / 2
+  if (node.shape === 'ellipse') {
+    const rx = node.rxEllipse ?? node.width / 2
+    const ry = node.ry ?? node.height / 2
+    return rx <= sw / 2 || ry <= sw / 2
+  }
+  return node.width <= sw || node.height <= sw
+}
+
+function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
+  shapePath(ctx, node, 0)
+  if (node.fill !== 'none') {
+    ctx.fillStyle = node.fill
+    ctx.fill()
+  }
+  if (node.stroke === 'none' || node.strokeWidth <= 0) return
+  ctx.save()
+  shapePath(ctx, node, 0)
+  ctx.clip()
+  ctx.strokeStyle = node.stroke
+  ctx.lineWidth = node.strokeWidth
+  if (node.dash) ctx.setLineDash(node.dash)
+  if (shapeStrokeFills(node)) {
+    shapePath(ctx, node, 0)
+    ctx.fillStyle = node.stroke
+    ctx.fill()
+  } else {
+    // 中心线向内收半个线宽，描边外缘贴着盒子边缘。
+    shapePath(ctx, node, -node.strokeWidth / 2)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+function drawShapeSilhouette(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode, spread: number) {
+  const sw = node.stroke !== 'none' ? node.strokeWidth : 0
+  if (node.fill !== 'none' || (sw > 0 && shapeStrokeFills(node))) {
+    shapePath(ctx, node, spread)
+    ctx.fill()
+    return
+  }
+  if (sw <= 0) return
+  const width = sw + spread * 2
+  if (width <= 0) return
+  shapePath(ctx, node, -sw / 2)
+  ctx.lineWidth = width
+  if (node.dash) ctx.setLineDash(node.dash)
+  ctx.stroke()
+}
+
+/** 绕 transform-origin 旋转、缩放。先缩放再旋转。只包绘制，调试框在外面画，仍是布局盒子。 */
+function withLocalTransform(ctx: CanvasRenderingContext2D, node: LayoutNode, draw: () => void) {
+  if (!node.rotate && node.scale === 1) {
+    draw()
+    return
+  }
+  const origin = resolveOrigin(node.origin, node.width, node.height)
+  ctx.save()
+  ctx.translate(origin.x, origin.y)
+  if (node.rotate) ctx.rotate((node.rotate * Math.PI) / 180)
+  if (node.scale !== 1) ctx.scale(node.scale, node.scale)
+  ctx.translate(-origin.x, -origin.y)
+  draw()
+  ctx.restore()
+}
+
+function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, head: number, grow: number) {
   const ang = Math.atan2(y2 - y1, x2 - x1)
   ctx.beginPath()
   ctx.moveTo(x2, y2)
@@ -138,16 +210,35 @@ function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
   ctx.lineTo(x2 - head * Math.cos(ang + Math.PI / 6), y2 - head * Math.sin(ang + Math.PI / 6))
   ctx.closePath()
   ctx.fill()
+  if (grow > 0) {
+    ctx.save()
+    ctx.setLineDash([])
+    ctx.lineWidth = grow * 2
+    ctx.stroke()
+    ctx.restore()
+  }
 }
 
-function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
+/** silhouetteSpread 有值时只画剪影：沿用当前颜色，线宽加粗 2 × spread */
+function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode, silhouetteSpread?: number) {
+  const silhouette = silhouetteSpread != null
+  const grow = Math.max(0, silhouetteSpread ?? 0)
   ctx.save()
   ctx.translate(node.x, node.y)
-  ctx.strokeStyle = node.stroke
-  ctx.fillStyle = node.stroke
-  ctx.lineWidth = node.strokeWidth
+  if (!silhouette) {
+    ctx.strokeStyle = node.stroke
+    ctx.fillStyle = node.stroke
+  }
+  ctx.lineWidth = node.strokeWidth + grow * 2
   ctx.lineCap = node.strokeLinecap ?? 'round'
   ctx.lineJoin = node.strokeLinejoin ?? 'round'
+  if (node.dash) ctx.setLineDash(node.dash)
+  const fillShape = (path?: Path2D) => {
+    if (node.fill === 'none') return
+    if (!silhouette) ctx.fillStyle = node.fill
+    if (path) ctx.fill(path)
+    else ctx.fill()
+  }
   const g = node.geometry
   if (g.kind === 'line' || g.kind === 'arrow') {
     ctx.beginPath()
@@ -156,42 +247,104 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
     ctx.stroke()
     if (g.kind === 'arrow') {
       const head = g.head ?? Math.max(12, node.strokeWidth * 4)
-      drawArrowHead(ctx, g.x1, g.y1, g.x2, g.y2, head)
+      drawArrowHead(ctx, g.x1, g.y1, g.x2, g.y2, head, grow)
     }
-  } else if (g.kind === 'polyline') {
-    if (g.points.length < 2) {
-      ctx.restore()
-      return
+  } else if (g.kind === 'polyline' || g.kind === 'polygon') {
+    const closed = g.kind === 'polygon'
+    if (g.points.length >= (closed ? 3 : 2)) {
+      ctx.beginPath()
+      ctx.moveTo(g.points[0]!.x, g.points[0]!.y)
+      for (let i = 1; i < g.points.length; i++) ctx.lineTo(g.points[i]!.x, g.points[i]!.y)
+      if (closed) {
+        ctx.closePath()
+        fillShape()
+      }
+      ctx.stroke()
     }
-    ctx.beginPath()
-    ctx.moveTo(g.points[0]!.x, g.points[0]!.y)
-    for (let i = 1; i < g.points.length; i++) ctx.lineTo(g.points[i]!.x, g.points[i]!.y)
-    ctx.stroke()
-  } else if (g.kind === 'polygon') {
-    if (g.points.length < 3) {
-      ctx.restore()
-      return
-    }
-    ctx.beginPath()
-    ctx.moveTo(g.points[0]!.x, g.points[0]!.y)
-    for (let i = 1; i < g.points.length; i++) ctx.lineTo(g.points[i]!.x, g.points[i]!.y)
-    ctx.closePath()
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
-      ctx.fill()
-    }
-    ctx.stroke()
   } else if (g.kind === 'path') {
     const p = new Path2D(g.d)
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
-      ctx.fill(p)
-    }
+    ctx.translate(g.offsetX ?? 0, g.offsetY ?? 0)
+    fillShape(p)
     ctx.stroke(p)
-  } else {
-    // 未知线条类型
   }
   ctx.restore()
+}
+
+function drawBoxSilhouette(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number) {
+  const w = node.width + spread * 2
+  const h = node.height + spread * 2
+  if (w <= 0 || h <= 0) return
+  const r = node.borderRadius ?? 0
+  if (r > 0) {
+    roundRectPath(ctx, -spread, -spread, w, h, Math.max(0, r + spread))
+    ctx.fill()
+  } else {
+    ctx.fillRect(-spread, -spread, w, h)
+  }
+}
+
+/**
+ * 用画布原生阴影画效果：剪影在设备坐标里移到画面外，阴影再用 offset 移回来，
+ * 所以只留下模糊后的那一层。偏移按当前变换换算，跟着旋转、缩放和导出倍率走。
+ */
+function drawEffect(
+  ctx: CanvasRenderingContext2D,
+  state: PaintState,
+  node: LayoutNode,
+  effect: { dx: number; dy: number; blur: number; spread: number; color: string },
+  drawSilhouette: (spread: number) => void,
+  blend: 'source-over' | 'screen' = 'source-over',
+) {
+  const m = ctx.getTransform()
+  const k = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c))
+  const devX = m.a * effect.dx + m.c * effect.dy
+  const devY = m.b * effect.dx + m.d * effect.dy
+  const far =
+    2 * (state.canvasWidth + state.canvasHeight) +
+    4 * k * (node.width + node.height + Math.abs(effect.spread) + effect.blur) +
+    Math.abs(devX)
+  ctx.save()
+  ctx.setTransform(m.a, m.b, m.c, m.d, m.e - far, m.f)
+  ctx.globalCompositeOperation = blend
+  ctx.shadowColor = effect.color
+  ctx.shadowBlur = effect.blur * k
+  ctx.shadowOffsetX = devX + far
+  ctx.shadowOffsetY = devY
+  ctx.fillStyle = SILHOUETTE
+  ctx.strokeStyle = SILHOUETTE
+  drawSilhouette(effect.spread)
+  ctx.restore()
+}
+
+function shadowEffect(s: ShadowSpec) {
+  return { dx: s.x, dy: s.y, blur: s.blur, spread: s.spread, color: s.color }
+}
+
+function glowEffect(g: GlowSpec) {
+  return { dx: 0, dy: 0, blur: g.blur, spread: g.spread, color: g.color }
+}
+
+/**
+ * 光晕最亮的部分压在本体下面，露出来的只是模糊的尾巴，叠在深色上几乎看不见。
+ * 用 screen 加光，再补一圈更紧的模糊，让本体外面有一圈能看出来的亮边。
+ */
+function paintGlow(
+  ctx: CanvasRenderingContext2D,
+  state: PaintState,
+  node: LayoutNode,
+  glow: GlowSpec,
+  drawSilhouette: (spread: number) => void,
+) {
+  const wide = glowEffect(glow)
+  drawEffect(ctx, state, node, wide, drawSilhouette, 'screen')
+  drawEffect(
+    ctx,
+    state,
+    node,
+    { ...wide, blur: Math.max(2, glow.blur * 0.35) },
+    drawSilhouette,
+    'screen',
+  )
 }
 
 function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
@@ -204,28 +357,50 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.restore()
 }
 
-function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
-  ctx.save()
-  ctx.globalAlpha *= node.opacity
-  if (node.kind === 'text') {
-    drawBoxChrome(ctx, node)
-    drawTextNode(ctx, node)
-  } else if (node.kind === 'shape') {
-    drawShape(ctx, node)
-  } else if (node.kind === 'line') {
-    drawLine(ctx, node)
-  } else if (node.kind === 'flex' || node.kind === 'layer') {
-    drawBoxChrome(ctx, node)
-    for (const ch of node.children) paintNode(ctx, ch, debug)
+function paintContent(ctx: CanvasRenderingContext2D, local: LayoutNode, state: PaintState) {
+  if (local.kind === 'text') {
+    if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawBoxSilhouette(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawTextNode(ctx, local, s))
+    drawBoxChrome(ctx, local)
+    drawTextNode(ctx, local)
+  } else if (local.kind === 'shape') {
+    if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawShapeSilhouette(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawShapeSilhouette(ctx, local, s))
+    drawShape(ctx, local)
+  } else if (local.kind === 'line') {
+    if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawLine(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawLine(ctx, local, s))
+    drawLine(ctx, local)
+  } else if (local.kind === 'flex' || local.kind === 'layer') {
+    if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawBoxSilhouette(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawBoxSilhouette(ctx, local, s))
+    drawBoxChrome(ctx, local)
+    for (const ch of local.children) paintNode(ctx, ch, state)
   }
-  if (debug) drawDebugOverlay(ctx, node)
+}
+
+/** 先阴影、再光晕、最后本体。rotate、scale 包住本体和效果，不包调试框。 */
+function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, state: PaintState) {
+  ctx.save()
+  ctx.translate(node.x, node.y)
+  ctx.globalAlpha *= node.opacity
+  const local = { ...node, x: 0, y: 0 } as LayoutNode
+  withLocalTransform(ctx, local, () => paintContent(ctx, local, state))
   ctx.restore()
 }
 
-export function paintDocument(
-  root: LayerLayoutNode,
-  opts: PaintOptions,
-): Buffer {
+/** 调试框按布局坐标画，不跟着 rotate、scale 转。 */
+function paintDebugNode(ctx: CanvasRenderingContext2D, node: LayoutNode) {
+  ctx.save()
+  ctx.translate(node.x, node.y)
+  drawDebugOverlay(ctx, { ...node, x: 0, y: 0 })
+  if (node.kind === 'flex' || node.kind === 'layer') {
+    for (const ch of node.children) paintDebugNode(ctx, ch)
+  }
+  ctx.restore()
+}
+
+export function paintDocumentCanvas(root: LayerLayoutNode, opts: PaintOptions) {
   const w = Math.round(opts.width * opts.scale)
   const h = Math.round(opts.height * opts.scale)
   const canvas = createCanvas(w, h)
@@ -234,10 +409,21 @@ export function paintDocument(
     ctx.fillStyle = opts.background
     ctx.fillRect(0, 0, w, h)
   }
+  const state: PaintState = { debug: opts.debug, canvasWidth: w, canvasHeight: h }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  for (const ch of root.children) paintNode(ctx, ch, opts.debug)
-  if (opts.debug) drawDebugOverlay(ctx, root)
+  for (const ch of root.children) paintNode(ctx, ch, state)
+  if (opts.debug) {
+    for (const ch of root.children) paintDebugNode(ctx, ch)
+    drawDebugOverlay(ctx, root)
+  }
   ctx.restore()
-  return canvas.toBuffer('image/png')
+  return canvas
+}
+
+export function paintDocument(
+  root: LayerLayoutNode,
+  opts: PaintOptions,
+): Buffer {
+  return paintDocumentCanvas(root, opts).toBuffer('image/png')
 }

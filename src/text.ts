@@ -248,11 +248,16 @@ function bindLineBreakUnits(units: Unit[]): Unit[][] {
   return groups
 }
 
+/** 合并避头尾字符；行首、行尾和连续的空格去掉，词之间的空格保留 */
 function glueUnits(lineUnits: Unit[]): Unit[] {
   const out: Unit[] = []
   for (let i = 0; i < lineUnits.length; i++) {
     const u = lineUnits[i]!
-    if (u.isSpace) continue
+    if (u.isSpace) {
+      const prev = out[out.length - 1]
+      if (prev && !prev.isSpace) out.push(u)
+      continue
+    }
     let text = u.text
     let style = u.style
     if (i + 1 < lineUnits.length) {
@@ -264,7 +269,7 @@ function glueUnits(lineUnits: Unit[]): Unit[] {
     }
     if (out.length > 0) {
       const prev = out[out.length - 1]!
-      if (LINE_HEAD_FORBIDDEN.has(text[0]!)) {
+      if (!prev.isSpace && LINE_HEAD_FORBIDDEN.has(text[0]!)) {
         out[out.length - 1] = {
           ...prev,
           text: prev.text + text,
@@ -275,6 +280,7 @@ function glueUnits(lineUnits: Unit[]): Unit[] {
     }
     out.push({ ...u, text, width: measureTextWidth(text, style) })
   }
+  while (out.length > 0 && out[out.length - 1]!.isSpace) out.pop()
   return out
 }
 
@@ -372,12 +378,12 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
 
   let autoWrap = false
   for (const group of paragraphGroups) {
-    const natural = lineWidth(glueUnits(group.filter((u) => !u.isSpace)))
+    const natural = lineWidth(glueUnits(group))
     if (!opts.fixedWidth && !opts.nowrap && opts.maxWidth != null && natural > opts.maxWidth + 1e-3) {
       autoWrap = true
     }
     if (opts.nowrap || effectiveMax === Infinity) {
-      allLines.push(glueUnits(group.filter((u) => !u.isSpace)))
+      allLines.push(glueUnits(group))
     } else if (opts.textWrap === 'wrap') {
       allLines.push(...wrapParagraph(group, effectiveMax))
     } else {
@@ -390,10 +396,11 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
   let contentWidth = 0
   let contentHeight = 0
   const laidLines: TextLayoutResult['lines'] = []
-  let ink = emptyBox()
+  let ink: Box | null = null
   let y = 0
 
-  for (const lineUnits of allLines) {
+  for (let i = 0; i < allLines.length; i++) {
+    const lineUnits = allLines[i]!
     let lineW = 0
     let maxAsc = 0
     let maxDesc = 0
@@ -407,27 +414,31 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
       x += u.width
       lineW = x
     }
+    const inkH = maxAsc + maxDesc
     const lh = opts.lineHeightRatio * opts.fontSize
-    const lineH = allLines.length === 1 ? Math.max(lh, maxAsc + maxDesc) : lh
-    const baselineY = y + maxAsc + (lineH - (maxAsc + maxDesc)) / 2
+    // 行高只决定下一行从哪开始。第一行顶和最后一行底贴着字形，半行空白不留在盒子外面。
+    const stride = Math.max(lh, inkH)
+    const baselineY = y + maxAsc
     const lineInk: Box = {
       x: 0,
-      y: baselineY - maxAsc,
+      y,
       width: lineW,
-      height: maxAsc + maxDesc,
+      height: inkH,
     }
-    ink = unionBoxes(ink, lineInk)
+    ink = ink ? unionBoxes(ink, lineInk) : lineInk
+    const isLast = i === allLines.length - 1
     laidLines.push({
       segments: segOut,
       width: lineW,
-      height: lineH,
+      height: isLast ? inkH : stride,
       baselineY,
       ink: lineInk,
     })
     contentWidth = Math.max(contentWidth, lineW)
-    y += lineH
+    y += isLast ? inkH : stride
   }
   contentHeight = y
+  if (!ink) ink = emptyBox()
 
   let overflowFixed = false
   if (opts.fixedWidth != null && contentWidth > opts.fixedWidth + 1e-3) overflowFixed = true

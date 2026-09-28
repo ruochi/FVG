@@ -1,0 +1,12 @@
+<fvg style="width: 1080px; height: 1080px; background: #10241c; color: #e7f6ee; safe: 48">
+  <circle cx="540" cy="400" style="r: 220px; fill: #0b1612; stroke: #7dffa8; stroke-width: 10px" />
+  <circle cx="540" cy="400" style="r: 70px; fill: #7dffa8" />
+  <circle cx="540" cy="400" style="r: 16px; fill: #10241c" />
+  <h1 cx="540" cy="720" anchor="center" style="font-size: 72px; color: #e7f6ee; white-space: nowrap">绿洲录音</h1>
+  <p cx="540" cy="800" anchor="center" style="font-size: 28px; letter-spacing: 6px; color: #7dffa8; white-space: nowrap">SIDE A</p>
+  <row cx="540" cy="920" anchor="center" style="gap: 28px">
+    <p style="font-size: 26px; color: #b7d8c4; white-space: nowrap">01 潮</p>
+    <p style="font-size: 26px; color: #b7d8c4; white-space: nowrap">02 岸</p>
+    <p style="font-size: 26px; color: #b7d8c4; white-space: nowrap">03 风</p>
+  </row>
+</fvg>

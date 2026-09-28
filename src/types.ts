@@ -1,3 +1,8 @@
+import { CENTER_ORIGIN, type TransformOrigin } from './style.js'
+
+export type { TransformOrigin }
+export { CENTER_ORIGIN }
+
 export type Box = {
   x: number
   y: number
@@ -67,14 +72,29 @@ export type TextLineReport = {
   box: Rect
 }
 
+export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
+
+export type GlowSpec = { blur: number; spread: number; color: string }
+
 export type ElementReport = {
   path: string
   id?: string
   tag: string
+  /** 开标签在源码中的行号（1-based） */
+  line?: number
   box: Rect
   ink: Rect
+  /** 阴影和光晕实际可能画到的范围 */
+  effect?: Rect
+  shadow?: ShadowSpec
+  glow?: GlowSpec
   fontSize?: number
   lines?: TextLineReport[]
+  padding?: { top: number; right: number; bottom: number; left: number }
+  border?: number
+  /** row/column 写明的 gap */
+  gap?: number
+  direction?: 'row' | 'column'
 }
 
 export type FvgReport = {
@@ -120,15 +140,21 @@ export type TextLayoutResult = {
 
 export type ShapeKind = 'rect' | 'circle' | 'ellipse'
 
+export type LineCap = 'butt' | 'round' | 'square'
+
+export type LineJoin = 'miter' | 'round' | 'bevel'
+
 export type LineGeometry =
   | { kind: 'line' | 'arrow'; x1: number; y1: number; x2: number; y2: number; head?: number }
   | { kind: 'polyline' | 'polygon'; points: Array<{ x: number; y: number }> }
-  | { kind: 'path'; d: string }
+  /** d 保持原样；offsetX/offsetY 把它挪到线条自己的盒子里 */
+  | { kind: 'path'; d: string; offsetX?: number; offsetY?: number }
 
 export type LayoutNodeBase = {
   path: string
   id?: string
   tag: string
+  line?: number
   x: number
   y: number
   width: number
@@ -137,6 +163,10 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
+  /** 旋转和缩放的原点，相对布局盒子。默认中心 */
+  origin: TransformOrigin
+  shadow?: ShadowSpec
+  glow?: GlowSpec
   background?: string
   border?: { width: number; color: string }
   borderRadius?: number
@@ -151,6 +181,7 @@ export type LayerLayoutNode = LayoutNodeBase & {
 export type FlexLayoutNode = LayoutNodeBase & {
   kind: 'flex'
   direction: 'row' | 'column'
+  gap: number
   children: LayoutNode[]
 }
 
@@ -166,6 +197,7 @@ export type ShapeLayoutNode = LayoutNodeBase & {
   fill: string
   stroke: string
   strokeWidth: number
+  dash?: number[]
   rx?: number
   r?: number
   rxEllipse?: number
@@ -178,8 +210,8 @@ export type LineLayoutNode = LayoutNodeBase & {
   stroke: string
   strokeWidth: number
   fill: string
-  strokeLinecap?: CanvasLineCap
-  strokeLinejoin?: CanvasLineJoin
+  strokeLinecap?: LineCap
+  strokeLinejoin?: LineJoin
   dash?: number[]
 }
 
