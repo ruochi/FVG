@@ -198,4 +198,17 @@ describe('layoutSource', () => {
     const gap = b.y + b.ink.y - (a.y + a.ink.y + a.ink.height)
     expect(gap).toBeCloseTo(6, 0)
   })
+
+  it('row 里单行文字不会因为宽度取整被拆成两行', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:1080px; height:400px"><row style="width:936px; gap:28px; align-items:center"><p style="font-size:32px; width:120px">20:15</p><p style="font-size:34px">Sax &amp; Keys</p></row></fvg>`,
+      process.cwd(),
+    )
+    const row = doc.root.children[0]
+    if (row?.kind !== 'flex') throw new Error('expected flex')
+    const act = row.children[1]
+    if (act?.kind !== 'text') throw new Error('expected text')
+    expect(act.textLayout.lines).toHaveLength(1)
+    expect(act.textLayout.autoWrap).toBe(false)
+  })
 })

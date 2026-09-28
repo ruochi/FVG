@@ -691,15 +691,22 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     const layout = yn.getComputedLayout()
     let child = m.node
     if (m.isText && child.kind === 'text') {
-      const assignedW =
-        direction === 'column'
-          ? layout.width
-          : layout.width
+      const assignedW = layout.width
       const innerW = assignedW - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
-      const re = layoutTextBox(measuredNodes[i]!, { ...ctx, parent: 'flex', pathPrefix: child.path }, innerW)
-      re.x = layout.left + contentOffsetX
-      re.y = layout.top + contentOffsetY
-      child = re
+      const currentInner = child.width - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
+      // Yoga 会把宽度收成整数。差不到 1px 时沿用已排好的单行，避免误触发换行。
+      if (innerW < currentInner - 1) {
+        const re = layoutTextBox(measuredNodes[i]!, { ...ctx, parent: 'flex', pathPrefix: child.path }, innerW)
+        re.x = layout.left + contentOffsetX
+        re.y = layout.top + contentOffsetY
+        child = re
+      } else {
+        child = {
+          ...child,
+          x: layout.left + contentOffsetX,
+          y: layout.top + contentOffsetY,
+        }
+      }
     } else {
       child = {
         ...child,

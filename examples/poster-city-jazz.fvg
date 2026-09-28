@@ -6,9 +6,9 @@
   <circle cx="960" cy="320" style="r: 3px; fill: #f6f1e7; opacity: 0.75; glow: 12px" />
   <circle cx="180" cy="520" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
   <circle cx="920" cy="88" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
-  <rect cx="540" cy="380" style="width: 920px; height: 520px; fill: #122a4a; rx: 24px; shadow: 0 24px 48px #00000088" />
-  <circle cx="820" cy="280" style="r: 140px; fill: #c9a227; opacity: 0.12; glow: 72px 6px #c9a227" />
-  <circle cx="820" cy="280" style="r: 88px; fill: none; stroke: #c9a227; stroke-width: 3px; opacity: 0.6" />
+  <rect cx="540" cy="380" style="width: 920px; height: 520px; fill: #122a4a; rx: 24px; shadow: 0 16px 28px #00000088" />
+  <circle cx="760" cy="300" style="r: 120px; fill: #c9a227; opacity: 0.12; glow: 40px #c9a227" />
+  <circle cx="760" cy="300" style="r: 78px; fill: none; stroke: #c9a227; stroke-width: 3px; opacity: 0.6" />
   <p cx="72" cy="72" anchor="top-left" style="font-size: 26px; letter-spacing: 6px; color: #8fa8c8">LIVE</p>
   <p cx="1008" cy="72" anchor="top-right" style="font-size: 26px; color: #8fa8c8">2026 · 03 · 21</p>
   <column cx="540" cy="1040" anchor="center" style="width: 936px; gap: 24px; align-items: start">

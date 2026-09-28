@@ -43,9 +43,9 @@ export function renderCityJazzPosterVue(): string {
     :style="'r:' + s.r + 'px; fill:#f6f1e7; opacity:0.75' + (s.glow ? '; glow:' + s.glow : '')"
   />
 
-  <rect cx="540" cy="380" style="width:920px; height:520px; fill:#122a4a; rx:24px; shadow:0 24px 48px #00000088" />
-  <circle cx="820" cy="280" style="r:140px; fill:#c9a227; opacity:0.12; glow:72px 6px #c9a227" />
-  <circle cx="820" cy="280" style="r:88px; fill:none; stroke:#c9a227; stroke-width:3px; opacity:0.6" />
+  <rect cx="540" cy="380" style="width:920px; height:520px; fill:#122a4a; rx:24px; shadow:0 16px 28px #00000088" />
+  <circle cx="760" cy="300" style="r:120px; fill:#c9a227; opacity:0.12; glow:40px #c9a227" />
+  <circle cx="760" cy="300" style="r:78px; fill:none; stroke:#c9a227; stroke-width:3px; opacity:0.6" />
 
   <p cx="72" cy="72" anchor="top-left" style="font-size:26px; letter-spacing:6px; color:#8fa8c8">LIVE</p>
   <p cx="1008" cy="72" anchor="top-right" style="font-size:26px; color:#8fa8c8">{{ dateLine }}</p>
