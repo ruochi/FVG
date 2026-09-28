@@ -241,6 +241,7 @@ function drawEffect(
   node: LayoutNode,
   effect: { dx: number; dy: number; blur: number; spread: number; color: string },
   drawSilhouette: (spread: number) => void,
+  blend: 'source-over' | 'screen' = 'source-over',
 ) {
   const m = ctx.getTransform()
   const k = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c))
@@ -252,6 +253,7 @@ function drawEffect(
     Math.abs(devX)
   ctx.save()
   ctx.setTransform(m.a, m.b, m.c, m.d, m.e - far, m.f)
+  ctx.globalCompositeOperation = blend
   ctx.shadowColor = effect.color
   ctx.shadowBlur = effect.blur * k
   ctx.shadowOffsetX = devX + far
@@ -268,6 +270,29 @@ function shadowEffect(s: ShadowSpec) {
 
 function glowEffect(g: GlowSpec) {
   return { dx: 0, dy: 0, blur: g.blur, spread: g.spread, color: g.color }
+}
+
+/**
+ * 光晕最亮的部分压在本体下面，露出来的只是模糊的尾巴，叠在深色上几乎看不见。
+ * 用 screen 加光，再补一圈更紧的模糊，让本体外面有一圈能看出来的亮边。
+ */
+function paintGlow(
+  ctx: CanvasRenderingContext2D,
+  state: PaintState,
+  node: LayoutNode,
+  glow: GlowSpec,
+  drawSilhouette: (spread: number) => void,
+) {
+  const wide = glowEffect(glow)
+  drawEffect(ctx, state, node, wide, drawSilhouette, 'screen')
+  drawEffect(
+    ctx,
+    state,
+    node,
+    { ...wide, blur: Math.max(2, glow.blur * 0.35) },
+    drawSilhouette,
+    'screen',
+  )
 }
 
 function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
@@ -288,22 +313,22 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, state: Paint
   const local = { ...node, x: 0, y: 0 } as LayoutNode
   if (local.kind === 'text') {
     if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawBoxSilhouette(ctx, local, s))
-    if (local.glow) drawEffect(ctx, state, local, glowEffect(local.glow), (s) => drawTextNode(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawTextNode(ctx, local, s))
     drawBoxChrome(ctx, local)
     drawTextNode(ctx, local)
   } else if (local.kind === 'shape') {
     withShapeTransform(ctx, local, () => {
       if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawShapeSilhouette(ctx, local, s))
-      if (local.glow) drawEffect(ctx, state, local, glowEffect(local.glow), (s) => drawShapeSilhouette(ctx, local, s))
+      if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawShapeSilhouette(ctx, local, s))
       drawShape(ctx, local)
     })
   } else if (local.kind === 'line') {
     if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawLine(ctx, local, s))
-    if (local.glow) drawEffect(ctx, state, local, glowEffect(local.glow), (s) => drawLine(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawLine(ctx, local, s))
     drawLine(ctx, local)
   } else if (local.kind === 'flex' || local.kind === 'layer') {
     if (local.shadow) drawEffect(ctx, state, local, shadowEffect(local.shadow), (s) => drawBoxSilhouette(ctx, local, s))
-    if (local.glow) drawEffect(ctx, state, local, glowEffect(local.glow), (s) => drawBoxSilhouette(ctx, local, s))
+    if (local.glow) paintGlow(ctx, state, local, local.glow, (s) => drawBoxSilhouette(ctx, local, s))
     drawBoxChrome(ctx, local)
     for (const ch of local.children) paintNode(ctx, ch, state)
   }
