@@ -26,29 +26,66 @@ export function guideAxes(report: FvgReport): { x: number[]; y: number[] } {
   return { x, y }
 }
 
-/** 在原图上画满横线和纵线，不写数字。 */
+/** 横线画向更近的左或右，纵线画向更近的上或下，停在元素远端，不贯穿整张图。 */
+export function guideSegments(report: FvgReport): Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> {
+  const segs: Array<{ axis: 'h' | 'v'; pos: number; from: number; to: number }> = []
+  const seen = new Set<string>()
+  const add = (axis: 'h' | 'v', pos: number, from: number, to: number) => {
+    const a = Math.min(from, to)
+    const b = Math.max(from, to)
+    if (b - a < 0.5) return
+    const key = `${axis}|${Math.round(pos * 2)}|${Math.round(a)}|${Math.round(b)}`
+    if (seen.has(key)) return
+    seen.add(key)
+    segs.push({ axis, pos, from: a, to: b })
+  }
+  const width = report.width
+  const height = report.height
+  for (const el of report.elements) {
+    const box = el.box
+    const toLeft = box.centerX <= width / 2
+    const toTop = box.centerY <= height / 2
+    const x0 = toLeft ? 0 : box.left
+    const x1 = toLeft ? box.right : width
+    const y0 = toTop ? 0 : box.top
+    const y1 = toTop ? box.bottom : height
+    add('h', box.top, x0, x1)
+    add('h', box.bottom, x0, x1)
+    add('v', box.left, y0, y1)
+    add('v', box.right, y0, y1)
+  }
+  return segs
+}
+
+/** 在原图上画横线和纵线，不写数字。每条线只画向离元素更近的那一侧。 */
 export function renderDebugSheet(poster: Canvas, report: FvgReport, scale: number): Canvas {
   const canvas = createCanvas(poster.width, poster.height)
   const ctx = canvas.getContext('2d')
   ctx.drawImage(poster as unknown as Canvas, 0, 0)
-  const guides = guideAxes(report)
+  const marks = new Set<string>()
+  const mark = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return
+    marks.add(`${x},${y}`)
+  }
+  for (const seg of guideSegments(report)) {
+    if (seg.axis === 'h') {
+      const py = Math.round(seg.pos * scale)
+      const x0 = Math.round(seg.from * scale)
+      const x1 = Math.round(seg.to * scale)
+      for (let x = x0; x <= x1; x++) mark(x, py)
+    } else {
+      const px = Math.round(seg.pos * scale)
+      const y0 = Math.round(seg.from * scale)
+      const y1 = Math.round(seg.to * scale)
+      for (let y = y0; y <= y1; y++) mark(px, y)
+    }
+  }
   ctx.save()
   ctx.globalCompositeOperation = 'difference'
-  ctx.strokeStyle = '#ffffff'
-  ctx.lineWidth = 1
-  for (const x of guides.x) {
-    const dx = Math.round(x * scale) + 0.5
-    ctx.beginPath()
-    ctx.moveTo(dx, 0)
-    ctx.lineTo(dx, canvas.height)
-    ctx.stroke()
-  }
-  for (const y of guides.y) {
-    const dy = Math.round(y * scale) + 0.5
-    ctx.beginPath()
-    ctx.moveTo(0, dy)
-    ctx.lineTo(canvas.width, dy)
-    ctx.stroke()
+  ctx.fillStyle = '#ffffff'
+  for (const key of marks) {
+    const [x, y] = key.split(',')
+    ctx.fillRect(Number(x), Number(y), 1, 1)
   }
   ctx.restore()
   return canvas
@@ -165,7 +202,7 @@ export function formatDebugIndex(
   lines.push(`- 元素：${report.elements.length} 个`)
   lines.push(`- 问题：error ${errors} · warn ${warns} · info ${infos}`)
   lines.push('')
-  lines.push('调试图只画元素盒子的横线和纵线，不标数字。挨近的边会并成一组线。精确坐标看下面的元素表，`#n` 是 `report.json` 的 `elements` 下标。')
+  lines.push('调试图画出元素盒子的横线和纵线，不标数字。横线只画向更近的左边或右边，纵线只画向更近的上边或下边，不贯穿整张图。精确坐标看下面的元素表。')
   lines.push('')
 
   lines.push('## 问题')

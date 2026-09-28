@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { parseFvg, type FvgNode } from './parse.js'
 import { initFontsForMeasure } from './fonts.js'
 import { debugFvg } from './render.js'
-import { guideAxes } from './debug.js'
+import { guideAxes, guideSegments } from './debug.js'
+import type { FvgReport } from './types.js'
 import { layoutSource } from './layout.js'
 import { buildReport } from './report.js'
 
@@ -71,6 +72,36 @@ describe('debugFvg', () => {
     const gaps: number[] = []
     for (let i = 1; i < guides.y.length; i++) gaps.push(guides.y[i]! - guides.y[i - 1]!)
     expect(gaps.some((d) => Math.abs(d - 32) < 1)).toBe(true)
+  })
+
+  it('线只伸向离元素更近的一侧', () => {
+    const report = {
+      width: 100,
+      height: 100,
+      elements: [
+        {
+          box: {
+            x: 10,
+            y: 60,
+            width: 20,
+            height: 20,
+            left: 10,
+            right: 30,
+            top: 60,
+            bottom: 80,
+            centerX: 20,
+            centerY: 70,
+          },
+        },
+      ],
+    } as FvgReport
+    const segs = guideSegments(report)
+    const horizontal = segs.filter((s) => s.axis === 'h')
+    const vertical = segs.filter((s) => s.axis === 'v')
+    expect(horizontal).toHaveLength(2)
+    expect(horizontal.every((s) => s.from === 0 && s.to === 30)).toBe(true)
+    expect(vertical).toHaveLength(2)
+    expect(vertical.every((s) => s.from === 60 && s.to === 100)).toBe(true)
   })
 
   it('focus 裁图与 id 解析', async () => {
