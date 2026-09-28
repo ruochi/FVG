@@ -1,6 +1,7 @@
 # FVG 规范 v0.1（Flex Vector Graphics）
 
 FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。
+用 Vue 或 React 生成 `.fvg` 见 [GENERATE.md](GENERATE.md)。
 动画 = 程序为每个时刻生成一份 FVG（v0.2 起）。
 
 设计原则：
