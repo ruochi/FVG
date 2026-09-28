@@ -1,3 +1,6 @@
+import type { Image } from '@napi-rs/canvas'
+import type { Border, CornerRadii, PaintFill, Shadow, TextStroke } from './style.js'
+
 export type Box = {
   x: number
   y: number
@@ -27,6 +30,8 @@ export function boxToRect(b: Box): Rect {
 }
 
 export function unionBoxes(a: Box, b: Box): Box {
+  if (a.width === 0 && a.height === 0) return b
+  if (b.width === 0 && b.height === 0) return a
   const x = Math.min(a.x, b.x)
   const y = Math.min(a.y, b.y)
   const right = Math.max(a.x + a.width, b.x + b.width)
@@ -89,8 +94,11 @@ export type TextRunStyle = {
   fontFamily: string
   fontSize: number
   fontWeight: number
+  fontStyle?: 'normal' | 'italic'
   color: string
   letterSpacing: number
+  textStroke?: TextStroke
+  textShadow?: Shadow[]
 }
 
 export type TextSegment = {
@@ -137,9 +145,13 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
-  background?: string
-  border?: { width: number; color: string }
+  background?: PaintFill
+  border?: Border
   borderRadius?: number
+  radii?: CornerRadii
+  boxShadow?: Shadow[]
+  overflow?: 'visible' | 'hidden'
+  zIndex?: number
   padding: { top: number; right: number; bottom: number; left: number }
 }
 
@@ -163,9 +175,12 @@ export type TextLayoutNode = LayoutNodeBase & {
 export type ShapeLayoutNode = LayoutNodeBase & {
   kind: 'shape'
   shape: ShapeKind
-  fill: string
+  fill: PaintFill
   stroke: string
   strokeWidth: number
+  dash?: number[]
+  strokeLinecap?: CanvasLineCap
+  strokeLinejoin?: CanvasLineJoin
   rx?: number
   r?: number
   rxEllipse?: number
@@ -183,12 +198,22 @@ export type LineLayoutNode = LayoutNodeBase & {
   dash?: number[]
 }
 
+export type ImageLayoutNode = LayoutNodeBase & {
+  kind: 'image'
+  src: string
+  image: Image | null
+  objectFit: 'fill' | 'contain' | 'cover'
+  intrinsicWidth: number
+  intrinsicHeight: number
+}
+
 export type LayoutNode =
   | LayerLayoutNode
   | FlexLayoutNode
   | TextLayoutNode
   | ShapeLayoutNode
   | LineLayoutNode
+  | ImageLayoutNode
 
 export type FvgDocument = {
   width: number

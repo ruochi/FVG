@@ -87,9 +87,14 @@ export function effectiveFontWeight(family: string, weight: number): number {
   return 400
 }
 
-export function buildFontString(family: string, weight: number, sizePx: number): string {
+export function isFontAvailable(family: string): boolean {
+  return GlobalFonts.has(family)
+}
+
+export function buildFontString(family: string, weight: number, sizePx: number, fontStyle: 'normal' | 'italic' = 'normal'): string {
   const w = effectiveFontWeight(family, weight)
-  return `${w} ${sizePx}px ${family}, ${DEFAULT_FONT_FAMILY}, sans-serif`
+  const style = fontStyle === 'italic' ? 'italic ' : ''
+  return `${style}${w} ${sizePx}px ${family}, ${DEFAULT_FONT_FAMILY}, sans-serif`
 }
 
 /** 测量用：若默认字体未注册则尝试读缓存路径（测试可预先放入字体） */

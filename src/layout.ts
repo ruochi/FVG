@@ -9,16 +9,29 @@ import {
 } from 'yoga-layout/load'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
-import { registerFontsFromDocument } from './fonts.js'
+import { isFontAvailable, registerFontsFromDocument } from './fonts.js'
+import { loadFvgImage, objectFitRect } from './images.js'
 import {
   parseBorder,
+  parseCorners,
+  parseDash,
   parseEdges,
   parseFontWeight,
+  parseLineCap,
+  parseLineJoin,
   parseNumber,
+  parseObjectFit,
+  parseOverflow,
+  parsePaint,
   parsePx,
+  parseShadows,
   parseStyle,
+  parseZIndex,
   ZERO_EDGES,
+  type CornerRadii,
   type Edges,
+  type PaintFill,
+  type Shadow,
 } from './style.js'
 import {
   defaultFontSizeForTag,
@@ -27,12 +40,13 @@ import {
   isTextBoxTag,
   layoutText,
 } from './text.js'
-import { FONT_TAG, isFlexTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { FONT_TAG, isFlexTag, isImageTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
 import type {
   Anchor,
   Box,
   FlexLayoutNode,
   FvgDocument,
+  ImageLayoutNode,
   Issue,
   LayerLayoutNode,
   LayoutNode,
@@ -50,6 +64,7 @@ export type LayoutContext = {
   maxContentWidth: number
   issues: Issue[]
   pathPrefix: string
+  baseDir: string
 }
 
 function parseAnchor(raw: string | undefined): Anchor {
@@ -105,20 +120,156 @@ function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
 }
 
+function warnInvalid(ctx: LayoutContext, raw: string, label: string) {
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-attr',
+    path: ctx.pathPrefix,
+    message: `无法解析 ${label}="${raw}"`,
+  })
+}
+
+function parsedLen(ctx: LayoutContext, raw: string | undefined, label: string): number | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const n = parsePx(raw)
+  if (n === undefined) warnInvalid(ctx, raw, label)
+  return n
+}
+
+function parsedNum(ctx: LayoutContext, raw: string | undefined, label: string): number | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const n = parseNumber(raw)
+  if (n === undefined) warnInvalid(ctx, raw, label)
+  return n
+}
+
+function readStrokeExtras(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
+  const dashRaw = attrs['stroke-dasharray'] ?? style['stroke-dasharray']
+  let dash: number[] | undefined
+  if (dashRaw != null && dashRaw.trim() !== '' && dashRaw.trim().toLowerCase() !== 'none') {
+    dash = parseDash(dashRaw)
+    if (!dash) warnInvalid(ctx, dashRaw, 'stroke-dasharray')
+  }
+  const capRaw = attrs['stroke-linecap'] ?? style['stroke-linecap']
+  const strokeLinecap = parseLineCap(capRaw)
+  if (capRaw != null && capRaw.trim() !== '' && !strokeLinecap) warnInvalid(ctx, capRaw, 'stroke-linecap')
+  const joinRaw = attrs['stroke-linejoin'] ?? style['stroke-linejoin']
+  const strokeLinejoin = parseLineJoin(joinRaw)
+  if (joinRaw != null && joinRaw.trim() !== '' && !strokeLinejoin) warnInvalid(ctx, joinRaw, 'stroke-linejoin')
+  return { dash, strokeLinecap, strokeLinejoin }
+}
+
+const ZERO_RADII: CornerRadii = { tl: 0, tr: 0, br: 0, bl: 0 }
+
+function readPaint(ctx: LayoutContext, raw: string | undefined, label: string): PaintFill | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const paint = parsePaint(raw)
+  if (paint === undefined) {
+    warnInvalid(ctx, raw, label)
+    return undefined
+  }
+  return paint
+}
+
+function readShadowList(ctx: LayoutContext, raw: string | undefined, label: string): Shadow[] | undefined {
+  if (raw == null || raw.trim() === '' || raw.trim().toLowerCase() === 'none') return undefined
+  const shadows = parseShadows(raw)
+  if (!shadows) {
+    warnInvalid(ctx, raw, label)
+    return undefined
+  }
+  return shadows
+}
+
 function readAppearance(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
   const padding = parseEdges(style.padding) ?? ZERO_EDGES
   const border = parseBorder(style.border)
-  const borderRadius = parsePx(style['border-radius']) ?? 0
-  const background = style.background ?? style['background-color']
+  const radiusRaw = style['border-radius']
+  let radii = ZERO_RADII
+  if (radiusRaw != null && radiusRaw.trim() !== '') {
+    const parsed = parseCorners(radiusRaw)
+    if (!parsed) warnInvalid(ctx, radiusRaw, 'border-radius')
+    else radii = parsed
+  }
+  const borderRadius = Math.max(radii.tl, radii.tr, radii.br, radii.bl)
+  const background = readPaint(ctx, style.background ?? style['background-color'], 'background')
+  const boxShadow = readShadowList(ctx, style['box-shadow'], 'box-shadow')
+  const overflowRaw = style.overflow
+  let overflow: 'visible' | 'hidden' = 'visible'
+  if (overflowRaw != null && overflowRaw.trim() !== '') {
+    const parsed = parseOverflow(overflowRaw)
+    if (!parsed) warnInvalid(ctx, overflowRaw, 'overflow')
+    else overflow = parsed
+  }
+  const zRaw = style['z-index'] ?? attrs['z-index']
+  let zIndex = 0
+  if (zRaw != null && zRaw.trim() !== '') {
+    const parsed = parseZIndex(zRaw)
+    if (parsed === undefined) warnInvalid(ctx, zRaw, 'z-index')
+    else zIndex = parsed
+  }
   return {
     padding,
     border,
     borderRadius,
+    radii,
     background,
-    opacity: parseNumber(attrs.opacity) ?? 1,
-    rotate: parseNumber(attrs.rotate) ?? 0,
-    scale: parseNumber(attrs.scale) ?? 1,
+    boxShadow,
+    overflow,
+    zIndex,
+    opacity: parsedNum(ctx, attrs.opacity, 'opacity') ?? 1,
+    rotate: parsedNum(ctx, attrs.rotate, 'rotate') ?? 0,
+    scale: parsedNum(ctx, attrs.scale, 'scale') ?? 1,
   }
+}
+
+function shadowOutset(shadows: Shadow[] | undefined): { left: number; right: number; top: number; bottom: number } {
+  let left = 0
+  let right = 0
+  let top = 0
+  let bottom = 0
+  for (const shadow of shadows ?? []) {
+    const blur = Math.abs(shadow.blur) * 2
+    left = Math.max(left, blur - shadow.x)
+    right = Math.max(right, blur + shadow.x)
+    top = Math.max(top, blur - shadow.y)
+    bottom = Math.max(bottom, blur + shadow.y)
+  }
+  return { left, right, top, bottom }
+}
+
+function inflateBox(box: Box, pad: { left: number; right: number; top: number; bottom: number }): Box {
+  return {
+    x: box.x - pad.left,
+    y: box.y - pad.top,
+    width: box.width + pad.left + pad.right,
+    height: box.height + pad.top + pad.bottom,
+  }
+}
+
+function withEffectsInk<T extends LayoutNode>(node: T): T {
+  let ink = node.ink
+  if (node.kind === 'text') {
+    let stroke = 0
+    const shadows: Shadow[] = []
+    for (const line of node.textLayout.lines) {
+      for (const seg of line.segments) {
+        if (seg.style.textStroke) stroke = Math.max(stroke, seg.style.textStroke.width)
+        if (seg.style.textShadow) shadows.push(...seg.style.textShadow)
+      }
+    }
+    if (stroke > 0) {
+      const half = stroke / 2
+      ink = inflateBox(ink, { left: half, right: half, top: half, bottom: half })
+    }
+    const textPad = shadowOutset(shadows)
+    if (textPad.left || textPad.right || textPad.top || textPad.bottom) ink = inflateBox(ink, textPad)
+  }
+  const boxPad = shadowOutset(node.boxShadow)
+  if (boxPad.left || boxPad.right || boxPad.top || boxPad.bottom) {
+    ink = unionBoxes(ink, inflateBox({ x: 0, y: 0, width: node.width, height: node.height }, boxPad))
+  }
+  return ink === node.ink ? node : { ...node, ink }
 }
 
 function outerFromContent(
@@ -150,17 +301,23 @@ function mapJustify(v: string | undefined): Justify {
   }
 }
 
-function mapAlign(v: string | undefined): Align {
-  switch ((v ?? 'center').trim()) {
+function mapAlignExact(v: string | undefined): Align | undefined {
+  switch ((v ?? '').trim()) {
     case 'start':
       return Align.FlexStart
     case 'end':
       return Align.FlexEnd
+    case 'center':
+      return Align.Center
     case 'stretch':
       return Align.Stretch
     default:
-      return Align.Center
+      return undefined
   }
+}
+
+function mapAlign(v: string | undefined): Align {
+  return mapAlignExact(v) ?? Align.Center
 }
 
 function parseFlexGrowShrink(style: Record<string, string>, isText: boolean): { grow: number; shrink: number } {
@@ -191,12 +348,52 @@ function lineBounds(geom: LineGeometry, strokeWidth: number): Box {
   }
   if (geom.kind === 'path') {
     const p = new Path2D(geom.d)
-    const b = p.getBounds?.() ?? p.computeTightBounds?.()
-    if (b && b.length >= 4) {
+    const b = p.computeTightBounds()
+    if (b && b.length >= 4 && Number.isFinite(b[0])) {
       return { x: b[0] - pad, y: b[1] - pad, width: b[2] - b[0] + pad * 2, height: b[3] - b[1] + pad * 2 }
     }
   }
   return { x: 0, y: 0, width: 0, height: 0 }
+}
+
+function translatePath(d: string, ox: number, oy: number): string {
+  const tokens = d.match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)(?:e[-+]?\d+)?/gi)
+  if (!tokens) return d
+  const counts: Record<string, number> = { M: 2, L: 2, T: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, A: 7, Z: 0 }
+  let i = 0
+  let cmd = ''
+  const out: string[] = []
+  while (i < tokens.length) {
+    const token = tokens[i]!
+    if (/[a-zA-Z]/.test(token)) {
+      cmd = token
+      i++
+      out.push(cmd)
+    }
+    const op = cmd.toUpperCase()
+    const n = counts[op]
+    if (n == null || n === 0) continue
+    const abs = cmd === cmd.toUpperCase()
+    const nums: number[] = []
+    for (let k = 0; k < n && i < tokens.length && !/[a-zA-Z]/.test(tokens[i]!); k++) nums.push(Number(tokens[i++]))
+    if (nums.length < n) break
+    if (abs) {
+      if (op === 'H') nums[0] = (nums[0] ?? 0) - ox
+      else if (op === 'V') nums[0] = (nums[0] ?? 0) - oy
+      else if (op === 'A') {
+        nums[5] = (nums[5] ?? 0) - ox
+        nums[6] = (nums[6] ?? 0) - oy
+      } else {
+        for (let k = 0; k < nums.length; k += 2) {
+          nums[k] = (nums[k] ?? 0) - ox
+          nums[k + 1] = (nums[k + 1] ?? 0) - oy
+        }
+      }
+    }
+    out.push(...nums.map((n) => String(Math.round(n * 1000) / 1000)))
+    if (op === 'M') cmd = abs ? 'L' : 'l'
+  }
+  return out.join(' ')
 }
 
 function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
@@ -208,29 +405,42 @@ function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
   if (geom.kind === 'polyline' || geom.kind === 'polygon') {
     return { ...geom, points: geom.points.map((p) => ({ x: p.x - ox, y: p.y - oy })) }
   }
+  if (geom.kind === 'path') return { ...geom, d: translatePath(geom.d, ox, oy) }
   return geom
 }
 
 function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: number): TextLayoutNode {
   const style = parseStyle(node.attrs.style)
   const tag = node.tag.toLowerCase()
-  const fontSize = parsePx(style['font-size']) ?? defaultFontSizeForTag(tag)
+  const fontSize = parsedLen(ctx, style['font-size'], 'font-size') ?? defaultFontSizeForTag(tag)
   const fontWeight = parseFontWeight(style['font-weight']) ?? defaultFontWeightForTag(tag)
   const fontFamily = style['font-family']?.trim() || ctx.fontFamily
+  if (style['font-family']?.trim() && !isFontAvailable(fontFamily)) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `字体未注册 ${fontFamily}，已改用 ${ctx.fontFamily}`,
+    })
+  }
   const color = style.color ?? ctx.color
-  const segments = extractTextSegments(node, {
-    fontFamily,
-    fontSize,
-    fontWeight,
-    color,
-    letterSpacing: parsePx(style['letter-spacing']) ?? 0,
-    lineHeightRatio: parseNumber(style['line-height']) ?? (1.2),
-  })
+  const segments = extractTextSegments(
+    node,
+    {
+      fontFamily,
+      fontSize,
+      fontWeight,
+      color,
+      letterSpacing: parsePx(style['letter-spacing']) ?? 0,
+      lineHeightRatio: parseNumber(style['line-height']) ?? 1.2,
+    },
+    (label, raw) => warnInvalid(ctx, raw, label),
+  )
   const nowrap = style['white-space'] === 'nowrap'
   const textWrap = style['text-wrap'] === 'wrap' ? 'wrap' : 'balance'
-  const fixedW = parsePx(style.width)
-  const fixedH = parsePx(style.height)
-  const maxW = parsePx(style['max-width']) ?? contentWidthLimit
+  const fixedW = parsedLen(ctx, style.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height')
+  const maxW = parsedLen(ctx, style['max-width'], 'max-width') ?? contentWidthLimit
   const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 ? 1.4 : 1.2)
 
   const appearance = readAppearance(node.attrs, style, ctx)
@@ -275,7 +485,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     })
   }
 
-  return {
+  return withEffectsInk({
     kind: 'text',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -288,31 +498,32 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     ...appearance,
     textLayout,
     textAlign,
-  }
+  })
 }
 
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
   const style = parseStyle(node.attrs.style)
   const appearance = readAppearance(node.attrs, style, ctx)
-  let w = parsePx(style.width) ?? parseNumber(node.attrs.width) ?? 0
-  let h = parsePx(style.height) ?? parseNumber(node.attrs.height) ?? 0
+  const radius = parsedLen(ctx, node.attrs.r, 'r')
+  const rxAttr = parsedLen(ctx, node.attrs.rx, 'rx')
+  const ryAttr = parsedLen(ctx, node.attrs.ry, 'ry')
+  let w = 0
+  let h = 0
   if (node.tag === 'Circle') {
-    const r = parseNumber(node.attrs.r) ?? 0
-    w = h = r * 2
+    w = h = (radius ?? 0) * 2
+  } else if (node.tag === 'Ellipse') {
+    w = (rxAttr ?? 0) * 2
+    h = (ryAttr ?? 0) * 2
+  } else {
+    w = parsedLen(ctx, node.attrs.width, 'width') ?? parsedLen(ctx, style.width, 'width') ?? 0
+    h = parsedLen(ctx, node.attrs.height, 'height') ?? parsedLen(ctx, style.height, 'height') ?? 0
   }
-  if (node.tag === 'Ellipse') {
-    w = (parseNumber(node.attrs.rx) ?? 0) * 2
-    h = (parseNumber(node.attrs.ry) ?? 0) * 2
-  }
-  if (node.tag === 'Rect') {
-    w = parseNumber(node.attrs.width) ?? w
-    h = parseNumber(node.attrs.height) ?? h
-  }
-  const fill = node.attrs.fill ?? style.fill ?? '#000000'
+  const fill = readPaint(ctx, node.attrs.fill ?? style.fill ?? '#000000', 'fill') ?? 'none'
   const stroke = node.attrs.stroke ?? style.stroke ?? 'none'
-  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? parsePx(style['stroke-width']) ?? 1
+  const strokeWidth = parsedLen(ctx, node.attrs['stroke-width'], 'stroke-width') ?? parsedLen(ctx, style['stroke-width'], 'stroke-width') ?? 1
+  const strokeExtras = readStrokeExtras(node.attrs, style, ctx)
   const ink = { x: 0, y: 0, width: w, height: h }
-  return {
+  return withEffectsInk({
     kind: 'shape',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -327,11 +538,71 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     fill,
     stroke,
     strokeWidth,
-    rx: parseNumber(node.attrs.rx) ?? parsePx(style['border-radius']),
-    r: parseNumber(node.attrs.r),
-    rxEllipse: parseNumber(node.attrs.rx),
-    ry: parseNumber(node.attrs.ry),
+    ...strokeExtras,
+    rx: rxAttr,
+    r: radius,
+    rxEllipse: rxAttr,
+    ry: ryAttr,
+  })
+}
+
+async function layoutImage(node: FvgNode, ctx: LayoutContext): Promise<ImageLayoutNode> {
+  const style = parseStyle(node.attrs.style)
+  const appearance = readAppearance(node.attrs, style, ctx)
+  const fitRaw = style['object-fit'] ?? node.attrs['object-fit']
+  let objectFit: 'fill' | 'contain' | 'cover' = 'fill'
+  if (fitRaw != null && fitRaw.trim() !== '') {
+    const parsed = parseObjectFit(fitRaw)
+    if (!parsed) warnInvalid(ctx, fitRaw, 'object-fit')
+    else objectFit = parsed
   }
+  const src = node.attrs.src ?? ''
+  let image: ImageLayoutNode['image'] = null
+  let intrinsicWidth = 0
+  let intrinsicHeight = 0
+  try {
+    const loaded = await loadFvgImage(src, ctx.baseDir)
+    image = loaded.image
+    intrinsicWidth = loaded.width
+    intrinsicHeight = loaded.height
+  } catch {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'missing-image',
+      path: ctx.pathPrefix,
+      message: `图片无法打开 ${src || '(空)'}`,
+    })
+  }
+  let width = parsedLen(ctx, node.attrs.width, 'width') ?? parsedLen(ctx, style.width, 'width')
+  let height = parsedLen(ctx, node.attrs.height, 'height') ?? parsedLen(ctx, style.height, 'height')
+  if (image && intrinsicWidth > 0 && intrinsicHeight > 0) {
+    if (width == null && height == null) {
+      width = intrinsicWidth
+      height = intrinsicHeight
+    } else if (width == null && height != null) width = (height * intrinsicWidth) / intrinsicHeight
+    else if (height == null && width != null) height = (width * intrinsicHeight) / intrinsicWidth
+  }
+  const w = width ?? 0
+  const h = height ?? 0
+  const fitted = image ? objectFitRect(objectFit, intrinsicWidth, intrinsicHeight, w, h) : null
+  const ink = fitted && fitted.dw > 0 && fitted.dh > 0 ? { x: fitted.dx, y: fitted.dy, width: fitted.dw, height: fitted.dh } : emptyBox()
+  return withEffectsInk({
+    kind: 'image',
+    path: ctx.pathPrefix,
+    id: node.attrs.id,
+    tag: node.tag,
+    x: 0,
+    y: 0,
+    width: w,
+    height: h,
+    ink,
+    ...appearance,
+    src,
+    image,
+    objectFit,
+    intrinsicWidth,
+    intrinsicHeight,
+  })
 }
 
 function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
@@ -339,11 +610,11 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   if (node.tag === 'Line' || node.tag === 'Arrow') {
     geom = {
       kind: node.tag === 'Arrow' ? 'arrow' : 'line',
-      x1: parseNumber(node.attrs.x1) ?? 0,
-      y1: parseNumber(node.attrs.y1) ?? 0,
-      x2: parseNumber(node.attrs.x2) ?? 0,
-      y2: parseNumber(node.attrs.y2) ?? 0,
-      head: parseNumber(node.attrs.head),
+      x1: parsedLen(ctx, node.attrs.x1, 'x1') ?? 0,
+      y1: parsedLen(ctx, node.attrs.y1, 'y1') ?? 0,
+      x2: parsedLen(ctx, node.attrs.x2, 'x2') ?? 0,
+      y2: parsedLen(ctx, node.attrs.y2, 'y2') ?? 0,
+      head: parsedLen(ctx, node.attrs.head, 'head'),
     }
   } else if (node.tag === 'Polyline' || node.tag === 'Polygon') {
     const pts = (node.attrs.points ?? '')
@@ -358,9 +629,10 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
-  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 4
+  const strokeWidth = parsedLen(ctx, node.attrs['stroke-width'], 'stroke-width') ?? 4
   const stroke = node.attrs.stroke ?? defaultStroke
   const fill = node.attrs.fill ?? 'none'
+  const strokeExtras = readStrokeExtras(node.attrs, {}, ctx)
   const box = lineBounds(geom, strokeWidth)
   const localGeom = normalizeLineGeometry(geom, box)
   return {
@@ -373,18 +645,26 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     width: box.width,
     height: box.height,
     ink: { x: 0, y: 0, width: box.width, height: box.height },
-    opacity: parseNumber(node.attrs.opacity) ?? 1,
-    rotate: parseNumber(node.attrs.rotate) ?? 0,
-    scale: parseNumber(node.attrs.scale) ?? 1,
+    opacity: parsedNum(ctx, node.attrs.opacity, 'opacity') ?? 1,
+    rotate: parsedNum(ctx, node.attrs.rotate, 'rotate') ?? 0,
+    scale: parsedNum(ctx, node.attrs.scale, 'scale') ?? 1,
     padding: ZERO_EDGES,
     geometry: localGeom,
     stroke,
     strokeWidth,
     fill,
+    ...strokeExtras,
   }
 }
 
+const INLINE_TAGS = new Set(['span', 'strong', 'b', 'em', 'br'])
+
+function hasBlockChildren(node: FvgNode): boolean {
+  return node.children.some((child) => typeof child !== 'string' && !INLINE_TAGS.has(child.tag.toLowerCase()))
+}
+
 type FlexMeasure = {
+  source: FvgNode
   node: LayoutNode
   minMain: number
   minCross: number
@@ -393,54 +673,41 @@ type FlexMeasure = {
   isText: boolean
 }
 
+function flexMetrics(direction: 'row' | 'column', node: LayoutNode, isText: boolean): Omit<FlexMeasure, 'source'> {
+  return {
+    node,
+    minMain: direction === 'row' ? ('textLayout' in node ? node.textLayout.minWidth : node.width) : node.height,
+    minCross: direction === 'row' ? node.height : 'textLayout' in node ? node.textLayout.minWidth : node.width,
+    preferredMain: direction === 'row' ? node.width : node.height,
+    preferredCross: direction === 'row' ? node.height : node.width,
+    isText,
+  }
+}
+
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
   if (isLineTag(node.tag)) {
     ctx.issues.push({ level: 'warn', code: 'invalid-child', path: ctx.pathPrefix, message: '线条不能放在 Row/Column 内' })
     return null
   }
-  if (isTextBoxTag(node.tag)) {
+  if (isTextBoxTag(node.tag) && !hasBlockChildren(node)) {
     const laid = layoutTextBox(node, ctx, ctx.maxContentWidth)
-    return {
-      node: laid,
-      minMain: direction === 'row' ? laid.textLayout.minWidth : laid.height,
-      minCross: direction === 'row' ? laid.height : laid.textLayout.minWidth,
-      preferredMain: direction === 'row' ? laid.width : laid.height,
-      preferredCross: direction === 'row' ? laid.height : laid.width,
-      isText: true,
-    }
+    return { source: node, ...flexMetrics(direction, laid, true) }
   }
   if (isShapeTag(node.tag)) {
     const s = layoutShape(node, ctx, ctx.color)
-    return {
-      node: s,
-      minMain: direction === 'row' ? s.width : s.height,
-      minCross: direction === 'row' ? s.height : s.width,
-      preferredMain: direction === 'row' ? s.width : s.height,
-      preferredCross: direction === 'row' ? s.height : s.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, s, false) }
   }
-  if (isFlexTag(node.tag)) {
+  if (isImageTag(node.tag)) {
+    const image = await layoutImage(node, ctx)
+    return { source: node, ...flexMetrics(direction, image, false) }
+  }
+  if (isFlexTag(node.tag) || (isTextBoxTag(node.tag) && hasBlockChildren(node))) {
     const nested = await layoutFlex(node, ctx)
-    return {
-      node: nested,
-      minMain: direction === 'row' ? nested.width : nested.height,
-      minCross: direction === 'row' ? nested.height : nested.width,
-      preferredMain: direction === 'row' ? nested.width : nested.height,
-      preferredCross: direction === 'row' ? nested.height : nested.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, nested, false) }
   }
   if (ROOT_TAGS.has(node.tag) || node.tag === 'Layer') {
     const nested = await layoutLayer(node, ctx)
-    return {
-      node: nested,
-      minMain: direction === 'row' ? nested.width : nested.height,
-      minCross: direction === 'row' ? nested.height : nested.width,
-      preferredMain: direction === 'row' ? nested.width : nested.height,
-      preferredCross: direction === 'row' ? nested.height : nested.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, nested, false) }
   }
   ctx.issues.push({ level: 'warn', code: 'unknown-tag', path: ctx.pathPrefix, message: `未知标签 ${node.tag}` })
   return null
@@ -454,24 +721,50 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   const justify = mapJustify(style['justify-content'])
   const alignItems = mapAlign(style['align-items'])
 
-  const fixedW = parsePx(style.width)
-  const fixedH = parsePx(style.height)
+  const fixedW = parsedLen(ctx, style.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height')
+  const borderW = appearance.border?.width ?? 0
+  const padX = appearance.padding.left + appearance.padding.right + borderW * 2
+  const padY = appearance.padding.top + appearance.padding.bottom + borderW * 2
+  const insetX = appearance.padding.left + borderW
+  const insetY = appearance.padding.top + borderW
+  const measureLimit =
+    fixedW != null ? Math.max(0, Math.min(ctx.maxContentWidth, fixedW - padX)) : ctx.maxContentWidth
+
   const childNodes = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
   const measures: FlexMeasure[] = []
   for (let i = 0; i < childNodes.length; i++) {
     const ch = childNodes[i]!
-    const m = await measureFlexChild(ch, { ...ctx, pathPrefix: nodePath(ctx.pathPrefix, ch.tag, i) }, direction)
+    const m = await measureFlexChild(
+      ch,
+      { ...ctx, maxContentWidth: measureLimit, pathPrefix: nodePath(ctx.pathPrefix, ch.tag, i) },
+      direction,
+    )
     if (m) measures.push(m)
   }
 
-  let crossAvailable =
+  const gapCount = Math.max(0, measures.length - 1)
+  const intrinsicMain = measures.reduce((sum, m) => sum + m.preferredMain, 0) + gap * gapCount
+  const intrinsicCross = measures.reduce((max, m) => Math.max(max, m.preferredCross), 0)
+  const availableMain =
+    direction === 'row'
+      ? fixedW != null
+        ? Math.max(0, fixedW - padX)
+        : ctx.maxContentWidth
+      : fixedH != null
+        ? Math.max(0, fixedH - padY)
+        : Number.POSITIVE_INFINITY
+  const availableCross =
     direction === 'row'
       ? fixedH != null
-        ? fixedH - appearance.padding.top - appearance.padding.bottom - (appearance.border?.width ?? 0) * 2
-        : Math.max(0, ...measures.map((m) => m.preferredCross))
+        ? Math.max(0, fixedH - padY)
+        : intrinsicCross
       : fixedW != null
-        ? fixedW - appearance.padding.left - appearance.padding.right - (appearance.border?.width ?? 0) * 2
+        ? Math.max(0, fixedW - padX)
         : ctx.maxContentWidth
+  const mainFixed = direction === 'row' ? fixedW != null : fixedH != null
+  const mainSize = mainFixed ? availableMain : Math.min(availableMain, intrinsicMain)
+  const crossSize = direction === 'row' ? (fixedH != null ? availableCross : intrinsicCross) : fixedW != null ? availableCross : Math.min(availableCross, intrinsicCross)
 
   const Yoga = await ensureYoga()
   const config = Yoga.Config.create()
@@ -481,40 +774,40 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.setJustifyContent(justify)
   root.setAlignItems(alignItems)
   if (gap > 0) root.setGap(direction === 'row' ? Gutter.Column : Gutter.Row, gap)
-
-  const mainAvailable =
-    direction === 'row'
-      ? fixedW != null
-        ? fixedW - appearance.padding.left - appearance.padding.right - (appearance.border?.width ?? 0) * 2
-        : ctx.maxContentWidth
-      : fixedH ?? 1e6
-
   if (direction === 'row') {
-    root.setWidth(Math.max(0, mainAvailable))
-    root.setHeight(Math.max(0, crossAvailable === Infinity ? 0 : crossAvailable))
+    root.setWidth(Math.max(0, mainSize))
+    root.setHeight(Math.max(0, crossSize))
   } else {
-    root.setWidth(Math.max(0, crossAvailable))
-    root.setHeight(Math.max(0, mainAvailable))
+    root.setWidth(Math.max(0, crossSize))
+    root.setHeight(Math.max(0, Number.isFinite(mainSize) ? mainSize : 0))
   }
 
   const yogaChildren: YogaNode[] = []
-  for (let i = 0; i < measures.length; i++) {
-    const m = measures[i]!
-    const childFvg = childNodes[i]!
-    const chParsed = parseStyle(childFvg.attrs.style)
+  for (const m of measures) {
+    const chParsed = parseStyle(m.source.attrs.style)
     const { grow, shrink } = parseFlexGrowShrink(chParsed, m.isText)
     const yn = Yoga.Node.create()
     yn.setFlexGrow(grow)
     yn.setFlexShrink(shrink)
     yn.setFlexBasisAuto()
+    const minOuterW =
+      m.node.padding.left +
+      m.node.padding.right +
+      (m.node.border?.width ?? 0) * 2 +
+      (m.isText && m.node.kind === 'text' ? m.node.textLayout.minWidth : 0)
+    const selfRaw = chParsed['align-self']?.trim()
+    const self = mapAlignExact(selfRaw)
+    if (selfRaw && !self) warnInvalid(ctx, selfRaw, 'align-self')
+    if (self) yn.setAlignSelf(self)
+    const stretch = (self ?? alignItems) === Align.Stretch
     if (direction === 'row') {
       yn.setWidth(m.preferredMain)
-      yn.setHeight(m.preferredCross === Infinity ? m.preferredCross : m.preferredCross)
-      yn.setMinWidth(m.minMain)
+      if (!stretch) yn.setHeight(m.preferredCross)
+      yn.setMinWidth(m.isText ? minOuterW : m.minMain)
     } else {
-      yn.setWidth(m.preferredCross === Infinity ? crossAvailable : m.preferredCross)
       yn.setHeight(m.preferredMain)
-      yn.setMinWidth(m.isText ? m.minMain : 0)
+      if (!stretch) yn.setWidth(m.preferredCross)
+      yn.setMinWidth(m.isText ? minOuterW : 0)
     }
     yogaChildren.push(yn)
     root.insertChild(yn, yogaChildren.length - 1)
@@ -523,48 +816,47 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.calculateLayout(undefined, undefined)
 
   const laidChildren: LayoutNode[] = []
-  let contentW = 0
-  let contentH = 0
   for (let i = 0; i < measures.length; i++) {
     const m = measures[i]!
-    const yn = yogaChildren[i]!
-    const layout = yn.getComputedLayout()
+    const layout = yogaChildren[i]!.getComputedLayout()
     let child = m.node
     if (m.isText && child.kind === 'text') {
-      const assignedW =
-        direction === 'column'
-          ? layout.width
-          : layout.width
-      const styleCh = parseStyle(childNodes[i]!.attrs.style)
-      const innerW = assignedW - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
-      const re = layoutTextBox(childNodes[i]!, { ...ctx, pathPrefix: child.path }, innerW)
-      re.x = layout.left
-      re.y = layout.top
-      child = re
-    } else {
-      child = { ...child, x: layout.left, y: layout.top, width: layout.width, height: layout.height }
-      if (child.kind === 'layer' || child.kind === 'flex') {
-        // keep internal layout; stretch box only
+      const padChildX = child.padding.left + child.padding.right + (child.border?.width ?? 0) * 2
+      const assignedOuter = direction === 'column' ? Math.min(layout.width, crossSize) : layout.width
+      const innerW = assignedOuter - padChildX
+      if (innerW + 1 < child.textLayout.contentWidth) {
+        const re = layoutTextBox(m.source, { ...ctx, pathPrefix: child.path }, Math.max(0, innerW))
+        re.x = layout.left + insetX
+        re.y = layout.top + insetY
+        child = re
+      } else {
+        child = { ...child, x: layout.left + insetX, y: layout.top + insetY }
       }
+      if (direction === 'column' && layout.width > child.width + 0.5) child = { ...child, width: layout.width }
+      if (direction === 'row' && layout.height > child.height + 0.5) child = { ...child, height: layout.height }
+    } else {
+      child = { ...child, x: layout.left + insetX, y: layout.top + insetY, width: layout.width, height: layout.height }
     }
     laidChildren.push(child)
-    contentW = Math.max(contentW, layout.left + layout.width)
-    contentH = Math.max(contentH, layout.top + layout.height)
   }
 
   for (const yn of yogaChildren) yn.free()
   root.freeRecursive()
   config.free()
 
-  const outer = outerFromContent(contentW, contentH, appearance.padding, appearance.border)
-  if (fixedW != null && outer.width > fixedW + 1e-3) {
+  const innerW = direction === 'row' ? mainSize : crossSize
+  const innerH = direction === 'row' ? crossSize : mainSize
+  let contentInk = { x: insetX, y: insetY, width: innerW, height: innerH }
+  for (const child of laidChildren) contentInk = unionBoxes(contentInk, translateBox(child.ink, child.x, child.y))
+  const outer = outerFromContent(innerW, innerH, appearance.padding, appearance.border)
+  if (fixedW != null && (direction === 'row' ? intrinsicMain : intrinsicCross) + padX > fixedW + 1e-3) {
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 width' })
   }
-  if (fixedH != null && outer.height > fixedH + 1e-3) {
+  if (fixedH != null && (direction === 'column' ? intrinsicMain : intrinsicCross) + padY > fixedH + 1e-3) {
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 height' })
   }
 
-  return {
+  return withEffectsInk({
     kind: 'flex',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -573,21 +865,21 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     y: 0,
     width: fixedW ?? outer.width,
     height: fixedH ?? outer.height,
-    ink: { x: appearance.padding.left, y: appearance.padding.top, width: contentW, height: contentH },
+    ink: contentInk,
     ...appearance,
     direction,
     children: laidChildren,
-  }
+  })
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const style = parseStyle(node.attrs.style)
   const appearance = readAppearance(node.attrs, style, ctx)
-  const fixedW = parsePx(style.width) ?? parseNumber(node.attrs.width)
-  const fixedH = parsePx(style.height) ?? parseNumber(node.attrs.height)
+  const fixedW = parsedLen(ctx, style.width, 'width') ?? parsedLen(ctx, node.attrs.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height') ?? parsedLen(ctx, node.attrs.height, 'height')
 
   const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
-  const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean }> = []
+  const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean; fixedPos: boolean }> = []
 
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
@@ -595,22 +887,25 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     const subCtx = { ...ctx, pathPrefix: path }
     let laid: LayoutNode | null = null
     if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
-    else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
+    else if (isTextBoxTag(ch.tag) && !hasBlockChildren(ch)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
-    else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
+    else if (isImageTag(ch.tag)) laid = await layoutImage(ch, subCtx)
+    else if (isFlexTag(ch.tag) || (isTextBoxTag(ch.tag) && hasBlockChildren(ch))) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
       ctx.issues.push({ level: 'warn', code: 'unknown-tag', path, message: `未知标签 ${ch.tag}` })
       continue
     }
-    const cx = parseNumber(ch.attrs.cx)
-    const cy = parseNumber(ch.attrs.cy)
+    const cx = parsedLen(subCtx, ch.attrs.cx, 'cx')
+    const cy = parsedLen(subCtx, ch.attrs.cy, 'cy')
+    const fixedPos = laid.kind === 'line'
     placed.push({
       child: laid,
       cx: cx ?? undefined,
       cy: cy ?? undefined,
       anchor: parseAnchor(ch.attrs.anchor),
-      useDefaultCenter: cx == null || cy == null,
+      useDefaultCenter: !fixedPos && (cx == null || cy == null),
+      fixedPos,
     })
   }
 
@@ -618,6 +913,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   let layerH = fixedH ?? 0
 
   const positionOne = (p: (typeof placed)[0], lw: number, lh: number) => {
+    if (p.fixedPos) return
     const cx = p.cx ?? lw / 2
     const cy = p.cy ?? lh / 2
     const tl = anchorTopLeft(cx, cy, p.child.width, p.child.height, p.anchor)
@@ -664,7 +960,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     return p.child
   })
 
-  return {
+  return withEffectsInk({
     kind: 'layer',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -676,7 +972,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ink,
     ...appearance,
     children,
-  }
+  })
 }
 
 export async function layoutSource(source: string, baseDir: string): Promise<FvgDocument> {
@@ -695,8 +991,8 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
 
   const attrs = rootNode.attrs
   const style = parseStyle(attrs.style)
-  const width = parseNumber(attrs.width) ?? parsePx(style.width) ?? 1080
-  const height = parseNumber(attrs.height) ?? parsePx(style.height) ?? 1920
+  const width = parsePx(attrs.width) ?? parsePx(style.width) ?? 1080
+  const height = parsePx(attrs.height) ?? parsePx(style.height) ?? 1920
   const background = attrs.background ?? style.background ?? '#ffffff'
   const color = attrs.color ?? style.color ?? '#111111'
   const fontFamily = attrs['font-family'] ?? style['font-family'] ?? 'ChillDuanSans'
@@ -712,6 +1008,7 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
       maxContentWidth,
       issues,
       pathPrefix: 'fvg',
+      baseDir,
     },
   )
 
