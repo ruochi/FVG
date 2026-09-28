@@ -112,6 +112,17 @@ describe('layoutSource', () => {
     expect(text?.glow).toEqual({ blur: 6, spread: 2, color: '#00ff00' })
   })
 
+  it('写在标签上的 glow 和 shadow 仍然生效', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:400px; height:300px"><Circle cx="80" cy="80" glow="40px" shadow="0 8px" style="r:30px; fill:#fff" /></fvg>`,
+      process.cwd(),
+    )
+    const c = doc.root.children[0]
+    expect(c?.glow).toEqual({ blur: 40, spread: 0, color: '#fff' })
+    expect(c?.shadow).toEqual({ x: 0, y: 8, blur: 0, spread: 0, color: '#00000066' })
+    expect(doc.issues.filter((i) => i.code === 'legacy-attr').map((i) => i.message.split(' ')[0]).sort()).toEqual(['glow', 'shadow'])
+  })
+
   it('无法解析的 shadow 记 invalid-attr', async () => {
     const doc = await layoutSource(`<fvg style="width:400px; height:300px"><Rect style="width:10px; height:10px; shadow:big" /></fvg>`, process.cwd())
     expect(doc.root.children[0]?.shadow).toBeUndefined()

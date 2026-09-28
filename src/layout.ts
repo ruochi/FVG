@@ -191,17 +191,19 @@ function readBox(style: StyleMap) {
 
 function readEffects(node: FvgNode, style: StyleMap, ctx: LayoutContext, glowColor: string) {
   let shadow: ShadowSpec | undefined
-  const shadowValue = parseShadow(style.shadow)
+  const shadowRaw = readProp(node, style, 'shadow', ctx)
+  const shadowValue = parseShadow(shadowRaw)
   if (shadowValue) shadow = { ...shadowValue, color: shadowValue.color ?? DEFAULT_SHADOW_COLOR }
-  else if (style.shadow && style.shadow.trim() !== 'none') {
-    pushIssue(ctx, { level: 'warn', code: 'invalid-attr', path: ctx.pathPrefix, message: `无法解析 shadow: ${style.shadow}` })
+  else if (shadowRaw && shadowRaw.trim() !== 'none') {
+    pushIssue(ctx, { level: 'warn', code: 'invalid-attr', path: ctx.pathPrefix, message: `无法解析 shadow: ${shadowRaw}` })
   }
 
   let glow: GlowSpec | undefined
-  const glowValue = parseGlow(style.glow)
+  const glowRaw = readProp(node, style, 'glow', ctx)
+  const glowValue = parseGlow(glowRaw)
   if (glowValue) glow = { ...glowValue, color: glowValue.color ?? glowColor }
-  else if (style.glow && style.glow.trim() !== 'none') {
-    pushIssue(ctx, { level: 'warn', code: 'invalid-attr', path: ctx.pathPrefix, message: `无法解析 glow: ${style.glow}` })
+  else if (glowRaw && glowRaw.trim() !== 'none') {
+    pushIssue(ctx, { level: 'warn', code: 'invalid-attr', path: ctx.pathPrefix, message: `无法解析 glow: ${glowRaw}` })
   }
 
   return {
