@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { initFontsForMeasure } from './fonts.js'
 import { layoutSource } from './layout.js'
+import { buildReport } from './report.js'
 
 const FONT_DIRS = [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']
 
@@ -105,6 +106,56 @@ describe('layoutSource', () => {
     expect(h3?.kind).toBe('text')
     if (h3?.kind !== 'text') return
     expect(h3.textLayout.lines.map((line) => line.segments.map((seg) => seg.text).join('')).join('')).toBe('标题')
+  })
+
+  it('align-self 和 stretch', async () => {
+    const doc = await layoutSource(
+      `<fvg width="800" height="400">
+        <Row style="width:400px; height:120px; padding:10px; align-items:start">
+          <Rect width="40" height="40" fill="#e53935" />
+          <Rect width="40" height="40" fill="#43a047" style="align-self:end" />
+        </Row>
+        <Column style="width:400px; padding:10px; align-items:stretch">
+          <p style="text-align:center">拉伸</p>
+        </Column>
+      </fvg>`,
+      process.cwd(),
+    )
+    const row = doc.root.children[0]
+    const column = doc.root.children[1]
+    expect(row?.kind).toBe('flex')
+    expect(column?.kind).toBe('flex')
+    if (row?.kind !== 'flex' || column?.kind !== 'flex') return
+    const endRect = row.children[1]!
+    expect(endRect.y).toBeGreaterThan(row.children[0]!.y + 20)
+    const text = column.children[0]!
+    expect(text.width).toBeGreaterThan(300)
+  })
+
+  it('无法解析的属性会警告', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="300"><Rect cx="abc" width="100%" height="20" /><p style="font-size:2em">A</p><p style="font-family:NotAFont">B</p></fvg>`,
+      process.cwd(),
+    )
+    const messages = doc.issues.filter((issue) => issue.code === 'invalid-attr').map((issue) => issue.message)
+    expect(messages.some((message) => message.includes('cx'))).toBe(true)
+    expect(messages.some((message) => message.includes('width'))).toBe(true)
+    expect(messages.some((message) => message.includes('font-size'))).toBe(true)
+    expect(messages.some((message) => message.includes('NotAFont'))).toBe(true)
+  })
+
+  it('Path 按曲线着墨，不按控制点偏移', async () => {
+    const doc = await layoutSource(
+      `<fvg width="600" height="400"><Path d="M 50 350 Q 300 0 550 350" stroke="#1e88e5" stroke-width="6" /></fvg>`,
+      process.cwd(),
+    )
+    const path = doc.root.children[0]
+    expect(path?.kind).toBe('line')
+    expect(path!.y).toBeGreaterThan(100)
+    expect(buildReport(doc).issues.some((issue) => issue.code === 'overflow-canvas')).toBe(false)
+    if (path?.kind === 'line' && path.geometry.kind === 'path') {
+      expect(path.geometry.d.startsWith('M 50')).toBe(false)
+    }
   })
 
   it('invalid-child 线条进 Row', async () => {

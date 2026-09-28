@@ -9,11 +9,14 @@ import {
 } from 'yoga-layout/load'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
-import { registerFontsFromDocument } from './fonts.js'
+import { isFontAvailable, registerFontsFromDocument } from './fonts.js'
 import {
   parseBorder,
+  parseDash,
   parseEdges,
   parseFontWeight,
+  parseLineCap,
+  parseLineJoin,
   parseNumber,
   parsePx,
   parseStyle,
@@ -105,6 +108,45 @@ function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
 }
 
+function warnInvalid(ctx: LayoutContext, raw: string, label: string) {
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-attr',
+    path: ctx.pathPrefix,
+    message: `无法解析 ${label}="${raw}"`,
+  })
+}
+
+function parsedLen(ctx: LayoutContext, raw: string | undefined, label: string): number | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const n = parsePx(raw)
+  if (n === undefined) warnInvalid(ctx, raw, label)
+  return n
+}
+
+function parsedNum(ctx: LayoutContext, raw: string | undefined, label: string): number | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const n = parseNumber(raw)
+  if (n === undefined) warnInvalid(ctx, raw, label)
+  return n
+}
+
+function readStrokeExtras(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
+  const dashRaw = attrs['stroke-dasharray'] ?? style['stroke-dasharray']
+  let dash: number[] | undefined
+  if (dashRaw != null && dashRaw.trim() !== '' && dashRaw.trim().toLowerCase() !== 'none') {
+    dash = parseDash(dashRaw)
+    if (!dash) warnInvalid(ctx, dashRaw, 'stroke-dasharray')
+  }
+  const capRaw = attrs['stroke-linecap'] ?? style['stroke-linecap']
+  const strokeLinecap = parseLineCap(capRaw)
+  if (capRaw != null && capRaw.trim() !== '' && !strokeLinecap) warnInvalid(ctx, capRaw, 'stroke-linecap')
+  const joinRaw = attrs['stroke-linejoin'] ?? style['stroke-linejoin']
+  const strokeLinejoin = parseLineJoin(joinRaw)
+  if (joinRaw != null && joinRaw.trim() !== '' && !strokeLinejoin) warnInvalid(ctx, joinRaw, 'stroke-linejoin')
+  return { dash, strokeLinecap, strokeLinejoin }
+}
+
 function readAppearance(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
   const padding = parseEdges(style.padding) ?? ZERO_EDGES
   const border = parseBorder(style.border)
@@ -115,9 +157,9 @@ function readAppearance(attrs: Record<string, string>, style: Record<string, str
     border,
     borderRadius,
     background,
-    opacity: parseNumber(attrs.opacity) ?? 1,
-    rotate: parseNumber(attrs.rotate) ?? 0,
-    scale: parseNumber(attrs.scale) ?? 1,
+    opacity: parsedNum(ctx, attrs.opacity, 'opacity') ?? 1,
+    rotate: parsedNum(ctx, attrs.rotate, 'rotate') ?? 0,
+    scale: parsedNum(ctx, attrs.scale, 'scale') ?? 1,
   }
 }
 
@@ -150,17 +192,23 @@ function mapJustify(v: string | undefined): Justify {
   }
 }
 
-function mapAlign(v: string | undefined): Align {
-  switch ((v ?? 'center').trim()) {
+function mapAlignExact(v: string | undefined): Align | undefined {
+  switch ((v ?? '').trim()) {
     case 'start':
       return Align.FlexStart
     case 'end':
       return Align.FlexEnd
+    case 'center':
+      return Align.Center
     case 'stretch':
       return Align.Stretch
     default:
-      return Align.Center
+      return undefined
   }
+}
+
+function mapAlign(v: string | undefined): Align {
+  return mapAlignExact(v) ?? Align.Center
 }
 
 function parseFlexGrowShrink(style: Record<string, string>, isText: boolean): { grow: number; shrink: number } {
@@ -191,12 +239,52 @@ function lineBounds(geom: LineGeometry, strokeWidth: number): Box {
   }
   if (geom.kind === 'path') {
     const p = new Path2D(geom.d)
-    const b = p.getBounds?.() ?? p.computeTightBounds?.()
-    if (b && b.length >= 4) {
+    const b = p.computeTightBounds()
+    if (b && b.length >= 4 && Number.isFinite(b[0])) {
       return { x: b[0] - pad, y: b[1] - pad, width: b[2] - b[0] + pad * 2, height: b[3] - b[1] + pad * 2 }
     }
   }
   return { x: 0, y: 0, width: 0, height: 0 }
+}
+
+function translatePath(d: string, ox: number, oy: number): string {
+  const tokens = d.match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)(?:e[-+]?\d+)?/gi)
+  if (!tokens) return d
+  const counts: Record<string, number> = { M: 2, L: 2, T: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, A: 7, Z: 0 }
+  let i = 0
+  let cmd = ''
+  const out: string[] = []
+  while (i < tokens.length) {
+    const token = tokens[i]!
+    if (/[a-zA-Z]/.test(token)) {
+      cmd = token
+      i++
+      out.push(cmd)
+    }
+    const op = cmd.toUpperCase()
+    const n = counts[op]
+    if (n == null || n === 0) continue
+    const abs = cmd === cmd.toUpperCase()
+    const nums: number[] = []
+    for (let k = 0; k < n && i < tokens.length && !/[a-zA-Z]/.test(tokens[i]!); k++) nums.push(Number(tokens[i++]))
+    if (nums.length < n) break
+    if (abs) {
+      if (op === 'H') nums[0] = (nums[0] ?? 0) - ox
+      else if (op === 'V') nums[0] = (nums[0] ?? 0) - oy
+      else if (op === 'A') {
+        nums[5] = (nums[5] ?? 0) - ox
+        nums[6] = (nums[6] ?? 0) - oy
+      } else {
+        for (let k = 0; k < nums.length; k += 2) {
+          nums[k] = (nums[k] ?? 0) - ox
+          nums[k + 1] = (nums[k + 1] ?? 0) - oy
+        }
+      }
+    }
+    out.push(...nums.map((n) => String(Math.round(n * 1000) / 1000)))
+    if (op === 'M') cmd = abs ? 'L' : 'l'
+  }
+  return out.join(' ')
 }
 
 function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
@@ -208,15 +296,24 @@ function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
   if (geom.kind === 'polyline' || geom.kind === 'polygon') {
     return { ...geom, points: geom.points.map((p) => ({ x: p.x - ox, y: p.y - oy })) }
   }
+  if (geom.kind === 'path') return { ...geom, d: translatePath(geom.d, ox, oy) }
   return geom
 }
 
 function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: number): TextLayoutNode {
   const style = parseStyle(node.attrs.style)
   const tag = node.tag.toLowerCase()
-  const fontSize = parsePx(style['font-size']) ?? defaultFontSizeForTag(tag)
+  const fontSize = parsedLen(ctx, style['font-size'], 'font-size') ?? defaultFontSizeForTag(tag)
   const fontWeight = parseFontWeight(style['font-weight']) ?? defaultFontWeightForTag(tag)
   const fontFamily = style['font-family']?.trim() || ctx.fontFamily
+  if (style['font-family']?.trim() && !isFontAvailable(fontFamily)) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `字体未注册 ${fontFamily}，已改用 ${ctx.fontFamily}`,
+    })
+  }
   const color = style.color ?? ctx.color
   const segments = extractTextSegments(node, {
     fontFamily,
@@ -228,9 +325,9 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   })
   const nowrap = style['white-space'] === 'nowrap'
   const textWrap = style['text-wrap'] === 'wrap' ? 'wrap' : 'balance'
-  const fixedW = parsePx(style.width)
-  const fixedH = parsePx(style.height)
-  const maxW = parsePx(style['max-width']) ?? contentWidthLimit
+  const fixedW = parsedLen(ctx, style.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height')
+  const maxW = parsedLen(ctx, style['max-width'], 'max-width') ?? contentWidthLimit
   const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 ? 1.4 : 1.2)
 
   const appearance = readAppearance(node.attrs, style, ctx)
@@ -294,23 +391,24 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
   const style = parseStyle(node.attrs.style)
   const appearance = readAppearance(node.attrs, style, ctx)
-  let w = parsePx(style.width) ?? parseNumber(node.attrs.width) ?? 0
-  let h = parsePx(style.height) ?? parseNumber(node.attrs.height) ?? 0
+  const radius = parsedLen(ctx, node.attrs.r, 'r')
+  const rxAttr = parsedLen(ctx, node.attrs.rx, 'rx')
+  const ryAttr = parsedLen(ctx, node.attrs.ry, 'ry')
+  let w = 0
+  let h = 0
   if (node.tag === 'Circle') {
-    const r = parseNumber(node.attrs.r) ?? 0
-    w = h = r * 2
-  }
-  if (node.tag === 'Ellipse') {
-    w = (parseNumber(node.attrs.rx) ?? 0) * 2
-    h = (parseNumber(node.attrs.ry) ?? 0) * 2
-  }
-  if (node.tag === 'Rect') {
-    w = parseNumber(node.attrs.width) ?? w
-    h = parseNumber(node.attrs.height) ?? h
+    w = h = (radius ?? 0) * 2
+  } else if (node.tag === 'Ellipse') {
+    w = (rxAttr ?? 0) * 2
+    h = (ryAttr ?? 0) * 2
+  } else {
+    w = parsedLen(ctx, node.attrs.width, 'width') ?? parsedLen(ctx, style.width, 'width') ?? 0
+    h = parsedLen(ctx, node.attrs.height, 'height') ?? parsedLen(ctx, style.height, 'height') ?? 0
   }
   const fill = node.attrs.fill ?? style.fill ?? '#000000'
   const stroke = node.attrs.stroke ?? style.stroke ?? 'none'
-  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? parsePx(style['stroke-width']) ?? 1
+  const strokeWidth = parsedLen(ctx, node.attrs['stroke-width'], 'stroke-width') ?? parsedLen(ctx, style['stroke-width'], 'stroke-width') ?? 1
+  const strokeExtras = readStrokeExtras(node.attrs, style, ctx)
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
     kind: 'shape',
@@ -327,10 +425,11 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     fill,
     stroke,
     strokeWidth,
-    rx: parseNumber(node.attrs.rx) ?? parsePx(style['border-radius']),
-    r: parseNumber(node.attrs.r),
-    rxEllipse: parseNumber(node.attrs.rx),
-    ry: parseNumber(node.attrs.ry),
+    ...strokeExtras,
+    rx: rxAttr ?? parsedLen(ctx, style['border-radius'], 'border-radius'),
+    r: radius,
+    rxEllipse: rxAttr,
+    ry: ryAttr,
   }
 }
 
@@ -339,11 +438,11 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   if (node.tag === 'Line' || node.tag === 'Arrow') {
     geom = {
       kind: node.tag === 'Arrow' ? 'arrow' : 'line',
-      x1: parseNumber(node.attrs.x1) ?? 0,
-      y1: parseNumber(node.attrs.y1) ?? 0,
-      x2: parseNumber(node.attrs.x2) ?? 0,
-      y2: parseNumber(node.attrs.y2) ?? 0,
-      head: parseNumber(node.attrs.head),
+      x1: parsedLen(ctx, node.attrs.x1, 'x1') ?? 0,
+      y1: parsedLen(ctx, node.attrs.y1, 'y1') ?? 0,
+      x2: parsedLen(ctx, node.attrs.x2, 'x2') ?? 0,
+      y2: parsedLen(ctx, node.attrs.y2, 'y2') ?? 0,
+      head: parsedLen(ctx, node.attrs.head, 'head'),
     }
   } else if (node.tag === 'Polyline' || node.tag === 'Polygon') {
     const pts = (node.attrs.points ?? '')
@@ -358,9 +457,10 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
-  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 4
+  const strokeWidth = parsedLen(ctx, node.attrs['stroke-width'], 'stroke-width') ?? 4
   const stroke = node.attrs.stroke ?? defaultStroke
   const fill = node.attrs.fill ?? 'none'
+  const strokeExtras = readStrokeExtras(node.attrs, {}, ctx)
   const box = lineBounds(geom, strokeWidth)
   const localGeom = normalizeLineGeometry(geom, box)
   return {
@@ -373,14 +473,15 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     width: box.width,
     height: box.height,
     ink: { x: 0, y: 0, width: box.width, height: box.height },
-    opacity: parseNumber(node.attrs.opacity) ?? 1,
-    rotate: parseNumber(node.attrs.rotate) ?? 0,
-    scale: parseNumber(node.attrs.scale) ?? 1,
+    opacity: parsedNum(ctx, node.attrs.opacity, 'opacity') ?? 1,
+    rotate: parsedNum(ctx, node.attrs.rotate, 'rotate') ?? 0,
+    scale: parsedNum(ctx, node.attrs.scale, 'scale') ?? 1,
     padding: ZERO_EDGES,
     geometry: localGeom,
     stroke,
     strokeWidth,
     fill,
+    ...strokeExtras,
   }
 }
 
@@ -444,8 +545,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   const justify = mapJustify(style['justify-content'])
   const alignItems = mapAlign(style['align-items'])
 
-  const fixedW = parsePx(style.width)
-  const fixedH = parsePx(style.height)
+  const fixedW = parsedLen(ctx, style.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height')
   const borderW = appearance.border?.width ?? 0
   const padX = appearance.padding.left + appearance.padding.right + borderW * 2
   const padY = appearance.padding.top + appearance.padding.bottom + borderW * 2
@@ -518,13 +619,18 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
       m.node.padding.right +
       (m.node.border?.width ?? 0) * 2 +
       (m.isText && m.node.kind === 'text' ? m.node.textLayout.minWidth : 0)
+    const selfRaw = chParsed['align-self']?.trim()
+    const self = mapAlignExact(selfRaw)
+    if (selfRaw && !self) warnInvalid(ctx, selfRaw, 'align-self')
+    if (self) yn.setAlignSelf(self)
+    const stretch = (self ?? alignItems) === Align.Stretch
     if (direction === 'row') {
       yn.setWidth(m.preferredMain)
-      yn.setHeight(m.preferredCross)
+      if (!stretch) yn.setHeight(m.preferredCross)
       yn.setMinWidth(m.isText ? minOuterW : m.minMain)
     } else {
-      yn.setWidth(m.preferredCross)
       yn.setHeight(m.preferredMain)
+      if (!stretch) yn.setWidth(m.preferredCross)
       yn.setMinWidth(m.isText ? minOuterW : 0)
     }
     yogaChildren.push(yn)
@@ -550,6 +656,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
       } else {
         child = { ...child, x: layout.left + insetX, y: layout.top + insetY }
       }
+      if (direction === 'column' && layout.width > child.width + 0.5) child = { ...child, width: layout.width }
+      if (direction === 'row' && layout.height > child.height + 0.5) child = { ...child, height: layout.height }
     } else {
       child = { ...child, x: layout.left + insetX, y: layout.top + insetY, width: layout.width, height: layout.height }
     }
@@ -589,8 +697,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const style = parseStyle(node.attrs.style)
   const appearance = readAppearance(node.attrs, style, ctx)
-  const fixedW = parsePx(style.width) ?? parseNumber(node.attrs.width)
-  const fixedH = parsePx(style.height) ?? parseNumber(node.attrs.height)
+  const fixedW = parsedLen(ctx, style.width, 'width') ?? parsedLen(ctx, node.attrs.width, 'width')
+  const fixedH = parsedLen(ctx, style.height, 'height') ?? parsedLen(ctx, node.attrs.height, 'height')
 
   const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
   const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean; fixedPos: boolean }> = []
@@ -609,8 +717,8 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
       ctx.issues.push({ level: 'warn', code: 'unknown-tag', path, message: `未知标签 ${ch.tag}` })
       continue
     }
-    const cx = parseNumber(ch.attrs.cx)
-    const cy = parseNumber(ch.attrs.cy)
+    const cx = parsedLen(subCtx, ch.attrs.cx, 'cx')
+    const cy = parsedLen(subCtx, ch.attrs.cy, 'cy')
     const fixedPos = laid.kind === 'line'
     placed.push({
       child: laid,
@@ -704,8 +812,8 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
 
   const attrs = rootNode.attrs
   const style = parseStyle(attrs.style)
-  const width = parseNumber(attrs.width) ?? parsePx(style.width) ?? 1080
-  const height = parseNumber(attrs.height) ?? parsePx(style.height) ?? 1920
+  const width = parsePx(attrs.width) ?? parsePx(style.width) ?? 1080
+  const height = parsePx(attrs.height) ?? parsePx(style.height) ?? 1920
   const background = attrs.background ?? style.background ?? '#ffffff'
   const color = attrs.color ?? style.color ?? '#111111'
   const fontFamily = attrs['font-family'] ?? style['font-family'] ?? 'ChillDuanSans'

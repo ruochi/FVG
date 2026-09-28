@@ -32,6 +32,12 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   ctx.closePath()
 }
 
+function applyStroke(ctx: CanvasRenderingContext2D, dash: number[] | undefined, cap?: CanvasLineCap, join?: CanvasLineJoin) {
+  ctx.setLineDash(dash && dash.length > 0 ? dash : [])
+  if (cap) ctx.lineCap = cap
+  if (join) ctx.lineJoin = join
+}
+
 function drawBoxChrome(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   if (node.background && node.background !== 'transparent') {
     ctx.fillStyle = node.background
@@ -62,7 +68,7 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
     if (node.textAlign === 'center') offsetX = (node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width) / 2
     if (node.textAlign === 'right') offsetX = node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width
     for (const seg of line.segments) {
-      ctx.font = buildFontString(seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize)
+      ctx.font = buildFontString(seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize, seg.style.fontStyle ?? 'normal')
       ctx.fillStyle = seg.style.color
       ctx.letterSpacing = `${seg.style.letterSpacing}px`
       ctx.fillText(seg.text, contentX + offsetX + seg.x, contentY + line.baselineY)
@@ -75,9 +81,8 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
   const cy = node.y + node.height / 2
   ctx.save()
   ctx.translate(cx, cy)
-  ctx.rotate((node.rotate * Math.PI) / 180)
-  ctx.scale(node.scale, node.scale)
   ctx.translate(-node.width / 2, -node.height / 2)
+  applyStroke(ctx, node.dash, node.strokeLinecap, node.strokeLinejoin)
   if (node.shape === 'rect') {
     const r = node.rx ?? 0
     if (r > 0) {
@@ -146,8 +151,7 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
   ctx.strokeStyle = node.stroke
   ctx.fillStyle = node.stroke
   ctx.lineWidth = node.strokeWidth
-  ctx.lineCap = node.strokeLinecap ?? 'round'
-  ctx.lineJoin = node.strokeLinejoin ?? 'round'
+  applyStroke(ctx, node.dash, node.strokeLinecap ?? 'round', node.strokeLinejoin ?? 'round')
   const g = node.geometry
   if (g.kind === 'line' || g.kind === 'arrow') {
     ctx.beginPath()
@@ -207,6 +211,14 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
   ctx.save()
   ctx.globalAlpha *= node.opacity
+  if (node.rotate !== 0 || node.scale !== 1) {
+    const cx = node.x + node.width / 2
+    const cy = node.y + node.height / 2
+    ctx.translate(cx, cy)
+    ctx.rotate((node.rotate * Math.PI) / 180)
+    ctx.scale(node.scale, node.scale)
+    ctx.translate(-cx, -cy)
+  }
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
     drawTextNode(ctx, node)

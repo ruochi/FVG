@@ -80,7 +80,7 @@ function parseStyleAttr(raw: string | undefined): Record<string, string> {
 }
 
 function collapseWhitespace(text: string): string {
-  return text.replace(/\s+/g, ' ').trim()
+  return text.replace(/\s+/g, ' ')
 }
 
 function walkInline(
@@ -93,7 +93,7 @@ function walkInline(
   for (const child of nodes) {
     if (typeof child === 'string') {
       const t = collapseWhitespace(child)
-      if (t) out.push({ text: t, style, hardBreakBefore: breakNext })
+      if (t && (t !== ' ' || out.length > 0)) out.push({ text: t, style, hardBreakBefore: breakNext })
       breakNext = false
       continue
     }
@@ -105,7 +105,7 @@ function walkInline(
     if (!INLINE_TAGS.has(tag)) continue
     let segStyle = style
     if (tag === 'strong' || tag === 'b') segStyle = { ...style, fontWeight: 700 }
-    if (tag === 'em') segStyle = { ...style, fontWeight: Math.min(900, style.fontWeight + 100) }
+    if (tag === 'em') segStyle = { ...style, fontStyle: 'italic' }
     segStyle = mergeStyle(segStyle, parseStyleAttr(child.attrs.style))
     walkInline(child.children, segStyle, out, breakNext)
     breakNext = false
@@ -123,7 +123,12 @@ export function extractTextSegments(node: FvgNode, defaults: TextBoxDefaults): T
   const style = mergeStyle(base, parseStyleAttr(node.attrs.style))
   const segs: TextSegment[] = []
   walkInline(node.children, style, segs, false)
-  return segs
+  if (segs.length > 0) {
+    segs[0] = { ...segs[0]!, text: segs[0]!.text.replace(/^\s+/, '') }
+    const last = segs.length - 1
+    segs[last] = { ...segs[last]!, text: segs[last]!.text.replace(/\s+$/, '') }
+  }
+  return segs.filter((seg) => seg.text.length > 0)
 }
 
 type Unit = {
@@ -141,7 +146,7 @@ function measureTextWidth(text: string, style: TextRunStyle): number {
   const cached = measureCache.get(key)
   if (cached != null) return cached
   const ctx = getMeasureCtx()
-  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize)
+  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize, style.fontStyle ?? 'normal')
   ctx.letterSpacing = `${style.letterSpacing}px`
   const m = ctx.measureText(text)
   const w = m.width
@@ -151,7 +156,7 @@ function measureTextWidth(text: string, style: TextRunStyle): number {
 
 function measureInk(text: string, style: TextRunStyle): { width: number; ascent: number; descent: number } {
   const ctx = getMeasureCtx()
-  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize)
+  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize, style.fontStyle ?? 'normal')
   ctx.letterSpacing = `${style.letterSpacing}px`
   const m = ctx.measureText(text)
   return {

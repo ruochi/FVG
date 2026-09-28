@@ -31,6 +31,31 @@ async function pixels(png: Buffer) {
 }
 
 describe('render placement', () => {
+  it('虚线、平头和旋转能画出来', async () => {
+    const source = `<fvg width="220" height="220" background="#ffffff" color="#000000">
+      <Line x1="20" y1="20" x2="200" y2="20" stroke-width="4" stroke-dasharray="12 12" />
+      <Line x1="30" y1="70" x2="190" y2="70" stroke-width="20" stroke-linecap="butt" />
+      <Row cx="110" cy="150" rotate="90" style="width:100px; height:16px; background:#000000" />
+    </fvg>`
+    const { png } = await renderFvg(source, { fontsCacheDir: fonts })
+    const img = await pixels(png)
+    let dark = 0
+    let light = 0
+    for (let x = 30; x < 190; x++) {
+      const [r] = img.at(x, 20)
+      if (r < 40) dark++
+      else light++
+    }
+    expect(dark).toBeGreaterThan(20)
+    expect(light).toBeGreaterThan(20)
+    const cap = img.at(22, 70)
+    expect(cap[0]).toBeGreaterThan(240)
+    const rotated = img.at(110, 110)
+    const unrotated = img.at(40, 150)
+    expect(rotated[0]).toBeLessThan(40)
+    expect(unrotated[0]).toBeGreaterThan(240)
+  })
+
   it('hello 的标签画在中部，不贴在左上角', async () => {
     const source = await readFile(join(pkgDir, 'examples/hello.fvg'), 'utf8')
     const { png } = await renderFvg(source, { baseDir: join(pkgDir, 'examples'), fontsCacheDir: fonts })

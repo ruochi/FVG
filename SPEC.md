@@ -112,6 +112,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `h3` | 48px | bold |
 | `p`、`div`、`span` | 40px | normal |
 
+`strong`、`b` 为 bold。`em` 为斜体，字重不变。
+
 ### 5.2 style 属性
 
 | 属性 | 说明 |

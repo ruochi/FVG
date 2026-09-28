@@ -91,6 +91,7 @@ export type TextRunStyle = {
   fontFamily: string
   fontSize: number
   fontWeight: number
+  fontStyle?: 'normal' | 'italic'
   color: string
   letterSpacing: number
 }
@@ -168,6 +169,9 @@ export type ShapeLayoutNode = LayoutNodeBase & {
   fill: string
   stroke: string
   strokeWidth: number
+  dash?: number[]
+  strokeLinecap?: CanvasLineCap
+  strokeLinejoin?: CanvasLineJoin
   rx?: number
   r?: number
   rxEllipse?: number

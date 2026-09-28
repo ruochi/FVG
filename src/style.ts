@@ -71,6 +71,28 @@ function splitCssTokens(value: string): string[] {
   return tokens
 }
 
+/** `20 10` 或 `20,10`。`none` 表示不画虚线。无法解析返回 undefined。 */
+export function parseDash(value: string | undefined): number[] | undefined {
+  if (value == null) return undefined
+  const v = value.trim()
+  if (v === '' || v.toLowerCase() === 'none') return undefined
+  const parts = v.split(/[\s,]+/).map((part) => parsePx(part))
+  if (parts.length === 0 || parts.some((part) => part === undefined || part < 0)) return undefined
+  return parts as number[]
+}
+
+export function parseLineCap(value: string | undefined): CanvasLineCap | undefined {
+  const v = value?.trim().toLowerCase()
+  if (v === 'butt' || v === 'round' || v === 'square') return v
+  return undefined
+}
+
+export function parseLineJoin(value: string | undefined): CanvasLineJoin | undefined {
+  const v = value?.trim().toLowerCase()
+  if (v === 'miter' || v === 'round' || v === 'bevel') return v
+  return undefined
+}
+
 export function parseFontWeight(value: string | undefined): number | undefined {
   if (!value) return undefined
   const v = value.trim().toLowerCase()
