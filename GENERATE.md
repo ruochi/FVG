@@ -6,7 +6,7 @@ FVG 的**生成**和**画图**是两层：
 Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
 ```
 
-生成层只产出 `.fvg` 字符串，不调用 canvas。规范见 [SPEC.md](SPEC.md)（标签全小写）。
+生成层只产出 `.fvg` 字符串，不调用 canvas。规范见 [SPEC.md](SPEC.md)（标签全小写）。完整生成 / 验证 / AI 工作流见 [AI.md](../AI.md)。
 
 ## 规则（AI 必守）
 

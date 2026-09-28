@@ -2,7 +2,7 @@
 
 FVG（Flex Vector Graphics）用标签描述一帧画面：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。渲染器读入 `.fvg`，输出 PNG 和一份布局报告。
 
-规范见 [SPEC.md](SPEC.md)。用 Vue 或 React **动态生成** `.fvg` 见 [GENERATE.md](GENERATE.md)。当前版本是单帧 v0.1。
+规范见 [SPEC.md](SPEC.md)。用 Vue 或 React **动态生成** `.fvg` 见 [GENERATE.md](GENERATE.md)；**生成、验证与 AI 协作**见 [AI.md](AI.md)。当前版本是单帧 v0.1。
 
 ## 安装
 
