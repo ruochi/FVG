@@ -1,0 +1,74 @@
+<!-- 夏至放映 · 1080×1620 海报 -->
+<fvg width="1080" height="1620" background="#0e1116" color="#1c1916" safe="48">
+  <Circle cx="720" cy="520" r="230" fill="#f6f1e7" />
+  <Circle cx="854" cy="480" r="226" fill="#0e1116" />
+
+  <Circle cx="132" cy="168" r="3" fill="#f6f1e7" />
+  <Circle cx="214" cy="246" r="2" fill="#f6f1e7" opacity="0.7" />
+  <Circle cx="168" cy="390" r="4" fill="#f6f1e7" opacity="0.85" />
+  <Circle cx="286" cy="148" r="2" fill="#f6f1e7" opacity="0.55" />
+  <Circle cx="360" cy="268" r="3" fill="#f6f1e7" />
+  <Circle cx="246" cy="520" r="2" fill="#f6f1e7" opacity="0.6" />
+  <Circle cx="470" cy="176" r="2" fill="#e39b3a" />
+  <Circle cx="96" cy="560" r="3" fill="#f6f1e7" opacity="0.8" />
+  <Circle cx="980" cy="150" r="3" fill="#f6f1e7" opacity="0.75" />
+  <Circle cx="920" cy="240" r="2" fill="#f6f1e7" opacity="0.5" />
+
+  <p cx="72" cy="64" anchor="top-left" style="font-size:28px; letter-spacing:6px; color:#f6f1e7">北岸码头</p>
+  <p cx="1008" cy="64" anchor="top-right" style="font-size:28px; letter-spacing:4px; color:#f6f1e7">二〇二六</p>
+  <p cx="96" cy="430" anchor="center" style="width:48px; font-size:32px; line-height:1.35; color:#f6f1e7; text-align:center">六月廿一</p>
+
+  <Rect cx="540" cy="1164" width="1080" height="912" fill="#f3eee4" />
+  <Rect cx="540" cy="712" width="1080" height="8" fill="#e23b2f" />
+
+  <Column cx="72" cy="760" anchor="top-left" style="width:936px; gap:22px; align-items:start">
+    <Row style="width:936px; gap:48px; align-items:center; justify-content:start">
+      <Column style="gap:6px; align-items:start">
+        <p style="font-size:26px; letter-spacing:8px; color:#e23b2f; white-space:nowrap">SOLSTICE</p>
+        <h1 style="font-size:168px; letter-spacing:18px; color:#1c1916; line-height:1.02">夏至</h1>
+        <p style="font-size:40px; color:#1c1916">露天电影夜</p>
+      </Column>
+      <Layer style="width:148px; height:148px">
+        <Circle cx="74" cy="74" r="70" fill="#e23b2f" />
+        <Circle cx="74" cy="74" r="58" fill="none" stroke="#f3eee4" stroke-width="3" />
+        <p cx="74" cy="74" anchor="center" style="font-size:36px; font-weight:700; color:#ffffff">夜场</p>
+      </Layer>
+    </Row>
+
+    <p style="font-size:34px; color:#3f3832; width:760px; line-height:1.4">江风比人先到。灯一灭，字幕就亮了。</p>
+
+    <Column style="width:936px; gap:18px; align-items:start">
+      <p style="font-size:24px; letter-spacing:8px; color:#8a8175">放映</p>
+      <Row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">19:30</p>
+        <p style="font-size:34px; color:#1c1916">入场，铺开毯子</p>
+      </Row>
+      <Rect width="936" height="2" fill="#e4dbd0" />
+      <Row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">20:05</p>
+        <p style="font-size:34px; color:#1c1916">短片《热风》《未明》</p>
+      </Row>
+      <Rect width="936" height="2" fill="#e4dbd0" />
+      <Row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">21:10</p>
+        <p style="font-size:34px; color:#1c1916">长片《江心》</p>
+      </Row>
+      <Rect width="936" height="2" fill="#e4dbd0" />
+      <Row style="width:936px; gap:28px; align-items:center">
+        <p style="width:148px; font-size:32px; font-weight:700; color:#e23b2f">23:00</p>
+        <p style="font-size:34px; color:#1c1916">散场</p>
+      </Row>
+    </Column>
+
+    <p style="font-size:28px; color:#514c46">自带毯子。不设座位。小雨改至次日。</p>
+  </Column>
+
+  <Rect cx="540" cy="1572" width="1080" height="96" fill="#1a1714" />
+  <Row cx="540" cy="1572" anchor="center" style="gap:22px; align-items:center">
+    <p style="font-size:30px; color:#f3eee4">江畔草坪</p>
+    <p style="font-size:30px; color:#e23b2f">·</p>
+    <p style="font-size:30px; color:#f3eee4">免费入场</p>
+    <p style="font-size:30px; color:#e23b2f">·</p>
+    <p style="font-size:30px; color:#f3eee4">日落开场</p>
+  </Row>
+</fvg>
