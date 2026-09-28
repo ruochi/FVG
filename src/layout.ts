@@ -384,7 +384,14 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   }
 }
 
+const INLINE_TAGS = new Set(['span', 'strong', 'b', 'em', 'br'])
+
+function hasBlockChildren(node: FvgNode): boolean {
+  return node.children.some((child) => typeof child !== 'string' && !INLINE_TAGS.has(child.tag.toLowerCase()))
+}
+
 type FlexMeasure = {
+  source: FvgNode
   node: LayoutNode
   minMain: number
   minCross: number
@@ -393,54 +400,37 @@ type FlexMeasure = {
   isText: boolean
 }
 
+function flexMetrics(direction: 'row' | 'column', node: LayoutNode, isText: boolean): Omit<FlexMeasure, 'source'> {
+  return {
+    node,
+    minMain: direction === 'row' ? ('textLayout' in node ? node.textLayout.minWidth : node.width) : node.height,
+    minCross: direction === 'row' ? node.height : 'textLayout' in node ? node.textLayout.minWidth : node.width,
+    preferredMain: direction === 'row' ? node.width : node.height,
+    preferredCross: direction === 'row' ? node.height : node.width,
+    isText,
+  }
+}
+
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
   if (isLineTag(node.tag)) {
     ctx.issues.push({ level: 'warn', code: 'invalid-child', path: ctx.pathPrefix, message: '线条不能放在 Row/Column 内' })
     return null
   }
-  if (isTextBoxTag(node.tag)) {
+  if (isTextBoxTag(node.tag) && !hasBlockChildren(node)) {
     const laid = layoutTextBox(node, ctx, ctx.maxContentWidth)
-    return {
-      node: laid,
-      minMain: direction === 'row' ? laid.textLayout.minWidth : laid.height,
-      minCross: direction === 'row' ? laid.height : laid.textLayout.minWidth,
-      preferredMain: direction === 'row' ? laid.width : laid.height,
-      preferredCross: direction === 'row' ? laid.height : laid.width,
-      isText: true,
-    }
+    return { source: node, ...flexMetrics(direction, laid, true) }
   }
   if (isShapeTag(node.tag)) {
     const s = layoutShape(node, ctx, ctx.color)
-    return {
-      node: s,
-      minMain: direction === 'row' ? s.width : s.height,
-      minCross: direction === 'row' ? s.height : s.width,
-      preferredMain: direction === 'row' ? s.width : s.height,
-      preferredCross: direction === 'row' ? s.height : s.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, s, false) }
   }
-  if (isFlexTag(node.tag)) {
+  if (isFlexTag(node.tag) || (isTextBoxTag(node.tag) && hasBlockChildren(node))) {
     const nested = await layoutFlex(node, ctx)
-    return {
-      node: nested,
-      minMain: direction === 'row' ? nested.width : nested.height,
-      minCross: direction === 'row' ? nested.height : nested.width,
-      preferredMain: direction === 'row' ? nested.width : nested.height,
-      preferredCross: direction === 'row' ? nested.height : nested.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, nested, false) }
   }
   if (ROOT_TAGS.has(node.tag) || node.tag === 'Layer') {
     const nested = await layoutLayer(node, ctx)
-    return {
-      node: nested,
-      minMain: direction === 'row' ? nested.width : nested.height,
-      minCross: direction === 'row' ? nested.height : nested.width,
-      preferredMain: direction === 'row' ? nested.width : nested.height,
-      preferredCross: direction === 'row' ? nested.height : nested.width,
-      isText: false,
-    }
+    return { source: node, ...flexMetrics(direction, nested, false) }
   }
   ctx.issues.push({ level: 'warn', code: 'unknown-tag', path: ctx.pathPrefix, message: `未知标签 ${node.tag}` })
   return null
@@ -456,22 +446,47 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 
   const fixedW = parsePx(style.width)
   const fixedH = parsePx(style.height)
+  const borderW = appearance.border?.width ?? 0
+  const padX = appearance.padding.left + appearance.padding.right + borderW * 2
+  const padY = appearance.padding.top + appearance.padding.bottom + borderW * 2
+  const insetX = appearance.padding.left + borderW
+  const insetY = appearance.padding.top + borderW
+  const measureLimit =
+    fixedW != null ? Math.max(0, Math.min(ctx.maxContentWidth, fixedW - padX)) : ctx.maxContentWidth
+
   const childNodes = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
   const measures: FlexMeasure[] = []
   for (let i = 0; i < childNodes.length; i++) {
     const ch = childNodes[i]!
-    const m = await measureFlexChild(ch, { ...ctx, pathPrefix: nodePath(ctx.pathPrefix, ch.tag, i) }, direction)
+    const m = await measureFlexChild(
+      ch,
+      { ...ctx, maxContentWidth: measureLimit, pathPrefix: nodePath(ctx.pathPrefix, ch.tag, i) },
+      direction,
+    )
     if (m) measures.push(m)
   }
 
-  let crossAvailable =
+  const gapCount = Math.max(0, measures.length - 1)
+  const intrinsicMain = measures.reduce((sum, m) => sum + m.preferredMain, 0) + gap * gapCount
+  const intrinsicCross = measures.reduce((max, m) => Math.max(max, m.preferredCross), 0)
+  const availableMain =
+    direction === 'row'
+      ? fixedW != null
+        ? Math.max(0, fixedW - padX)
+        : ctx.maxContentWidth
+      : fixedH != null
+        ? Math.max(0, fixedH - padY)
+        : Number.POSITIVE_INFINITY
+  const availableCross =
     direction === 'row'
       ? fixedH != null
-        ? fixedH - appearance.padding.top - appearance.padding.bottom - (appearance.border?.width ?? 0) * 2
-        : Math.max(0, ...measures.map((m) => m.preferredCross))
+        ? Math.max(0, fixedH - padY)
+        : intrinsicCross
       : fixedW != null
-        ? fixedW - appearance.padding.left - appearance.padding.right - (appearance.border?.width ?? 0) * 2
+        ? Math.max(0, fixedW - padX)
         : ctx.maxContentWidth
+  const mainSize = Math.min(availableMain, intrinsicMain)
+  const crossSize = direction === 'row' ? (fixedH != null ? availableCross : intrinsicCross) : fixedW != null ? availableCross : Math.min(availableCross, intrinsicCross)
 
   const Yoga = await ensureYoga()
   const config = Yoga.Config.create()
@@ -481,40 +496,35 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.setJustifyContent(justify)
   root.setAlignItems(alignItems)
   if (gap > 0) root.setGap(direction === 'row' ? Gutter.Column : Gutter.Row, gap)
-
-  const mainAvailable =
-    direction === 'row'
-      ? fixedW != null
-        ? fixedW - appearance.padding.left - appearance.padding.right - (appearance.border?.width ?? 0) * 2
-        : ctx.maxContentWidth
-      : fixedH ?? 1e6
-
   if (direction === 'row') {
-    root.setWidth(Math.max(0, mainAvailable))
-    root.setHeight(Math.max(0, crossAvailable === Infinity ? 0 : crossAvailable))
+    root.setWidth(Math.max(0, mainSize))
+    root.setHeight(Math.max(0, crossSize))
   } else {
-    root.setWidth(Math.max(0, crossAvailable))
-    root.setHeight(Math.max(0, mainAvailable))
+    root.setWidth(Math.max(0, crossSize))
+    root.setHeight(Math.max(0, Number.isFinite(mainSize) ? mainSize : 0))
   }
 
   const yogaChildren: YogaNode[] = []
-  for (let i = 0; i < measures.length; i++) {
-    const m = measures[i]!
-    const childFvg = childNodes[i]!
-    const chParsed = parseStyle(childFvg.attrs.style)
+  for (const m of measures) {
+    const chParsed = parseStyle(m.source.attrs.style)
     const { grow, shrink } = parseFlexGrowShrink(chParsed, m.isText)
     const yn = Yoga.Node.create()
     yn.setFlexGrow(grow)
     yn.setFlexShrink(shrink)
     yn.setFlexBasisAuto()
+    const minOuterW =
+      m.node.padding.left +
+      m.node.padding.right +
+      (m.node.border?.width ?? 0) * 2 +
+      (m.isText && m.node.kind === 'text' ? m.node.textLayout.minWidth : 0)
     if (direction === 'row') {
       yn.setWidth(m.preferredMain)
-      yn.setHeight(m.preferredCross === Infinity ? m.preferredCross : m.preferredCross)
-      yn.setMinWidth(m.minMain)
+      yn.setHeight(m.preferredCross)
+      yn.setMinWidth(m.isText ? minOuterW : m.minMain)
     } else {
-      yn.setWidth(m.preferredCross === Infinity ? crossAvailable : m.preferredCross)
+      yn.setWidth(m.preferredCross)
       yn.setHeight(m.preferredMain)
-      yn.setMinWidth(m.isText ? m.minMain : 0)
+      yn.setMinWidth(m.isText ? minOuterW : 0)
     }
     yogaChildren.push(yn)
     root.insertChild(yn, yogaChildren.length - 1)
@@ -523,44 +533,39 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   root.calculateLayout(undefined, undefined)
 
   const laidChildren: LayoutNode[] = []
-  let contentW = 0
-  let contentH = 0
   for (let i = 0; i < measures.length; i++) {
     const m = measures[i]!
-    const yn = yogaChildren[i]!
-    const layout = yn.getComputedLayout()
+    const layout = yogaChildren[i]!.getComputedLayout()
     let child = m.node
     if (m.isText && child.kind === 'text') {
-      const assignedW =
-        direction === 'column'
-          ? layout.width
-          : layout.width
-      const styleCh = parseStyle(childNodes[i]!.attrs.style)
-      const innerW = assignedW - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
-      const re = layoutTextBox(childNodes[i]!, { ...ctx, pathPrefix: child.path }, innerW)
-      re.x = layout.left
-      re.y = layout.top
-      child = re
-    } else {
-      child = { ...child, x: layout.left, y: layout.top, width: layout.width, height: layout.height }
-      if (child.kind === 'layer' || child.kind === 'flex') {
-        // keep internal layout; stretch box only
+      const padChildX = child.padding.left + child.padding.right + (child.border?.width ?? 0) * 2
+      const assignedOuter = direction === 'column' ? Math.min(layout.width, crossSize) : layout.width
+      const innerW = assignedOuter - padChildX
+      if (innerW + 1 < child.textLayout.contentWidth) {
+        const re = layoutTextBox(m.source, { ...ctx, pathPrefix: child.path }, Math.max(0, innerW))
+        re.x = layout.left + insetX
+        re.y = layout.top + insetY
+        child = re
+      } else {
+        child = { ...child, x: layout.left + insetX, y: layout.top + insetY }
       }
+    } else {
+      child = { ...child, x: layout.left + insetX, y: layout.top + insetY, width: layout.width, height: layout.height }
     }
     laidChildren.push(child)
-    contentW = Math.max(contentW, layout.left + layout.width)
-    contentH = Math.max(contentH, layout.top + layout.height)
   }
 
   for (const yn of yogaChildren) yn.free()
   root.freeRecursive()
   config.free()
 
-  const outer = outerFromContent(contentW, contentH, appearance.padding, appearance.border)
-  if (fixedW != null && outer.width > fixedW + 1e-3) {
+  const innerW = direction === 'row' ? mainSize : crossSize
+  const innerH = direction === 'row' ? crossSize : mainSize
+  const outer = outerFromContent(innerW, innerH, appearance.padding, appearance.border)
+  if (fixedW != null && (direction === 'row' ? intrinsicMain : intrinsicCross) + padX > fixedW + 1e-3) {
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 width' })
   }
-  if (fixedH != null && outer.height > fixedH + 1e-3) {
+  if (fixedH != null && (direction === 'column' ? intrinsicMain : intrinsicCross) + padY > fixedH + 1e-3) {
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 height' })
   }
 
@@ -573,7 +578,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     y: 0,
     width: fixedW ?? outer.width,
     height: fixedH ?? outer.height,
-    ink: { x: appearance.padding.left, y: appearance.padding.top, width: contentW, height: contentH },
+    ink: { x: insetX, y: insetY, width: innerW, height: innerH },
     ...appearance,
     direction,
     children: laidChildren,
@@ -587,7 +592,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   const fixedH = parsePx(style.height) ?? parseNumber(node.attrs.height)
 
   const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
-  const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean }> = []
+  const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean; fixedPos: boolean }> = []
 
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
@@ -595,9 +600,9 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     const subCtx = { ...ctx, pathPrefix: path }
     let laid: LayoutNode | null = null
     if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
-    else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
+    else if (isTextBoxTag(ch.tag) && !hasBlockChildren(ch)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
-    else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
+    else if (isFlexTag(ch.tag) || (isTextBoxTag(ch.tag) && hasBlockChildren(ch))) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
       ctx.issues.push({ level: 'warn', code: 'unknown-tag', path, message: `未知标签 ${ch.tag}` })
@@ -605,12 +610,14 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     }
     const cx = parseNumber(ch.attrs.cx)
     const cy = parseNumber(ch.attrs.cy)
+    const fixedPos = laid.kind === 'line'
     placed.push({
       child: laid,
       cx: cx ?? undefined,
       cy: cy ?? undefined,
       anchor: parseAnchor(ch.attrs.anchor),
-      useDefaultCenter: cx == null || cy == null,
+      useDefaultCenter: !fixedPos && (cx == null || cy == null),
+      fixedPos,
     })
   }
 
@@ -618,6 +625,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   let layerH = fixedH ?? 0
 
   const positionOne = (p: (typeof placed)[0], lw: number, lh: number) => {
+    if (p.fixedPos) return
     const cx = p.cx ?? lw / 2
     const cy = p.cy ?? lh / 2
     const tl = anchorTopLeft(cx, cy, p.child.width, p.child.height, p.anchor)

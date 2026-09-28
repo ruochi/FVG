@@ -27,6 +27,8 @@ export function boxToRect(b: Box): Rect {
 }
 
 export function unionBoxes(a: Box, b: Box): Box {
+  if (a.width === 0 && a.height === 0) return b
+  if (b.width === 0 && b.height === 0) return a
   const x = Math.min(a.x, b.x)
   const y = Math.min(a.y, b.y)
   const right = Math.max(a.x + a.width, b.x + b.width)

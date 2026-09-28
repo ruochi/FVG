@@ -252,7 +252,13 @@ function glueUnits(lineUnits: Unit[]): Unit[] {
   const out: Unit[] = []
   for (let i = 0; i < lineUnits.length; i++) {
     const u = lineUnits[i]!
-    if (u.isSpace) continue
+    if (u.isSpace) {
+      if (out.length > 0) {
+        const prev = out[out.length - 1]!
+        out[out.length - 1] = { ...prev, text: prev.text + u.text, width: prev.width + u.width }
+      }
+      continue
+    }
     let text = u.text
     let style = u.style
     if (i + 1 < lineUnits.length) {

@@ -29,7 +29,7 @@ describe('layoutText', () => {
     if (!hasFont) return
     const segments: TextSegment[] = [{ text: 'Bitcoin halving', style: baseStyle }]
     const r = layoutText({ segments, maxWidth: 200, lineHeightRatio: 1.2, fontSize: 40, textWrap: 'wrap' })
-    expect(r.lines.some((l) => l.segments.some((s) => s.text === 'Bitcoin'))).toBe(true)
+    expect(r.lines.some((l) => l.segments.some((s) => s.text.startsWith('Bitcoin')))).toBe(true)
   })
 
   it('br 硬换行', () => {

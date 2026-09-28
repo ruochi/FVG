@@ -23,14 +23,67 @@ describe('layoutSource', () => {
     expect(h1?.y).toBe(10)
   })
 
-  it('线条边界盒', async () => {
+  it('线条使用自身坐标，不拉到图层中心', async () => {
     const doc = await layoutSource(
-      `<fvg width="200" height="200"><Line x1="10" y1="10" x2="100" y2="50" /></fvg>`,
+      `<fvg width="800" height="600"><Line x1="100" y1="400" x2="700" y2="400" /><Arrow x1="280" y1="200" x2="420" y2="200" /></fvg>`,
       process.cwd(),
     )
     const line = doc.root.children[0]
+    const arrow = doc.root.children[1]
     expect(line?.kind).toBe('line')
-    expect(line!.width).toBeGreaterThan(0)
+    expect(arrow?.kind).toBe('line')
+    expect(line!.y + line!.height / 2).toBeCloseTo(400, 0)
+    expect(arrow!.y + arrow!.height / 2).toBeCloseTo(200, 0)
+    expect(doc.root.ink.x).toBeGreaterThan(0)
+  })
+
+  it('Column 按内容收缩后仍居中', async () => {
+    const doc = await layoutSource(
+      `<fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
+        <Column cx="540" cy="700" style="gap:32px; align-items:center">
+          <h1 style="font-size:96px; color:#fff">比特币减半</h1>
+          <Row style="gap:24px">
+            <div style="padding:16px 28px; background:#f7931a; border-radius:999px; font-size:40px; color:#111">2024</div>
+            <div style="padding:16px 28px; border:2px solid #f7931a; border-radius:999px; font-size:40px; color:#fff">3.125 BTC</div>
+          </Row>
+        </Column>
+      </fvg>`,
+      process.cwd(),
+    )
+    const column = doc.root.children[0]
+    expect(column?.kind).toBe('flex')
+    if (column?.kind !== 'flex') return
+    const h1 = column.children[0]
+    const row = column.children[1]
+    expect(h1?.kind).toBe('text')
+    expect(row?.kind).toBe('flex')
+    if (h1?.kind !== 'text' || row?.kind !== 'flex') return
+    const h1Center = column.x + h1.x + h1.width / 2
+    expect(h1Center).toBeCloseTo(540, 0)
+    const rowCenter = column.x + row.x + row.width / 2
+    expect(rowCenter).toBeCloseTo(540, 0)
+    const badge = row.children[1]
+    expect(badge?.kind).toBe('text')
+    if (badge?.kind !== 'text') return
+    const lineText = badge.textLayout.lines.map((line) => line.segments.map((seg) => seg.text).join('')).join('')
+    expect(lineText).toBe('3.125 BTC')
+    expect(badge.textLayout.lines).toHaveLength(1)
+  })
+
+  it('div 里的块级子元素会排出来', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="300"><div cx="200" cy="150" style="width:200px; padding:10px"><h3>标题</h3><p>正文</p></div></fvg>`,
+      process.cwd(),
+    )
+    const card = doc.root.children[0]
+    expect(card?.kind).toBe('flex')
+    if (card?.kind !== 'flex') return
+    const tags = card.children.map((child) => child.tag)
+    expect(tags).toEqual(['h3', 'p'])
+    const h3 = card.children[0]
+    expect(h3?.kind).toBe('text')
+    if (h3?.kind !== 'text') return
+    expect(h3.textLayout.lines.map((line) => line.segments.map((seg) => seg.text).join('')).join('')).toBe('标题')
   })
 
   it('invalid-child 线条进 Row', async () => {
