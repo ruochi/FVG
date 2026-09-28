@@ -497,6 +497,9 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     root.setHeight(Math.max(0, mainAvailable))
   }
 
+  const contentOffsetX = appearance.padding.left + (appearance.border?.width ?? 0)
+  const contentOffsetY = appearance.padding.top + (appearance.border?.width ?? 0)
+
   const yogaChildren: YogaNode[] = []
   for (let i = 0; i < measures.length; i++) {
     const m = measures[i]!
@@ -538,11 +541,17 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
       const styleCh = parseStyle(childNodes[i]!.attrs.style)
       const innerW = assignedW - child.padding.left - child.padding.right - (child.border?.width ?? 0) * 2
       const re = layoutTextBox(childNodes[i]!, { ...ctx, pathPrefix: child.path }, innerW)
-      re.x = layout.left
-      re.y = layout.top
+      re.x = layout.left + contentOffsetX
+      re.y = layout.top + contentOffsetY
       child = re
     } else {
-      child = { ...child, x: layout.left, y: layout.top, width: layout.width, height: layout.height }
+      child = {
+        ...child,
+        x: layout.left + contentOffsetX,
+        y: layout.top + contentOffsetY,
+        width: layout.width,
+        height: layout.height,
+      }
       if (child.kind === 'layer' || child.kind === 'flex') {
         // keep internal layout; stretch box only
       }
@@ -573,7 +582,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     y: 0,
     width: fixedW ?? outer.width,
     height: fixedH ?? outer.height,
-    ink: { x: appearance.padding.left, y: appearance.padding.top, width: contentW, height: contentH },
+    ink: { x: contentOffsetX, y: contentOffsetY, width: contentW, height: contentH },
     ...appearance,
     direction,
     children: laidChildren,

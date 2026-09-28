@@ -33,6 +33,18 @@ describe('layoutSource', () => {
     expect(line!.width).toBeGreaterThan(0)
   })
 
+  it('Column padding 把子元素往里推', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="300"><Column cx="20" cy="20" anchor="top-left" style="padding:40px; width:200px; align-items:start"><p>Hi</p></Column></fvg>`,
+      process.cwd(),
+    )
+    const col = doc.root.children[0]
+    expect(col?.kind).toBe('flex')
+    if (col?.kind !== 'flex') return
+    expect(col.children[0]?.x).toBe(40)
+    expect(col.children[0]?.y).toBe(40)
+  })
+
   it('invalid-child 线条进 Row', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><Row><Line x1="0" y1="0" x2="10" y2="10" /></Row></fvg>`,

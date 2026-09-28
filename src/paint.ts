@@ -206,19 +206,21 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
 
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
   ctx.save()
+  ctx.translate(node.x, node.y)
   ctx.globalAlpha *= node.opacity
-  if (node.kind === 'text') {
-    drawBoxChrome(ctx, node)
-    drawTextNode(ctx, node)
-  } else if (node.kind === 'shape') {
-    drawShape(ctx, node)
-  } else if (node.kind === 'line') {
-    drawLine(ctx, node)
-  } else if (node.kind === 'flex' || node.kind === 'layer') {
-    drawBoxChrome(ctx, node)
-    for (const ch of node.children) paintNode(ctx, ch, debug)
+  const local = { ...node, x: 0, y: 0 } as LayoutNode
+  if (local.kind === 'text') {
+    drawBoxChrome(ctx, local)
+    drawTextNode(ctx, local)
+  } else if (local.kind === 'shape') {
+    drawShape(ctx, local)
+  } else if (local.kind === 'line') {
+    drawLine(ctx, local)
+  } else if (local.kind === 'flex' || local.kind === 'layer') {
+    drawBoxChrome(ctx, local)
+    for (const ch of local.children) paintNode(ctx, ch, debug)
   }
-  if (debug) drawDebugOverlay(ctx, node)
+  if (debug) drawDebugOverlay(ctx, local)
   ctx.restore()
 }
 
