@@ -147,7 +147,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | --- | --- |
 | `font-size`、`font-weight`、`font-family`、`color`、`letter-spacing` | 同 CSS，行内标签也可以写 |
 | （字重规则） | 仅 `ChillDuanSans`（寒蝉端黑体）使用元素指定的 `font-weight`；其它 `font-family` 在测量与绘制时一律按 `normal`（400） |
-| `line-height` | 倍数，单行默认 1.2，多行默认 1.4 |
+| `line-height` | 倍数。只拉开同一段里各行的基线，第一行上面和最后一行下面不留半行。单行盒子贴着字形，旁边元素的 `gap` 就是字与字的空隙。没写时单行按 1.2、多行按 1.4，换行后才用得上 |
 | `text-align` | `left`（默认）、`center`、`right` |
 | `width`、`height` | 外框尺寸（含 padding 和 border） |
 | `max-width` | 最大外框宽度，超出就换行，盒子贴合最长的一行 |

@@ -396,10 +396,11 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
   let contentWidth = 0
   let contentHeight = 0
   const laidLines: TextLayoutResult['lines'] = []
-  let ink = emptyBox()
+  let ink: Box | null = null
   let y = 0
 
-  for (const lineUnits of allLines) {
+  for (let i = 0; i < allLines.length; i++) {
+    const lineUnits = allLines[i]!
     let lineW = 0
     let maxAsc = 0
     let maxDesc = 0
@@ -413,27 +414,31 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
       x += u.width
       lineW = x
     }
+    const inkH = maxAsc + maxDesc
     const lh = opts.lineHeightRatio * opts.fontSize
-    const lineH = allLines.length === 1 ? Math.max(lh, maxAsc + maxDesc) : lh
-    const baselineY = y + maxAsc + (lineH - (maxAsc + maxDesc)) / 2
+    // 行高只决定下一行从哪开始。第一行顶和最后一行底贴着字形，半行空白不留在盒子外面。
+    const stride = Math.max(lh, inkH)
+    const baselineY = y + maxAsc
     const lineInk: Box = {
       x: 0,
-      y: baselineY - maxAsc,
+      y,
       width: lineW,
-      height: maxAsc + maxDesc,
+      height: inkH,
     }
-    ink = unionBoxes(ink, lineInk)
+    ink = ink ? unionBoxes(ink, lineInk) : lineInk
+    const isLast = i === allLines.length - 1
     laidLines.push({
       segments: segOut,
       width: lineW,
-      height: lineH,
+      height: isLast ? inkH : stride,
       baselineY,
       ink: lineInk,
     })
     contentWidth = Math.max(contentWidth, lineW)
-    y += lineH
+    y += isLast ? inkH : stride
   }
   contentHeight = y
+  if (!ink) ink = emptyBox()
 
   let overflowFixed = false
   if (opts.fixedWidth != null && contentWidth > opts.fixedWidth + 1e-3) overflowFixed = true

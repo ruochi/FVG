@@ -172,4 +172,18 @@ describe('layoutSource', () => {
     if (p?.kind !== 'text') throw new Error('expected text')
     expect(p.textLayout.lines.map((l) => l.segments.map((s) => s.text).join(''))).toEqual(['3.125 BTC'])
   })
+
+  it('Column 的 gap 就是两段字的着墨间距', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:400px; height:400px"><Column style="gap:6px; align-items:start"><p style="font-size:40px">霜降</p><p style="font-size:36px">夜读</p></Column></fvg>`,
+      process.cwd(),
+    )
+    const col = doc.root.children[0]
+    if (col?.kind !== 'flex') throw new Error('expected flex')
+    const a = col.children[0]
+    const b = col.children[1]
+    if (a?.kind !== 'text' || b?.kind !== 'text') throw new Error('expected text')
+    const gap = b.y + b.ink.y - (a.y + a.ink.y + a.ink.height)
+    expect(gap).toBeCloseTo(6, 0)
+  })
 })
