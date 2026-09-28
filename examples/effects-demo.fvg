@@ -1,8 +1,8 @@
 <fvg style="width:800px; height:500px; background:#10131a; color:#ffffff">
-  <Circle cx="160" cy="160" style="r:80px; fill:#f6f1e7; glow:40px #f6f1e7" />
-  <Rect cx="420" cy="160" style="width:180px; height:120px; rx:16px; fill:#e23b2f; shadow:0 24px 24px #000000cc" />
-  <Rect cx="660" cy="160" style="width:140px; height:100px; fill:#3a7bd5; rotate:30; shadow:40px 0 0 #ffcc00" />
+  <circle cx="160" cy="160" style="r:80px; fill:#f6f1e7; glow:40px #f6f1e7" />
+  <rect cx="420" cy="160" style="width:180px; height:120px; rx:16px; fill:#e23b2f; shadow:0 24px 24px #000000cc" />
+  <rect cx="660" cy="160" style="width:140px; height:100px; fill:#3a7bd5; rotate:30; shadow:40px 0 0 #ffcc00" />
   <h1 cx="200" cy="380" style="font-size:96px; color:#ffcc00; glow:24px 2px">发光</h1>
   <p cx="560" cy="380" style="padding:20px 32px; background:#f3eee4; border-radius:24px; color:#1c1916; shadow:0 12px 30px 4px #000000aa">盒子阴影</p>
-  <Arrow x1="40" y1="470" x2="760" y2="470" style="stroke:#7cf; stroke-width:4px; glow:12px" />
+  <arrow x1="40" y1="470" x2="760" y2="470" style="stroke:#7cf; stroke-width:4px; glow:12px" />
 </fvg>

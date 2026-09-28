@@ -27,10 +27,10 @@ npx tsx src/cli.ts debug examples/poster-solstice.fvg --focus moon
 npx tsx src/cli.ts debug examples/poster-frost.fvg --scale 0.5 --focus 2   # 霜降书市，带调试图
 ```
 
-写法：要落在 Layer 坐标上的（`cx`、`cy`、`anchor`、`x1`、`y1`、`points`、`d`）写成标签属性，其余都写进 `style`：
+写法：要落在 layer 坐标上的（`cx`、`cy`、`anchor`、`x1`、`y1`、`points`、`d`）写成标签属性，其余都写进 `style`：
 
 ```html
-<Circle cx="540" cy="1300" style="r:180px; fill:none; stroke:#f7931a; stroke-width:12px; glow:36px" />
+<circle cx="540" cy="1300" style="r:180px; fill:none; stroke:#f7931a; stroke-width:12px; glow:36px" />
 ```
 
 构建之后也可以：

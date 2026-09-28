@@ -53,6 +53,18 @@ describe('layoutSource', () => {
     expect(doc.issues.some((i) => i.code === 'invalid-child')).toBe(true)
   })
 
+  it('大写 Circle 解析为 circle，并按中心布局', async () => {
+    const doc = await layoutSource(
+      `<fvg style="width:200px; height:200px"><Circle cx="40" cy="50" style="r:10px" /></fvg>`,
+      process.cwd(),
+    )
+    const circle = doc.root.children[0]
+    expect(circle?.tag).toBe('circle')
+    expect(circle?.x).toBe(30)
+    expect(circle?.y).toBe(40)
+    expect(circle?.width).toBe(20)
+  })
+
   it('形状的尺寸和上色从 style 读', async () => {
     const doc = await layoutSource(
       `<fvg style="width:400px; height:300px"><Circle cx="100" cy="100" style="r:30px; fill:#e23b2f; stroke:#fff; stroke-width:3px" /></fvg>`,
@@ -74,7 +86,7 @@ describe('layoutSource', () => {
     expect(c?.kind === 'shape' && c.width).toBe(60)
     expect(c?.kind === 'shape' && c.fill).toBe('#e23b2f')
     const legacy = doc.issues.filter((i) => i.code === 'legacy-attr').map((i) => `${i.path} ${i.message.split(' ')[0]}`)
-    expect(legacy).toEqual(['fvg width', 'fvg height', 'fvg/Circle[0] r', 'fvg/Circle[0] fill'])
+    expect(legacy).toEqual(['fvg width', 'fvg height', 'fvg/circle[0] r', 'fvg/circle[0] fill'])
   })
 
   it('style 优先于旧写法', async () => {
@@ -89,7 +101,7 @@ describe('layoutSource', () => {
       process.cwd(),
     )
     const ignored = doc.issues.filter((i) => i.code === 'ignored-position')
-    expect(ignored.map((i) => i.path)).toEqual(['fvg/Column[0]/p[0]', 'fvg/Column[0]/p[0]'])
+    expect(ignored.map((i) => i.path)).toEqual(['fvg/column[0]/p[0]', 'fvg/column[0]/p[0]'])
   })
 
   it('用不上的 style 记 unused-style', async () => {
@@ -98,7 +110,7 @@ describe('layoutSource', () => {
       process.cwd(),
     )
     const unused = doc.issues.filter((i) => i.code === 'unused-style')
-    expect(unused.map((i) => i.message)).toEqual(['style 里的 font-size 对 Circle 无效'])
+    expect(unused.map((i) => i.message)).toEqual(['style 里的 font-size 对 circle 无效'])
   })
 
   it('阴影和光晕补全默认值，光晕颜色取本体', async () => {

@@ -26,6 +26,7 @@ describe('parse line numbers', () => {
     const source = ['<Layer>', '<!-- comment -->', '<p>hi</p>', '</Layer>'].join('\n')
     const nodes = parseFvg(source)
     const layer = nodes[0]!
+    expect(layer.tag).toBe('layer')
     expect(layer.line).toBe(1)
     const p = layer.children.find((c): c is FvgNode => typeof c !== 'string' && c.tag === 'p')
     expect(p?.line).toBe(3)

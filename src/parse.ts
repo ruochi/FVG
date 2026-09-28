@@ -65,7 +65,7 @@ function lineAt(source: string, index: number): number {
   return line
 }
 
-/** 解析 FVG 标记。标签名保留大小写（`Row` 与 `row` 不同）。 */
+/** 解析 FVG 标记。标签名统一为小写（`<Column>` 与 `<column>` 相同）。 */
 export function parseFvg(source: string): FvgNode[] {
   const src = stripCommentsPreserveLines(source)
   const root: FvgNode = { tag: '#root', attrs: {}, children: [] }
@@ -87,7 +87,7 @@ export function parseFvg(source: string): FvgNode[] {
     CLOSE_TAG_RE.lastIndex = lt
     const close = CLOSE_TAG_RE.exec(src)
     if (close) {
-      const tag = close[1]
+      const tag = close[1].toLowerCase()
       const idx = findOpen(stack, tag)
       if (idx > 0) stack.length = idx
       pos = lt + close[0].length
@@ -101,14 +101,15 @@ export function parseFvg(source: string): FvgNode[] {
       pos = lt + 1
       continue
     }
+    const tag = open[1].toLowerCase()
     const node: FvgNode = {
-      tag: open[1],
+      tag,
       attrs: parseAttrs(open[2] ?? ''),
       children: [],
       line: lineAt(src, lt),
     }
     stack[stack.length - 1].children.push(node)
-    if (!open[3] && !VOID_TAGS.has(open[1])) stack.push(node)
+    if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
     pos = lt + open[0].length
   }
 
