@@ -161,3 +161,14 @@ cd generate && npm install && npm test
 ```
 
 测试会用 [`src/layout.ts`](../src/layout.ts) 校验生成的 `.fvg` 能否正常布局。
+
+### 完整海报示例（Vue）
+
+[`generate/vue/poster-city-jazz.ts`](vue/poster-city-jazz.ts)：`v-for` 星点、日程组件、标签组件，生成 1080×1620 海报。
+
+```bash
+npx tsx generate/vue/build-poster-city-jazz.mts
+npx tsx src/cli.ts render examples/poster-city-jazz.fvg -o poster-city-jazz.png --scale 0.5
+```
+
+输出 `.fvg` 在 [`examples/poster-city-jazz.fvg`](../examples/poster-city-jazz.fvg)。

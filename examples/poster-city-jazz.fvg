@@ -1,0 +1,47 @@
+<fvg style="width: 1080px; height: 1620px; background: #0a1628; color: #e8eef7; safe: 48">
+  <circle cx="120" cy="180" style="r: 3px; fill: #f6f1e7; opacity: 0.75; glow: 14px" />
+  <circle cx="280" cy="96" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
+  <circle cx="420" cy="220" style="r: 4px; fill: #f6f1e7; opacity: 0.75; glow: 18px" />
+  <circle cx="860" cy="140" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
+  <circle cx="960" cy="320" style="r: 3px; fill: #f6f1e7; opacity: 0.75; glow: 12px" />
+  <circle cx="180" cy="520" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
+  <circle cx="920" cy="88" style="r: 2px; fill: #f6f1e7; opacity: 0.75" />
+  <rect cx="540" cy="380" style="width: 920px; height: 520px; fill: #122a4a; rx: 24px; shadow: 0 24px 48px #00000088" />
+  <circle cx="820" cy="280" style="r: 140px; fill: #c9a227; opacity: 0.12; glow: 72px 6px #c9a227" />
+  <circle cx="820" cy="280" style="r: 88px; fill: none; stroke: #c9a227; stroke-width: 3px; opacity: 0.6" />
+  <p cx="72" cy="72" anchor="top-left" style="font-size: 26px; letter-spacing: 6px; color: #8fa8c8">LIVE</p>
+  <p cx="1008" cy="72" anchor="top-right" style="font-size: 26px; color: #8fa8c8">2026 · 03 · 21</p>
+  <column cx="540" cy="1040" anchor="center" style="width: 936px; gap: 24px; align-items: start">
+    <column style="gap: 8px; align-items: start">
+      <p style="font-size: 28px; letter-spacing: 10px; color: #c9a227">JAZZ IN THE ALLEY</p>
+      <h1 style="font-size: 112px; letter-spacing: 8px; color: #f6f1e7; line-height: 1.02">城市爵士夜</h1>
+      <p style="font-size: 34px; color: #b8c9de">外滩隧道 B2 · 19:00 入场</p>
+    </column>
+    <rect style="width: 936px; height: 2px; fill: #2a4060" />
+    <column style="width: 936px; gap: 18px; align-items: start">
+      <row style="width: 936px; gap: 28px; align-items: center">
+        <p style="font-size: 32px; color: #c9a227; width: 120px">19:30</p>
+        <p style="font-size: 34px; color: #e8eef7">Opening Trio · 暖场</p>
+      </row>
+      <row style="width: 936px; gap: 28px; align-items: center">
+        <p style="font-size: 32px; color: #c9a227; width: 120px">20:15</p>
+        <p style="font-size: 34px; color: #e8eef7">Sax &amp; Keys</p>
+      </row>
+      <row style="width: 936px; gap: 28px; align-items: center">
+        <p style="font-size: 32px; color: #c9a227; width: 120px">21:00</p>
+        <p style="font-size: 34px; color: #e8eef7">Main Set · 四重奏</p>
+      </row>
+      <row style="width: 936px; gap: 28px; align-items: center">
+        <p style="font-size: 32px; color: #c9a227; width: 120px">22:30</p>
+        <p style="font-size: 34px; color: #e8eef7">Late Session</p>
+      </row>
+    </column>
+    <row style="width: 936px; gap: 16px; align-items: center">
+      <div style="padding: 12px 24px; border: 2px solid #c9a227; border-radius: 999px; font-size: 28px; color: #f6f1e7">黑胶吧台</div>
+      <div style="padding: 12px 24px; border: 2px solid #c9a227; border-radius: 999px; font-size: 28px; color: #f6f1e7">即兴 Jam</div>
+      <div style="padding: 12px 24px; border: 2px solid #c9a227; border-radius: 999px; font-size: 28px; color: #f6f1e7">午夜小食</div>
+    </row>
+  </column>
+  <rect cx="540" cy="1560" style="width: 1080px; height: 120px; fill: #061018" />
+  <p cx="540" cy="1560" anchor="center" style="font-size: 28px; letter-spacing: 4px; color: #6a849c">预约见小程序 · 现场少量站票</p>
+</fvg>

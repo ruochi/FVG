@@ -29,6 +29,16 @@ describe('serialize + 生成器', () => {
     ])
   })
 
+  it('Vue 城市爵士夜海报：展开 schedule 与星点', async () => {
+    const { renderCityJazzPosterVue } = await import('./vue/poster-city-jazz.ts')
+    const source = renderCityJazzPosterVue()
+    expect(source).toContain('城市爵士夜')
+    expect(source).toContain('19:30')
+    expect(source).not.toMatch(/ScheduleBlock|PerkTag/)
+    const doc = await layoutSource(source, process.cwd())
+    expect(doc.root.children.filter((n) => n.tag === 'circle').length).toBe(7)
+  })
+
   it('React 示例：与 Vue 等价的结构与布局', async () => {
     const source = renderStarsPosterReact()
     expect(source).toContain('<circle cx="40" cy="48"')
