@@ -1,3 +1,6 @@
+import type { Image } from '@napi-rs/canvas'
+import type { Border, CornerRadii, PaintFill, Shadow, TextStroke } from './style.js'
+
 export type Box = {
   x: number
   y: number
@@ -94,6 +97,8 @@ export type TextRunStyle = {
   fontStyle?: 'normal' | 'italic'
   color: string
   letterSpacing: number
+  textStroke?: TextStroke
+  textShadow?: Shadow[]
 }
 
 export type TextSegment = {
@@ -140,9 +145,13 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
-  background?: string
-  border?: { width: number; color: string }
+  background?: PaintFill
+  border?: Border
   borderRadius?: number
+  radii?: CornerRadii
+  boxShadow?: Shadow[]
+  overflow?: 'visible' | 'hidden'
+  zIndex?: number
   padding: { top: number; right: number; bottom: number; left: number }
 }
 
@@ -166,7 +175,7 @@ export type TextLayoutNode = LayoutNodeBase & {
 export type ShapeLayoutNode = LayoutNodeBase & {
   kind: 'shape'
   shape: ShapeKind
-  fill: string
+  fill: PaintFill
   stroke: string
   strokeWidth: number
   dash?: number[]
@@ -189,12 +198,22 @@ export type LineLayoutNode = LayoutNodeBase & {
   dash?: number[]
 }
 
+export type ImageLayoutNode = LayoutNodeBase & {
+  kind: 'image'
+  src: string
+  image: Image | null
+  objectFit: 'fill' | 'contain' | 'cover'
+  intrinsicWidth: number
+  intrinsicHeight: number
+}
+
 export type LayoutNode =
   | LayerLayoutNode
   | FlexLayoutNode
   | TextLayoutNode
   | ShapeLayoutNode
   | LineLayoutNode
+  | ImageLayoutNode
 
 export type FvgDocument = {
   width: number

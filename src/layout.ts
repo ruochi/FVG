@@ -10,18 +10,28 @@ import {
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
 import { isFontAvailable, registerFontsFromDocument } from './fonts.js'
+import { loadFvgImage, objectFitRect } from './images.js'
 import {
   parseBorder,
+  parseCorners,
   parseDash,
   parseEdges,
   parseFontWeight,
   parseLineCap,
   parseLineJoin,
   parseNumber,
+  parseObjectFit,
+  parseOverflow,
+  parsePaint,
   parsePx,
+  parseShadows,
   parseStyle,
+  parseZIndex,
   ZERO_EDGES,
+  type CornerRadii,
   type Edges,
+  type PaintFill,
+  type Shadow,
 } from './style.js'
 import {
   defaultFontSizeForTag,
@@ -30,12 +40,13 @@ import {
   isTextBoxTag,
   layoutText,
 } from './text.js'
-import { FONT_TAG, isFlexTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { FONT_TAG, isFlexTag, isImageTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
 import type {
   Anchor,
   Box,
   FlexLayoutNode,
   FvgDocument,
+  ImageLayoutNode,
   Issue,
   LayerLayoutNode,
   LayoutNode,
@@ -53,6 +64,7 @@ export type LayoutContext = {
   maxContentWidth: number
   issues: Issue[]
   pathPrefix: string
+  baseDir: string
 }
 
 function parseAnchor(raw: string | undefined): Anchor {
@@ -147,20 +159,117 @@ function readStrokeExtras(attrs: Record<string, string>, style: Record<string, s
   return { dash, strokeLinecap, strokeLinejoin }
 }
 
+const ZERO_RADII: CornerRadii = { tl: 0, tr: 0, br: 0, bl: 0 }
+
+function readPaint(ctx: LayoutContext, raw: string | undefined, label: string): PaintFill | undefined {
+  if (raw == null || raw.trim() === '') return undefined
+  const paint = parsePaint(raw)
+  if (paint === undefined) {
+    warnInvalid(ctx, raw, label)
+    return undefined
+  }
+  return paint
+}
+
+function readShadowList(ctx: LayoutContext, raw: string | undefined, label: string): Shadow[] | undefined {
+  if (raw == null || raw.trim() === '' || raw.trim().toLowerCase() === 'none') return undefined
+  const shadows = parseShadows(raw)
+  if (!shadows) {
+    warnInvalid(ctx, raw, label)
+    return undefined
+  }
+  return shadows
+}
+
 function readAppearance(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
   const padding = parseEdges(style.padding) ?? ZERO_EDGES
   const border = parseBorder(style.border)
-  const borderRadius = parsePx(style['border-radius']) ?? 0
-  const background = style.background ?? style['background-color']
+  const radiusRaw = style['border-radius']
+  let radii = ZERO_RADII
+  if (radiusRaw != null && radiusRaw.trim() !== '') {
+    const parsed = parseCorners(radiusRaw)
+    if (!parsed) warnInvalid(ctx, radiusRaw, 'border-radius')
+    else radii = parsed
+  }
+  const borderRadius = Math.max(radii.tl, radii.tr, radii.br, radii.bl)
+  const background = readPaint(ctx, style.background ?? style['background-color'], 'background')
+  const boxShadow = readShadowList(ctx, style['box-shadow'], 'box-shadow')
+  const overflowRaw = style.overflow
+  let overflow: 'visible' | 'hidden' = 'visible'
+  if (overflowRaw != null && overflowRaw.trim() !== '') {
+    const parsed = parseOverflow(overflowRaw)
+    if (!parsed) warnInvalid(ctx, overflowRaw, 'overflow')
+    else overflow = parsed
+  }
+  const zRaw = style['z-index'] ?? attrs['z-index']
+  let zIndex = 0
+  if (zRaw != null && zRaw.trim() !== '') {
+    const parsed = parseZIndex(zRaw)
+    if (parsed === undefined) warnInvalid(ctx, zRaw, 'z-index')
+    else zIndex = parsed
+  }
   return {
     padding,
     border,
     borderRadius,
+    radii,
     background,
+    boxShadow,
+    overflow,
+    zIndex,
     opacity: parsedNum(ctx, attrs.opacity, 'opacity') ?? 1,
     rotate: parsedNum(ctx, attrs.rotate, 'rotate') ?? 0,
     scale: parsedNum(ctx, attrs.scale, 'scale') ?? 1,
   }
+}
+
+function shadowOutset(shadows: Shadow[] | undefined): { left: number; right: number; top: number; bottom: number } {
+  let left = 0
+  let right = 0
+  let top = 0
+  let bottom = 0
+  for (const shadow of shadows ?? []) {
+    const blur = Math.abs(shadow.blur) * 2
+    left = Math.max(left, blur - shadow.x)
+    right = Math.max(right, blur + shadow.x)
+    top = Math.max(top, blur - shadow.y)
+    bottom = Math.max(bottom, blur + shadow.y)
+  }
+  return { left, right, top, bottom }
+}
+
+function inflateBox(box: Box, pad: { left: number; right: number; top: number; bottom: number }): Box {
+  return {
+    x: box.x - pad.left,
+    y: box.y - pad.top,
+    width: box.width + pad.left + pad.right,
+    height: box.height + pad.top + pad.bottom,
+  }
+}
+
+function withEffectsInk<T extends LayoutNode>(node: T): T {
+  let ink = node.ink
+  if (node.kind === 'text') {
+    let stroke = 0
+    const shadows: Shadow[] = []
+    for (const line of node.textLayout.lines) {
+      for (const seg of line.segments) {
+        if (seg.style.textStroke) stroke = Math.max(stroke, seg.style.textStroke.width)
+        if (seg.style.textShadow) shadows.push(...seg.style.textShadow)
+      }
+    }
+    if (stroke > 0) {
+      const half = stroke / 2
+      ink = inflateBox(ink, { left: half, right: half, top: half, bottom: half })
+    }
+    const textPad = shadowOutset(shadows)
+    if (textPad.left || textPad.right || textPad.top || textPad.bottom) ink = inflateBox(ink, textPad)
+  }
+  const boxPad = shadowOutset(node.boxShadow)
+  if (boxPad.left || boxPad.right || boxPad.top || boxPad.bottom) {
+    ink = unionBoxes(ink, inflateBox({ x: 0, y: 0, width: node.width, height: node.height }, boxPad))
+  }
+  return ink === node.ink ? node : { ...node, ink }
 }
 
 function outerFromContent(
@@ -315,14 +424,18 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     })
   }
   const color = style.color ?? ctx.color
-  const segments = extractTextSegments(node, {
-    fontFamily,
-    fontSize,
-    fontWeight,
-    color,
-    letterSpacing: parsePx(style['letter-spacing']) ?? 0,
-    lineHeightRatio: parseNumber(style['line-height']) ?? (1.2),
-  })
+  const segments = extractTextSegments(
+    node,
+    {
+      fontFamily,
+      fontSize,
+      fontWeight,
+      color,
+      letterSpacing: parsePx(style['letter-spacing']) ?? 0,
+      lineHeightRatio: parseNumber(style['line-height']) ?? 1.2,
+    },
+    (label, raw) => warnInvalid(ctx, raw, label),
+  )
   const nowrap = style['white-space'] === 'nowrap'
   const textWrap = style['text-wrap'] === 'wrap' ? 'wrap' : 'balance'
   const fixedW = parsedLen(ctx, style.width, 'width')
@@ -372,7 +485,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     })
   }
 
-  return {
+  return withEffectsInk({
     kind: 'text',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -385,7 +498,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     ...appearance,
     textLayout,
     textAlign,
-  }
+  })
 }
 
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
@@ -405,12 +518,12 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     w = parsedLen(ctx, node.attrs.width, 'width') ?? parsedLen(ctx, style.width, 'width') ?? 0
     h = parsedLen(ctx, node.attrs.height, 'height') ?? parsedLen(ctx, style.height, 'height') ?? 0
   }
-  const fill = node.attrs.fill ?? style.fill ?? '#000000'
+  const fill = readPaint(ctx, node.attrs.fill ?? style.fill ?? '#000000', 'fill') ?? 'none'
   const stroke = node.attrs.stroke ?? style.stroke ?? 'none'
   const strokeWidth = parsedLen(ctx, node.attrs['stroke-width'], 'stroke-width') ?? parsedLen(ctx, style['stroke-width'], 'stroke-width') ?? 1
   const strokeExtras = readStrokeExtras(node.attrs, style, ctx)
   const ink = { x: 0, y: 0, width: w, height: h }
-  return {
+  return withEffectsInk({
     kind: 'shape',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -426,11 +539,70 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     stroke,
     strokeWidth,
     ...strokeExtras,
-    rx: rxAttr ?? parsedLen(ctx, style['border-radius'], 'border-radius'),
+    rx: rxAttr,
     r: radius,
     rxEllipse: rxAttr,
     ry: ryAttr,
+  })
+}
+
+async function layoutImage(node: FvgNode, ctx: LayoutContext): Promise<ImageLayoutNode> {
+  const style = parseStyle(node.attrs.style)
+  const appearance = readAppearance(node.attrs, style, ctx)
+  const fitRaw = style['object-fit'] ?? node.attrs['object-fit']
+  let objectFit: 'fill' | 'contain' | 'cover' = 'fill'
+  if (fitRaw != null && fitRaw.trim() !== '') {
+    const parsed = parseObjectFit(fitRaw)
+    if (!parsed) warnInvalid(ctx, fitRaw, 'object-fit')
+    else objectFit = parsed
   }
+  const src = node.attrs.src ?? ''
+  let image: ImageLayoutNode['image'] = null
+  let intrinsicWidth = 0
+  let intrinsicHeight = 0
+  try {
+    const loaded = await loadFvgImage(src, ctx.baseDir)
+    image = loaded.image
+    intrinsicWidth = loaded.width
+    intrinsicHeight = loaded.height
+  } catch {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'missing-image',
+      path: ctx.pathPrefix,
+      message: `图片无法打开 ${src || '(空)'}`,
+    })
+  }
+  let width = parsedLen(ctx, node.attrs.width, 'width') ?? parsedLen(ctx, style.width, 'width')
+  let height = parsedLen(ctx, node.attrs.height, 'height') ?? parsedLen(ctx, style.height, 'height')
+  if (image && intrinsicWidth > 0 && intrinsicHeight > 0) {
+    if (width == null && height == null) {
+      width = intrinsicWidth
+      height = intrinsicHeight
+    } else if (width == null && height != null) width = (height * intrinsicWidth) / intrinsicHeight
+    else if (height == null && width != null) height = (width * intrinsicHeight) / intrinsicWidth
+  }
+  const w = width ?? 0
+  const h = height ?? 0
+  const fitted = image ? objectFitRect(objectFit, intrinsicWidth, intrinsicHeight, w, h) : null
+  const ink = fitted && fitted.dw > 0 && fitted.dh > 0 ? { x: fitted.dx, y: fitted.dy, width: fitted.dw, height: fitted.dh } : emptyBox()
+  return withEffectsInk({
+    kind: 'image',
+    path: ctx.pathPrefix,
+    id: node.attrs.id,
+    tag: node.tag,
+    x: 0,
+    y: 0,
+    width: w,
+    height: h,
+    ink,
+    ...appearance,
+    src,
+    image,
+    objectFit,
+    intrinsicWidth,
+    intrinsicHeight,
+  })
 }
 
 function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
@@ -524,6 +696,10 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
   if (isShapeTag(node.tag)) {
     const s = layoutShape(node, ctx, ctx.color)
     return { source: node, ...flexMetrics(direction, s, false) }
+  }
+  if (isImageTag(node.tag)) {
+    const image = await layoutImage(node, ctx)
+    return { source: node, ...flexMetrics(direction, image, false) }
   }
   if (isFlexTag(node.tag) || (isTextBoxTag(node.tag) && hasBlockChildren(node))) {
     const nested = await layoutFlex(node, ctx)
@@ -670,6 +846,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 
   const innerW = direction === 'row' ? mainSize : crossSize
   const innerH = direction === 'row' ? crossSize : mainSize
+  let contentInk = { x: insetX, y: insetY, width: innerW, height: innerH }
+  for (const child of laidChildren) contentInk = unionBoxes(contentInk, translateBox(child.ink, child.x, child.y))
   const outer = outerFromContent(innerW, innerH, appearance.padding, appearance.border)
   if (fixedW != null && (direction === 'row' ? intrinsicMain : intrinsicCross) + padX > fixedW + 1e-3) {
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 width' })
@@ -678,7 +856,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 height' })
   }
 
-  return {
+  return withEffectsInk({
     kind: 'flex',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -687,11 +865,11 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     y: 0,
     width: fixedW ?? outer.width,
     height: fixedH ?? outer.height,
-    ink: { x: insetX, y: insetY, width: innerW, height: innerH },
+    ink: contentInk,
     ...appearance,
     direction,
     children: laidChildren,
-  }
+  })
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
@@ -711,6 +889,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
     else if (isTextBoxTag(ch.tag) && !hasBlockChildren(ch)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
+    else if (isImageTag(ch.tag)) laid = await layoutImage(ch, subCtx)
     else if (isFlexTag(ch.tag) || (isTextBoxTag(ch.tag) && hasBlockChildren(ch))) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
@@ -781,7 +960,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     return p.child
   })
 
-  return {
+  return withEffectsInk({
     kind: 'layer',
     path: ctx.pathPrefix,
     id: node.attrs.id,
@@ -793,7 +972,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ink,
     ...appearance,
     children,
-  }
+  })
 }
 
 export async function layoutSource(source: string, baseDir: string): Promise<FvgDocument> {
@@ -829,6 +1008,7 @@ export async function layoutSource(source: string, baseDir: string): Promise<Fvg
       maxContentWidth,
       issues,
       pathPrefix: 'fvg',
+      baseDir,
     },
   )
 

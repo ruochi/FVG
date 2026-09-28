@@ -1,7 +1,7 @@
 import type { FvgChild, FvgNode } from './parse.js'
 import { buildFontString } from './fonts.js'
 import { getMeasureCtx } from './measureCtx.js'
-import { parseFontWeight, parsePx } from './style.js'
+import { parseFontWeight, parsePx, parseShadows, parseTextStroke } from './style.js'
 import type { Box, TextLayoutResult, TextRunStyle, TextSegment } from './types.js'
 import { emptyBox, unionBoxes } from './types.js'
 
@@ -53,7 +53,11 @@ export function defaultFontWeightForTag(tag: string): number {
   return tag === 'h1' || tag === 'h2' || tag === 'h3' ? 700 : 400
 }
 
-function mergeStyle(base: TextRunStyle, styleMap: Record<string, string>): TextRunStyle {
+function mergeStyle(
+  base: TextRunStyle,
+  styleMap: Record<string, string>,
+  onInvalid?: (label: string, raw: string) => void,
+): TextRunStyle {
   const next = { ...base }
   const fs = parsePx(styleMap['font-size'])
   if (fs != null) next.fontSize = fs
@@ -63,6 +67,24 @@ function mergeStyle(base: TextRunStyle, styleMap: Record<string, string>): TextR
   if (styleMap.color) next.color = styleMap.color.trim()
   const ls = parsePx(styleMap['letter-spacing'])
   if (ls != null) next.letterSpacing = ls
+  const strokeRaw = styleMap['text-stroke']
+  if (strokeRaw != null && strokeRaw.trim() !== '') {
+    if (strokeRaw.trim().toLowerCase() === 'none') next.textStroke = undefined
+    else {
+      const stroke = parseTextStroke(strokeRaw)
+      if (!stroke) onInvalid?.('text-stroke', strokeRaw)
+      else next.textStroke = stroke
+    }
+  }
+  const shadowRaw = styleMap['text-shadow']
+  if (shadowRaw != null && shadowRaw.trim() !== '') {
+    if (shadowRaw.trim().toLowerCase() === 'none') next.textShadow = undefined
+    else {
+      const shadows = parseShadows(shadowRaw)
+      if (!shadows) onInvalid?.('text-shadow', shadowRaw)
+      else next.textShadow = shadows
+    }
+  }
   return next
 }
 
@@ -88,6 +110,7 @@ function walkInline(
   style: TextRunStyle,
   out: TextSegment[],
   hardBreakNext: boolean,
+  onInvalid?: (label: string, raw: string) => void,
 ): void {
   let breakNext = hardBreakNext
   for (const child of nodes) {
@@ -106,13 +129,17 @@ function walkInline(
     let segStyle = style
     if (tag === 'strong' || tag === 'b') segStyle = { ...style, fontWeight: 700 }
     if (tag === 'em') segStyle = { ...style, fontStyle: 'italic' }
-    segStyle = mergeStyle(segStyle, parseStyleAttr(child.attrs.style))
-    walkInline(child.children, segStyle, out, breakNext)
+    segStyle = mergeStyle(segStyle, parseStyleAttr(child.attrs.style), onInvalid)
+    walkInline(child.children, segStyle, out, breakNext, onInvalid)
     breakNext = false
   }
 }
 
-export function extractTextSegments(node: FvgNode, defaults: TextBoxDefaults): TextSegment[] {
+export function extractTextSegments(
+  node: FvgNode,
+  defaults: TextBoxDefaults,
+  onInvalid?: (label: string, raw: string) => void,
+): TextSegment[] {
   const base: TextRunStyle = {
     fontFamily: defaults.fontFamily,
     fontSize: defaults.fontSize,
@@ -120,9 +147,9 @@ export function extractTextSegments(node: FvgNode, defaults: TextBoxDefaults): T
     color: defaults.color,
     letterSpacing: defaults.letterSpacing,
   }
-  const style = mergeStyle(base, parseStyleAttr(node.attrs.style))
+  const style = mergeStyle(base, parseStyleAttr(node.attrs.style), onInvalid)
   const segs: TextSegment[] = []
-  walkInline(node.children, style, segs, false)
+  walkInline(node.children, style, segs, false, onInvalid)
   if (segs.length > 0) {
     segs[0] = { ...segs[0]!, text: segs[0]!.text.replace(/^\s+/, '') }
     const last = segs.length - 1

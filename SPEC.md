@@ -42,10 +42,11 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | 容器 | `Layer`、`Row`、`Column` |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
+| 图片 | `Image` |
 | 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path` |
 
 - 容器和形状首字母大写，文字标签全部小写（和 HTML 一样）。
-- 后写的元素画在上面。
+- 同一父级里，`z-index` 大的后画；没写或相同则后写的元素画在上面。`z-index` 不影响布局。
 - 不认识的标签会被忽略，并在报告里给出警告。
 
 ## 3. 通用属性
@@ -74,7 +75,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - 写了 `width`、`height`：Layer 就是这么大。
 - 没写：Layer 的大小等于所有子元素盒子的并集，也就是自动包住内容。
 
-`style` 支持 `background`、`border`、`border-radius`。
+`style` 支持 `background`、`border`、`border-radius`、`box-shadow`、`overflow`、`z-index`。背景可以是纯色，也可以是线性或径向渐变。
 
 ### 4.2 Row、Column：flex 排列
 
@@ -89,7 +90,10 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `padding` | `0` | 1 到 4 个值，同 CSS |
 | `align-items` | `center` | `start`、`center`、`end`、`stretch`（注意默认值和 CSS 不同） |
 | `justify-content` | `start` | `start`、`center`、`end`、`space-between`、`space-around`、`space-evenly` |
-| `background`、`border`、`border-radius` | 无 | 同 CSS，border 只支持实线 |
+| `background`、`border`、`border-radius` | 无 | 见下方绘制效果。border 支持 `solid`、`dashed`、`dotted` |
+| `box-shadow` | 无 | `x y blur 颜色`，可逗号分隔多层。不支持 `spread` |
+| `overflow` | `visible` | `hidden` 把子元素裁进圆角边框 |
+| `z-index` | `0` | 整数。只影响同一父级内的绘制顺序 |
 
 子元素可以写的 flex 属性：`flex-grow`、`flex-shrink`、`align-self`、`width`、`height`。
 
@@ -124,7 +128,9 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `text-align` | `left`（默认）、`center`、`right` |
 | `width`、`height` | 外框尺寸（含 padding 和 border） |
 | `max-width` | 最大外框宽度，超出就换行，盒子贴合最长的一行 |
-| `padding`、`background`、`border`、`border-radius` | 同 CSS |
+| `padding`、`background`、`border`、`border-radius` | 同 CSS。`border-radius` 可以写 1 到 4 个值：左上、右上、右下、左下 |
+| `text-stroke` | `4px #000000`：先描边再填充。行内标签也可以写 |
+| `text-shadow` | `x y blur 颜色`，可逗号分隔多层。行内标签也可以写 |
 | `white-space: nowrap` | 禁止换行 |
 | `text-wrap` | `balance`（默认，各行长度尽量均匀）或 `wrap`（尽量填满每一行） |
 
@@ -147,9 +153,31 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
+`fill` 和容器的 `background` 可以写渐变：
+
+- `linear-gradient(90deg, #111, #f7931a)`，方向也可以写 `to right`、`to bottom`、`to left`、`to top`。不写方向时从上到下。
+- `radial-gradient(circle, #fff, #000)`，圆心在盒子中心，半径到盒子角。
+- 色标可以写像素位置（`#111 20px`）。不写则均匀分布。不支持百分比。
+
+`Rect` 的圆角用 `rx`。容器的 `border-radius` 可以四个角各写一个值。`box-shadow` 的写法和容器相同，不支持 `spread`。
+
 形状可以放在 Layer 里（用 `cx`、`cy` 定位），也可以放在 Row/Column 里参与排列。
 
-## 7. 线条
+## 7. 图片
+
+```html
+<Image src="face.png" width="200" height="200" />
+<Image src="https://example.com/a.png" width="200" height="200" style="object-fit:cover" />
+```
+
+- `src` 是相对当前 `.fvg` 的路径，或 `http(s)` 网址。网址缓存到 `~/.cache/fvg/images`。
+- 宽高都写了就用这个盒子。只写一边时按图片比例补上另一边。都没写就用图片原始像素。
+- `object-fit`：`fill`（默认，拉伸）、`contain`、`cover`。
+- 图片打不开或下载失败时报告 `missing-image`，留下空盒子，其余元素继续画。
+
+圆形头像：正方形盒子写 `border-radius` 为边长的一半、`overflow:hidden`，里面放 `object-fit:cover` 的 `Image`。
+
+## 8. 线条
 
 | 标签 | 属性 |
 | --- | --- |
@@ -163,7 +191,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - `Polygon`、`Path` 的 `fill` 默认 `none`。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
 
-## 8. 布局报告
+## 9. 布局报告
 
 渲染时同时输出一份 JSON 报告：
 
@@ -189,8 +217,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 }
 ```
 
-- `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。
-- `ink`：实际着墨范围。文字是字形的真实边界，形状包含描边宽度。
+- `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。描边和阴影不撑大这个盒子。
+- `ink`：实际着墨范围。文字是字形的真实边界，并包含文字描边和文字阴影。形状包含描边宽度。盒子阴影和图片也算在里面。
 
 检查项：
 
@@ -204,9 +232,10 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `min-font-size` | warn | 字号小于 `画布宽度 / 1080 × 24` |
 | `auto-wrap` | info | 文字超出可用宽度，被自动换行 |
 | `unknown-tag`、`invalid-attr` | warn | 不认识的标签，或无法解析的属性值 |
+| `missing-image` | warn | 图片打不开或下载失败 |
 | `invalid-child` | warn | 非法子元素（如 `Line`/`Path` 放在 `Row`/`Column` 内） |
 
-## 9. 命令行
+## 10. 命令行
 
 ```bash
 fvg render scene.fvg -o scene.png --report scene.json   # 渲染 PNG + 报告
@@ -217,10 +246,10 @@ fvg check scene.fvg                                      # 只输出检查结果
 
 默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/fvg/fonts`。
 
-## 10. 预留（后续版本）
+## 11. 预留（后续版本）
 
 - `draw` 钩子：任何元素都可以挂 JS 函数自定义绘制（`ctx`、`w`、`h`、测量工具）。
 - `frame(t)`：每个时刻生成一份 FVG，导出视频和联系表。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
-- `Icon`、渐变、阴影、`Image`。
-- 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
+- `Icon`。
+- 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。`z` 不是层级，层级用 `z-index`。
