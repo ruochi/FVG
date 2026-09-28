@@ -485,7 +485,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
       : fixedW != null
         ? Math.max(0, fixedW - padX)
         : ctx.maxContentWidth
-  const mainSize = Math.min(availableMain, intrinsicMain)
+  const mainFixed = direction === 'row' ? fixedW != null : fixedH != null
+  const mainSize = mainFixed ? availableMain : Math.min(availableMain, intrinsicMain)
   const crossSize = direction === 'row' ? (fixedH != null ? availableCross : intrinsicCross) : fixedW != null ? availableCross : Math.min(availableCross, intrinsicCross)
 
   const Yoga = await ensureYoga()

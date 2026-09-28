@@ -70,6 +70,27 @@ describe('layoutSource', () => {
     expect(badge.textLayout.lines).toHaveLength(1)
   })
 
+  it('写死宽度的 Row 保留 justify-content 和 flex-grow', async () => {
+    const doc = await layoutSource(
+      `<fvg width="800" height="400">
+        <Row cx="400" cy="100" style="width:700px; padding:10px; justify-content:space-between">
+          <Rect width="80" height="40" /><Rect width="80" height="40" />
+        </Row>
+        <Row cx="400" cy="300" style="width:700px; padding:10px; gap:10px">
+          <Rect width="80" height="40" /><Rect width="80" height="40" style="flex-grow:1" />
+        </Row>
+      </fvg>`,
+      process.cwd(),
+    )
+    const [spaced, grown] = doc.root.children
+    expect(spaced?.kind).toBe('flex')
+    expect(grown?.kind).toBe('flex')
+    if (spaced?.kind !== 'flex' || grown?.kind !== 'flex') return
+    const last = spaced.children[1]!
+    expect(last.x + last.width).toBeCloseTo(690, 0)
+    expect(grown.children[1]!.width).toBeCloseTo(590, 0)
+  })
+
   it('div 里的块级子元素会排出来', async () => {
     const doc = await layoutSource(
       `<fvg width="400" height="300"><div cx="200" cy="150" style="width:200px; padding:10px"><h3>标题</h3><p>正文</p></div></fvg>`,
