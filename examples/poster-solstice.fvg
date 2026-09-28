@@ -1,17 +1,17 @@
 <!-- 夏至放映 · 1080×1620 海报 -->
 <fvg style="width:1080px; height:1620px; background:#0e1116; color:#1c1916; safe:48">
   <Path d="M 731.2 290.3 A 230 230 0 1 0 855.3 706.0 A 226 226 0 0 1 731.2 290.3 Z"
-        style="fill:#f6f1e7; stroke:#f6f1e7; stroke-width:1px; glow:48px 2px #f6e7c8" />
+        style="fill:#f6f1e7; stroke:#f6f1e7; stroke-width:1px; glow:140px 16px #fff4d8" />
 
-  <Circle cx="132" cy="168" style="r:3px; fill:#f6f1e7; glow:6px" />
+  <Circle cx="132" cy="168" style="r:3px; fill:#f6f1e7; glow:18px" />
   <Circle cx="214" cy="246" style="r:2px; fill:#f6f1e7; opacity:0.7" />
-  <Circle cx="168" cy="390" style="r:4px; fill:#f6f1e7; opacity:0.85; glow:8px" />
+  <Circle cx="168" cy="390" style="r:4px; fill:#f6f1e7; opacity:0.85; glow:22px" />
   <Circle cx="286" cy="148" style="r:2px; fill:#f6f1e7; opacity:0.55" />
-  <Circle cx="360" cy="268" style="r:3px; fill:#f6f1e7; glow:6px" />
+  <Circle cx="360" cy="268" style="r:3px; fill:#f6f1e7; glow:16px" />
   <Circle cx="246" cy="520" style="r:2px; fill:#f6f1e7; opacity:0.6" />
-  <Circle cx="470" cy="176" style="r:2px; fill:#e39b3a; glow:6px" />
+  <Circle cx="470" cy="176" style="r:2px; fill:#e39b3a; glow:18px" />
   <Circle cx="96" cy="560" style="r:3px; fill:#f6f1e7; opacity:0.8" />
-  <Circle cx="980" cy="150" style="r:3px; fill:#f6f1e7; opacity:0.75; glow:6px" />
+  <Circle cx="980" cy="150" style="r:3px; fill:#f6f1e7; opacity:0.75; glow:16px" />
   <Circle cx="920" cy="240" style="r:2px; fill:#f6f1e7; opacity:0.5" />
 
   <p cx="72" cy="64" anchor="top-left" style="font-size:28px; letter-spacing:6px; color:#f6f1e7">北岸码头</p>
