@@ -31,7 +31,8 @@ describe('layoutSource', () => {
     )
     const line = doc.root.children[0]
     expect(line?.kind).toBe('line')
-    expect(line!.width).toBeGreaterThan(0)
+    expect(line!.y).toBeLessThan(15)
+    expect(line!.y + line!.height).toBeGreaterThan(45)
   })
 
   it('transform-origin 用像素，拒绝百分比和 em', async () => {

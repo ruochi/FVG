@@ -642,10 +642,16 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     p.child.y = tl.y
   }
 
+  // 线条的坐标就是 Layer 局部坐标，不用 cx / cy / anchor 再摆一次。
+  const place = (p: (typeof placed)[0], lw: number, lh: number) => {
+    if (p.child.kind === 'line') return
+    positionOne(p, lw, lh)
+  }
+
   if (layerW > 0 && layerH > 0) {
-    for (const p of placed) positionOne(p, layerW, layerH)
+    for (const p of placed) place(p, layerW, layerH)
   } else {
-    for (const p of placed) positionOne(p, 0, 0)
+    for (const p of placed) place(p, 0, 0)
     let union = emptyBox()
     for (const p of placed) {
       union = unionBoxes(union, { x: p.child.x, y: p.child.y, width: p.child.width, height: p.child.height })
@@ -653,6 +659,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     layerW = fixedW ?? Math.max(union.width, 0)
     layerH = fixedH ?? Math.max(union.height, 0)
     for (const p of placed) {
+      if (p.child.kind === 'line') continue
       if (p.useDefaultCenter) {
         p.cx = layerW / 2
         p.cy = layerH / 2

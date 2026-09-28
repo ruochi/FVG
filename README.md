@@ -21,6 +21,7 @@ npm run build
 npx tsx src/cli.ts render examples/hello.fvg -o hello.png --report hello.json
 npx tsx src/cli.ts render examples/hello.fvg --debug --scale 0.5
 npx tsx src/cli.ts check examples/hello.fvg
+npx tsx src/cli.ts selftest
 ```
 
 构建之后也可以：

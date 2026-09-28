@@ -174,6 +174,7 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
     }
     ctx.stroke()
   } else if (g.kind === 'path') {
+    ctx.translate(-node.x, -node.y)
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill

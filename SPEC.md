@@ -223,7 +223,15 @@ fvg render scene.fvg -o scene.png --report scene.json   # 渲染 PNG + 报告
 fvg render scene.fvg --debug                             # 叠加画出盒子（蓝）和着墨范围（红）
 fvg render scene.fvg --scale 0.5                         # 缩小输出，方便 AI 快速查看
 fvg check scene.fvg                                      # 只输出检查结果，不出图
+fvg selftest                                             # 把特性清单逐项跑一遍
 ```
+
+`selftest` 用来验证渲染器自己。每一项是一小段 FVG，核对两种结果：
+
+- **报告**：位置、尺寸、换行、字号、检查码。布局对不对看这里。
+- **像素**：指定坐标上的颜色或透明度。旋转、缩放、叠放、透明度这些绘制结果看这里。
+
+某一项失败时，输出特性 id、期望和实际，退出码为 1。
 
 默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/fvg/fonts`。
 
