@@ -87,11 +87,11 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | 属性 | 说明 |
 | --- | --- |
 | `opacity` | 0 到 1，连同阴影和光晕一起变淡 |
-| `rotate` | 绕元素中心旋转，单位度，顺时针为正；目前只对形状生效 |
-| `scale` | 绕元素中心缩放；目前只对形状生效 |
+| `rotate` | 绕元素中心旋转，单位度，顺时针为正。文字、容器、形状、线条都生效 |
+| `scale` | 绕元素中心缩放。文字、容器、形状、线条都生效 |
 | `shadow`、`glow` | 阴影和光晕，见第 8 节 |
 
-`rotate`、`scale` 只影响绘制，不影响布局；报告里的盒子是变换前的。
+`rotate`、`scale` 只影响绘制，不影响布局；报告里的盒子是变换前的。文字连同背景、边框和字形一起转。容器连同背景、边框和子元素一起转。
 
 ### 3.3 旧写法
 
@@ -106,7 +106,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - 写了 `width`、`height`：layer 就是这么大。
 - 没写：layer 的大小等于所有子元素盒子的并集，也就是自动包住内容。
 
-`style` 支持 `background`、`border`、`border-radius`。
+`style` 支持 `background`、`border`、`border-radius`。边框画在盒子内部：直角和圆角都把描边中心向内收半个线宽，外缘贴着盒子边缘。
 
 ### 4.2 row、column：flex 排列
 
@@ -121,7 +121,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `padding` | `0` | 1 到 4 个值，同 CSS |
 | `align-items` | `center` | `start`、`center`、`end`、`stretch`（注意默认值和 CSS 不同） |
 | `justify-content` | `start` | `start`、`center`、`end`、`space-between`、`space-around`、`space-evenly` |
-| `background`、`border`、`border-radius` | 无 | 同 CSS，border 只支持实线 |
+| `background`、`border`、`border-radius` | 无 | 同 CSS，border 只支持实线，直角和圆角都画在盒子内部 |
 
 子元素可以写的 flex 属性：`flex-grow`、`flex-shrink`、`align-self`、`width`、`height`。
 
@@ -154,7 +154,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `text-align` | `left`（默认）、`center`、`right` |
 | `width`、`height` | 外框尺寸（含 padding 和 border） |
 | `max-width` | 最大外框宽度，超出就换行，盒子贴合最长的一行 |
-| `padding`、`background`、`border`、`border-radius` | 同 CSS |
+| `padding`、`background`、`border`、`border-radius` | 同 CSS。border 只支持实线，直角和圆角都画在盒子内部 |
 | `white-space: nowrap` | 禁止换行 |
 | `text-wrap` | `balance`（默认，各行长度尽量均匀）或 `wrap`（尽量填满每一行） |
 
@@ -178,6 +178,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `ellipse` | `rx`、`ry` |
 
 上色和 SVG 的 CSS 写法一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
+
+描边画在盒子内部，中心线向内收 `stroke-width / 2`，外缘贴着盒子边缘。`width`、`height`、`r` 仍是盒子尺寸，不会因为描边变大。着墨范围等于盒子，因此包含描边。
 
 ```html
 <circle cx="200" cy="200" style="r:80px; fill:none; stroke:#f7931a; stroke-width:12px" />
@@ -257,7 +259,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 ```
 
 - `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。
-- `ink`：实际着墨范围。文字是字形的真实边界，形状包含描边宽度。
+- `ink`：实际着墨范围。文字是字形的真实边界。形状的描边画在盒子内，着墨等于盒子，包含描边宽度。
 - `effect`：阴影剪影按偏移平移、光晕剪影原地，各自四边外扩 `spread + blur × 2`，再取并集。
 - `shadow`、`glow`：补全默认值之后的实际取值。
 - `line`：该元素开标签在 `.fvg` 源码中的行号（1-based），便于和 `fvg debug` 对照。

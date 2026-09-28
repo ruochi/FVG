@@ -43,8 +43,8 @@
 | 属性 | 默认 | 说明 |
 | --- | --- | --- |
 | `opacity` | `1` | 0 到 1，本体、阴影、光晕一起变淡 |
-| `rotate` | `0` | 度，顺时针。绕元素中心。目前只对形状生效 |
-| `scale` | `1` | 绕元素中心缩放。目前只对形状生效 |
+| `rotate` | `0` | 度，顺时针。绕元素中心。文字（背景、边框、字形）、容器（背景、边框、子元素）、形状、线条都生效 |
+| `scale` | `1` | 绕元素中心缩放。作用范围同 `rotate` |
 | `shadow` | 无 | `x y [blur] [spread] [color]`。默认 blur 0、spread 0、颜色 `#00000066` |
 | `glow` | 无 | `blur [spread] [color]`。默认 spread 0，颜色取本体 |
 
@@ -83,7 +83,7 @@
 
 `style`：`width`、`height`、`background`、`background-color`、`border`、`border-radius`，以及共用效果。
 
-`border` 只支持实线，例如 `2px solid #fff`。
+`border` 只支持实线，例如 `2px solid #fff`。直角和圆角都画在盒子内部，外缘贴着盒子边缘。
 
 ## `row`、`column`
 
@@ -150,7 +150,7 @@
 | --- | --- | --- |
 | `fill` | `#000000` | `none` 不填 |
 | `stroke` | `none` | |
-| `stroke-width` | `1` | |
+| `stroke-width` | `1` | 描边画在盒子内部，外缘贴着盒子边缘 |
 | `stroke-dasharray` | 无 | 同 SVG |
 
 另加共用效果。定位用 `cx`、`cy`、`anchor`，或放进 `row`、`column`。

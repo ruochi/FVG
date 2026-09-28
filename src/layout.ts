@@ -423,6 +423,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext): ShapeLayoutNode {
   const strokeWidth = length('stroke-width') ?? 1
   const dash = parseDashArray(readProp(node, style, 'stroke-dasharray', ctx))
   const effects = readEffects(node, style, ctx, fill !== 'none' ? fill : stroke)
+  // 描边画在盒子内部，外缘贴着盒子边缘，着墨等于盒子，因此盖住描边。
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
     kind: 'shape',
