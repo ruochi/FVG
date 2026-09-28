@@ -1,6 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { homedir } from 'node:os'
+import { mkdtemp, writeFile } from 'node:fs/promises'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createCanvas } from '@napi-rs/canvas'
 import { initFontsForMeasure } from './fonts.js'
 import { layoutSource } from './layout.js'
 import { buildReport } from './report.js'
@@ -164,5 +166,67 @@ describe('layoutSource', () => {
       process.cwd(),
     )
     expect(doc.issues.some((i) => i.code === 'invalid-child')).toBe(true)
+  })
+
+  it('Image 未写宽高时用原始像素尺寸', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fvg-layout-img-'))
+    const tile = createCanvas(32, 24)
+    tile.getContext('2d').fillStyle = '#ff0000'
+    tile.getContext('2d').fillRect(0, 0, 32, 24)
+    await writeFile(join(dir, 'pic.png'), tile.toBuffer('image/png'))
+    const doc = await layoutSource(`<fvg width="200" height="200"><Image src="pic.png" /></fvg>`, dir)
+    const image = doc.root.children[0]
+    expect(image?.kind).toBe('image')
+    if (image?.kind !== 'image') return
+    expect(image.width).toBe(32)
+    expect(image.height).toBe(24)
+    expect(image.intrinsicWidth).toBe(32)
+    expect(image.intrinsicHeight).toBe(24)
+  })
+
+  it('Image 只写 width 时按比例补 height', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fvg-layout-aspect-'))
+    const tile = createCanvas(40, 20)
+    tile.getContext('2d').fillStyle = '#00ff00'
+    tile.getContext('2d').fillRect(0, 0, 40, 20)
+    await writeFile(join(dir, 'wide.png'), tile.toBuffer('image/png'))
+    const doc = await layoutSource(`<fvg width="200" height="200"><Image src="wide.png" width="80" /></fvg>`, dir)
+    const image = doc.root.children[0]
+    expect(image?.kind).toBe('image')
+    if (image?.kind !== 'image') return
+    expect(image.width).toBe(80)
+    expect(image.height).toBe(40)
+  })
+
+  it('box-shadow 扩大 ink 但不扩大 box', async () => {
+    const doc = await layoutSource(
+      `<fvg width="100" height="100"><Rect width="20" height="20" fill="#000" style="box-shadow:10px 0px 0px #000" /></fvg>`,
+      process.cwd(),
+    )
+    const rect = doc.root.children[0]
+    expect(rect?.width).toBe(20)
+    expect(rect?.height).toBe(20)
+    expect(rect?.ink.width).toBeGreaterThan(20)
+  })
+
+  it('Image 的 object-fit 写错会 invalid-attr', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fvg-bad-fit-'))
+    const tile = createCanvas(4, 4)
+    const ctx = tile.getContext('2d')
+    ctx.fillStyle = '#ff0000'
+    ctx.fillRect(0, 0, 4, 4)
+    await writeFile(join(dir, 'a.png'), tile.toBuffer('image/png'))
+    const doc = await layoutSource(`<fvg width="40" height="40"><Image src="a.png" style="object-fit:stretch" /></fvg>`, dir)
+    expect(doc.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('object-fit'))).toBe(true)
+  })
+
+  it('dashed 边框解析进布局节点', async () => {
+    const doc = await layoutSource(
+      `<fvg width="100" height="100"><Layer style="width:40px; height:40px; border:3px dashed #fff" /></fvg>`,
+      process.cwd(),
+    )
+    const layer = doc.root.children[0]
+    expect(layer?.border).toEqual({ width: 3, color: '#fff', style: 'dashed' })
+    expect(layer?.radii).toEqual({ tl: 0, tr: 0, br: 0, bl: 0 })
   })
 })

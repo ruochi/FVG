@@ -31,6 +31,7 @@ describe('style', () => {
 
   it('描边、阴影、渐变、圆角和层级', () => {
     expect(parseTextStroke('4px #000000')).toEqual({ width: 4, color: '#000000' })
+    expect(parseShadows('bad')).toBeNull()
     expect(parseShadows('0px 4px 12px rgba(0,0,0,0.45), 2px 2px 0px #fff')).toEqual([
       { x: 0, y: 4, blur: 12, color: 'rgba(0,0,0,0.45)' },
       { x: 2, y: 2, blur: 0, color: '#fff' },
@@ -49,6 +50,8 @@ describe('style', () => {
     expect(parsePaint('linear-gradient(nope)')).toBeUndefined()
     expect(parseCorners('8px 24px 0px 16px')).toEqual({ tl: 8, tr: 24, br: 0, bl: 16 })
     expect(parseCorners('12px')).toEqual({ tl: 12, tr: 12, br: 12, bl: 12 })
+    expect(parseCorners('8px 16px')).toEqual({ tl: 8, tr: 16, br: 8, bl: 16 })
+    expect(parseCorners('1px 2px 3px')).toEqual({ tl: 1, tr: 2, br: 3, bl: 2 })
     expect(parseObjectFit('cover')).toBe('cover')
     expect(parseOverflow('hidden')).toBe('hidden')
     expect(parseZIndex('-2')).toBe(-2)

@@ -63,4 +63,47 @@ describe('layoutText', () => {
     const r = layoutText({ segments, maxWidth: 1000, lineHeightRatio: 1.2, fontSize: 40 })
     expect(r.minWidth).toBeGreaterThan(0)
   })
+
+  it('行内 text-stroke 和 text-shadow 解析进样式', () => {
+    const node = parseFvg(
+      '<p style="text-stroke:2px #000; text-shadow:1px 2px 3px rgba(0,0,0,0.5)">外 <span style="text-stroke:4px #111; text-shadow:0px 0px 0px #fff">内</span></p>',
+    )[0]!
+    const invalid: string[] = []
+    const segs = extractTextSegments(
+      node,
+      {
+        fontFamily: 'ChillDuanSans',
+        fontSize: 40,
+        fontWeight: 400,
+        color: '#000',
+        letterSpacing: 0,
+        lineHeightRatio: 1.2,
+      },
+      (label) => invalid.push(label),
+    )
+    expect(invalid).toEqual([])
+    expect(segs[0]?.style.textStroke).toEqual({ width: 2, color: '#000' })
+    expect(segs[0]?.style.textShadow?.[0]).toMatchObject({ x: 1, y: 2, blur: 3 })
+    const inner = segs.find((seg) => seg.text === '内')
+    expect(inner?.style.textStroke).toEqual({ width: 4, color: '#111' })
+    expect(inner?.style.textShadow?.[0]?.color).toBe('#fff')
+  })
+
+  it('无法解析的 text-stroke 走 onInvalid', () => {
+    const node = parseFvg('<p style="text-stroke:nope">A</p>')[0]!
+    const invalid: string[] = []
+    extractTextSegments(
+      node,
+      {
+        fontFamily: 'ChillDuanSans',
+        fontSize: 40,
+        fontWeight: 400,
+        color: '#000',
+        letterSpacing: 0,
+        lineHeightRatio: 1.2,
+      },
+      (label) => invalid.push(label),
+    )
+    expect(invalid).toContain('text-stroke')
+  })
 })
