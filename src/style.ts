@@ -1,3 +1,5 @@
+import { CENTER_ORIGIN, type TransformOrigin } from './types.js'
+
 export type StyleMap = Record<string, string>
 
 export function parseStyle(text: string | undefined): StyleMap {
@@ -69,6 +71,85 @@ function splitCssTokens(value: string): string[] {
   }
   if (cur) tokens.push(cur)
   return tokens
+}
+
+const ORIGIN_KEYWORDS: Record<string, TransformOrigin> = {
+  center: CENTER_ORIGIN,
+  top: { x: 'center', y: 'top' },
+  bottom: { x: 'center', y: 'bottom' },
+  left: { x: 'left', y: 'center' },
+  right: { x: 'right', y: 'center' },
+  'top-left': { x: 'left', y: 'top' },
+  'left-top': { x: 'left', y: 'top' },
+  'top-right': { x: 'right', y: 'top' },
+  'right-top': { x: 'right', y: 'top' },
+  'bottom-left': { x: 'left', y: 'bottom' },
+  'left-bottom': { x: 'left', y: 'bottom' },
+  'bottom-right': { x: 'right', y: 'bottom' },
+  'right-bottom': { x: 'right', y: 'bottom' },
+}
+
+type AxisTok = { h?: 'left' | 'center' | 'right'; v?: 'top' | 'center' | 'bottom' }
+
+function classifyOriginKeyword(token: string): AxisTok | undefined {
+  if (token === 'center') return { h: 'center', v: 'center' }
+  if (token === 'left' || token === 'right') return { h: token }
+  if (token === 'top' || token === 'bottom') return { v: token }
+  return undefined
+}
+
+/**
+ * `transform-origin`：九宫格关键字，或两个像素（相对盒子左上角，先横后纵）。
+ * 不接受百分比、em、rem 以及其它单位；关键字和像素不能混写。
+ * 无法解析时返回 undefined。
+ */
+export function parseTransformOrigin(raw: string): TransformOrigin | undefined {
+  const text = raw.trim().toLowerCase()
+  if (!text) return undefined
+  const direct = ORIGIN_KEYWORDS[text]
+  if (direct) return direct
+
+  const parts = text.split(/\s+/)
+  if (parts.length !== 2) return undefined
+  const [a, b] = parts as [string, string]
+  const px = parsePx(a)
+  const py = parsePx(b)
+  if (px !== undefined || py !== undefined) {
+    if (px === undefined || py === undefined) return undefined
+    return { x: px, y: py }
+  }
+
+  const ca = classifyOriginKeyword(a)
+  const cb = classifyOriginKeyword(b)
+  if (!ca || !cb) return undefined
+
+  let x: TransformOrigin['x'] | undefined
+  let y: TransformOrigin['y'] | undefined
+  for (const tok of [ca, cb]) {
+    if (tok.h && !tok.v) {
+      if (x !== undefined && x !== tok.h) return undefined
+      x = tok.h
+    }
+    if (tok.v && !tok.h) {
+      if (y !== undefined && y !== tok.v) return undefined
+      y = tok.v
+    }
+  }
+  for (const tok of [ca, cb]) {
+    if (tok.h && tok.v) {
+      if (x === undefined) x = 'center'
+      if (y === undefined) y = 'center'
+    }
+  }
+  if (x === undefined || y === undefined || typeof x === 'number' || typeof y === 'number') return undefined
+  return { x, y }
+}
+
+/** 把原点解析成相对布局盒子左上角的像素。 */
+export function resolveOrigin(origin: TransformOrigin, width: number, height: number): { x: number; y: number } {
+  const x = typeof origin.x === 'number' ? origin.x : origin.x === 'left' ? 0 : origin.x === 'right' ? width : width / 2
+  const y = typeof origin.y === 'number' ? origin.y : origin.y === 'top' ? 0 : origin.y === 'bottom' ? height : height / 2
+  return { x, y }
 }
 
 export function parseFontWeight(value: string | undefined): number | undefined {

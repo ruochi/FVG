@@ -56,10 +56,22 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `cx`、`cy` | 在 `Layer` 里的定位点，默认是元素中心（见 `anchor`）；在 `Row`/`Column` 里无效 |
 | `anchor` | 定位点在元素上的哪个位置，九宫格：`center`（默认）、`top`、`bottom`、`left`、`right`、`top-left`、`top-right`、`bottom-left`、`bottom-right` |
 | `opacity` | 0 到 1 |
-| `rotate` | 绕元素中心旋转，单位度，顺时针为正 |
-| `scale` | 绕元素中心缩放 |
+| `rotate` | 绕 `transform-origin` 旋转，单位度，顺时针为正 |
+| `scale` | 绕同一个原点缩放 |
+| `transform-origin` | 旋转和缩放的原点，默认 `center` |
 
-`rotate`、`scale` 只影响绘制，不影响布局；报告里的盒子是变换前的。
+`transform-origin` 可以写在标签上，也可以写在 `style` 里。两处都写时，用 `style` 里的值。
+
+原点有两种写法，都相对元素自己的布局盒子（含 padding 和 border）：
+
+- 九宫格关键字，和 `anchor` 同一套：`center`、`top`、`bottom`、`left`、`right`、`top-left`。也接受 CSS 的空格写法，`top left` 和 `left top` 相同。只写一个方向时，另一轴是 `center`，所以 `bottom` 是底边中点。
+- 两个像素，相对盒子左上角，先横后纵：`40 120` 或 `40px 120px`。
+
+不接受百分比、`em`、`rem` 以及其它单位。关键字和像素不能写在同一个值里（`left 10px` 无效）。无法解析时退回 `center`，并记 `invalid-attr`。
+
+`transform-origin` 和 `anchor` 是两件事。`anchor` 决定未旋转时哪一点落在 `(cx, cy)`；原点决定绘制时绕哪一点转。指针要钉住并旋转时，把两者写成同一个点，例如 `anchor="bottom" transform-origin="bottom"`。
+
+`rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的；`ink` 是变换后的着墨范围。文字、形状、线条、`Layer`、`Row`、`Column` 用同一套原点。一组元素绕同一个点转，旋转外面的 `Layer`。
 
 没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
 
@@ -187,8 +199,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 }
 ```
 
-- `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。
-- `ink`：实际着墨范围。文字是字形的真实边界，形状包含描边宽度。
+- `box`：布局盒子（含 padding 和 border），坐标相对画布左上角，不含 `rotate` / `scale`。
+- `ink`：实际着墨范围，已按 `transform-origin` 做旋转和缩放。文字是字形的真实边界，形状包含描边宽度。
 
 检查项：
 
