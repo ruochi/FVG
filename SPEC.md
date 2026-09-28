@@ -206,7 +206,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 - 线条只能放在 layer 里，坐标是 **layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。
 - `style` 里写 `stroke`（默认全局 `color`）、`stroke-width`（默认 4；注意和 SVG 不同，SVG 默认不描边，线条会看不见）、`stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
 - `polygon`、`path` 可以写 `fill`，默认 `none`。
-- `arrow` 可以写 `head`：箭头长度，默认 `stroke-width` 的 4 倍，最小 12。
+- `arrow` 可以写 `head`：箭头长度，默认 `stroke-width` 的 4 倍，最小 12。生成层有同名组件 `Arrow`（见 [generate/COMPONENTS.md](generate/COMPONENTS.md)），展开成 `line` 和 `polygon`，不使用这个标签。
 - `curve` 给几个点，画一条穿过这些点的光滑曲线（Catmull-Rom，绘制时转成贝塞尔）。不用自己算控制点。
 
 ```html

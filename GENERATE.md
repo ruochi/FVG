@@ -1,6 +1,6 @@
 # 用 Vue 或 React 生成 FVG
 
-FVG 的**生成**和**画图**是两层：
+FVG 的**生成**和**画图**是两层。可复用块的写法见 [COMPONENTS.md](COMPONENTS.md)。
 
 ```text
 Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
@@ -15,7 +15,7 @@ Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
 | `cx`、`cy`、`anchor`、`x1`、`y1`、`x2`、`y2`、`points`、`d`、`id` | 标签**属性** |
 | `fill`、`r`、`width`、`gap`、`font-size`、`shadow`、`glow` 等 | **`style`** |
 | 容器 / 形状 / 线条 / 文字 | 标签**全小写**：`fvg`、`layer`、`column`、`circle`、`h1` … |
-| 可复用块 | **PascalCase 组件名**（Vue `components` / React 函数组件），展开后只剩 FVG 标签 |
+| 可复用块 | **PascalCase 组件名**（见 [COMPONENTS.md](COMPONENTS.md)），展开后只剩 FVG 标签 |
 
 根节点必须是 **`<fvg>`**，并在 `style` 里写画布 `width`、`height`（及 `background` 等）。
 
