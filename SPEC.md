@@ -39,6 +39,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 ## 2. 元素一览
 
+各类标签能写的属性和 `style` 见 [ELEMENTS.md](ELEMENTS.md)。
+
 | 类别 | 标签 |
 | --- | --- |
 | 容器 | `layer`、`row`、`column` |

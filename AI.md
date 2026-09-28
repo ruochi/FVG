@@ -160,6 +160,7 @@ flowchart TD
 | 文档 | 内容 |
 | --- | --- |
 | [SPEC.md](SPEC.md) | 标签、属性、布局、报告字段、CLI |
+| [ELEMENTS.md](ELEMENTS.md) | 按类别列出每个元素的属性和 style |
 | [GENERATE.md](GENERATE.md) | Vue / React 生成 FVG 的依赖与模板 |
 | [README.md](README.md) | 安装、常用命令、API 入口 |
 | **本文 AI.md** | 生成 + 验证 + AI 协作闭环 |
