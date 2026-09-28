@@ -36,7 +36,7 @@ describe('serialize + 生成器', () => {
     expect(source).toContain('19:30')
     expect(source).not.toMatch(/ScheduleBlock|PerkTag/)
     const doc = await layoutSource(source, process.cwd())
-    expect(doc.root.children.filter((n) => n.tag === 'circle').length).toBe(7)
+    expect(doc.root.children.filter((n) => n.tag === 'circle').length).toBe(9)
   })
 
   it('React 示例：与 Vue 等价的结构与布局', async () => {
