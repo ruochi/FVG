@@ -13,6 +13,7 @@ describe('parseFvg', () => {
     const nodes = parseFvg('<p>a<br/>b<!-- x --></p>')
     const p = nodes[0]!
     expect(p.children.some((c) => typeof c !== 'string' && c.tag === 'br')).toBe(true)
+    expect(p.line).toBe(1)
   })
 
   it('decodeEntities', () => {

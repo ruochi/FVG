@@ -2,6 +2,8 @@ export type FvgNode = {
   tag: string
   attrs: Record<string, string>
   children: FvgChild[]
+  /** 开标签在源码中的行号（1-based） */
+  line?: number
 }
 
 export type FvgChild = string | FvgNode
@@ -48,9 +50,24 @@ function parseAttrs(text: string): Record<string, string> {
   return attrs
 }
 
+/** 去掉注释和 XML 声明，但保留换行，避免行号错位 */
+function stripCommentsPreserveLines(source: string): string {
+  let out = source.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ' '))
+  out = out.replace(/<\?xml[\s\S]*?\?>/g, (m) => m.replace(/[^\n]/g, ' '))
+  return out
+}
+
+function lineAt(source: string, index: number): number {
+  let line = 1
+  for (let i = 0; i < index && i < source.length; i++) {
+    if (source[i] === '\n') line++
+  }
+  return line
+}
+
 /** 解析 FVG 标记。标签名保留大小写（`Row` 与 `row` 不同）。 */
 export function parseFvg(source: string): FvgNode[] {
-  const src = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[\s\S]*?\?>/g, '')
+  const src = stripCommentsPreserveLines(source)
   const root: FvgNode = { tag: '#root', attrs: {}, children: [] }
   const stack: FvgNode[] = [root]
   let pos = 0
@@ -84,7 +101,12 @@ export function parseFvg(source: string): FvgNode[] {
       pos = lt + 1
       continue
     }
-    const node: FvgNode = { tag: open[1], attrs: parseAttrs(open[2] ?? ''), children: [] }
+    const node: FvgNode = {
+      tag: open[1],
+      attrs: parseAttrs(open[2] ?? ''),
+      children: [],
+      line: lineAt(src, lt),
+    }
     stack[stack.length - 1].children.push(node)
     if (!open[3] && !VOID_TAGS.has(open[1])) stack.push(node)
     pos = lt + open[0].length

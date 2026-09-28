@@ -71,6 +71,57 @@ function splitCssTokens(value: string): string[] {
   return tokens
 }
 
+export type ShadowValue = { x: number; y: number; blur: number; spread: number; color?: string }
+export type GlowValue = { blur: number; spread: number; color?: string }
+
+function splitLengthsAndColor(value: string): { lengths: number[]; color?: string } | undefined {
+  const lengths: number[] = []
+  let color: string | undefined
+  for (const token of splitCssTokens(value)) {
+    const px = parsePx(token)
+    if (px !== undefined) {
+      if (color !== undefined) return undefined
+      lengths.push(px)
+    } else if (color === undefined) color = token
+    else return undefined
+  }
+  return { lengths, color }
+}
+
+/** `x y [blur] [spread] [color]`，同 CSS box-shadow；无法解析返回 undefined */
+export function parseShadow(value: string | undefined): ShadowValue | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const parts = splitLengthsAndColor(value)
+  if (!parts || parts.lengths.length < 2 || parts.lengths.length > 4) return undefined
+  const [x, y, blur = 0, spread = 0] = parts.lengths as [number, number, number?, number?]
+  if (blur < 0) return undefined
+  return { x, y, blur, spread, color: parts.color }
+}
+
+/** `blur [spread] [color]`；无法解析返回 undefined */
+export function parseGlow(value: string | undefined): GlowValue | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const parts = splitLengthsAndColor(value)
+  if (!parts || parts.lengths.length < 1 || parts.lengths.length > 2) return undefined
+  const [blur, spread = 0] = parts.lengths as [number, number?]
+  if (blur < 0) return undefined
+  return { blur, spread, color: parts.color }
+}
+
+export function parseDashArray(value: string | undefined): number[] | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const parts = value.trim().split(/[\s,]+/).map(parsePx)
+  if (parts.length === 0 || parts.some((p) => p === undefined || p < 0)) return undefined
+  return parts as number[]
+}
+
+/** 角度：数字或 `15deg` */
+export function parseAngle(value: string | undefined): number | undefined {
+  if (value == null) return undefined
+  const m = /^\s*(-?\d*\.?\d+)\s*(deg)?\s*$/i.exec(value)
+  return m ? Number.parseFloat(m[1]) : undefined
+}
+
 export function parseFontWeight(value: string | undefined): number | undefined {
   if (!value) return undefined
   const v = value.trim().toLowerCase()

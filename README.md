@@ -21,6 +21,15 @@ npm run build
 npx tsx src/cli.ts render examples/hello.fvg -o hello.png --report hello.json
 npx tsx src/cli.ts render examples/hello.fvg --debug --scale 0.5
 npx tsx src/cli.ts check examples/hello.fvg
+npx tsx src/cli.ts debug examples/hello.fvg --scale 0.5
+npx tsx src/cli.ts render examples/poster-solstice.fvg -o poster.png   # 带阴影和光晕的海报
+npx tsx src/cli.ts debug examples/poster-solstice.fvg --focus moon
+```
+
+写法：要落在 Layer 坐标上的（`cx`、`cy`、`anchor`、`x1`、`y1`、`points`、`d`）写成标签属性，其余都写进 `style`：
+
+```html
+<Circle cx="540" cy="1300" style="r:180px; fill:none; stroke:#f7931a; stroke-width:12px; glow:36px" />
 ```
 
 构建之后也可以：
@@ -34,9 +43,10 @@ node dist/cli.js render examples/hello.fvg -o hello.png
 ## 代码调用
 
 ```ts
-import { renderFvg } from '@dc/fvg'
+import { renderFvg, debugFvg } from '@dc/fvg'
 
 const { png, report } = await renderFvg(source, { scale: 0.5 })
+const debug = await debugFvg(source, { scale: 0.5, focus: ['title'] })
 ```
 
 ## 测试
