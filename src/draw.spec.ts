@@ -118,6 +118,21 @@ describe('draw(ctx, el)', () => {
     expect(r + g + b).toBeGreaterThan(400)
   })
 
+  it('Column 里的矩形画在列的位置上', async () => {
+    const { png } = await renderFvg(
+      `<fvg width="200" height="200" background="#000000"><Column cx="100" cy="100"><Rect width="20" height="20" fill="#ff0000" /></Column></fvg>`,
+      { scale: 1 },
+    )
+    const [r, g, b] = await pixelAt(png, 100, 100)
+    expect(r).toBeGreaterThan(200)
+    expect(g).toBeLessThan(30)
+    expect(b).toBeLessThan(30)
+    const [cr, cg, cb] = await pixelAt(png, 2, 2)
+    expect(cr).toBeLessThan(30)
+    expect(cg).toBeLessThan(30)
+    expect(cb).toBeLessThan(30)
+  })
+
   it('hello.fvg 无 draw 时结果不变', async () => {
     const source = await readFile(helloPath, 'utf8')
     const { report } = await renderFvg(source, {
