@@ -1,7 +1,10 @@
+import type { DrawFn } from './types.js'
+
 export type FvgNode = {
   tag: string
   attrs: Record<string, string>
   children: FvgChild[]
+  draw?: DrawFn
 }
 
 export type FvgChild = string | FvgNode

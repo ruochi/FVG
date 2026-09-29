@@ -31,6 +31,8 @@ import { FONT_TAG, isFlexTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js
 import type {
   Anchor,
   Box,
+  CustomLayoutNode,
+  DrawComputedStyle,
   FlexLayoutNode,
   FvgDocument,
   Issue,
@@ -119,6 +121,69 @@ function readAppearance(attrs: Record<string, string>, style: Record<string, str
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
   }
+}
+
+function directTextContent(node: FvgNode): string {
+  const parts: string[] = []
+  for (const c of node.children) {
+    if (typeof c === 'string') {
+      const t = c.replace(/\s+/g, ' ').trim()
+      if (t) parts.push(t)
+    }
+  }
+  return parts.join(' ')
+}
+
+function computeDrawStyle(node: FvgNode, ctx: LayoutContext, style: Record<string, string>): DrawComputedStyle {
+  const tag = node.tag.toLowerCase()
+  const fontSize =
+    parsePx(style['font-size']) ?? (isTextBoxTag(node.tag) ? defaultFontSizeForTag(tag) : 40)
+  const fontWeight =
+    parseFontWeight(style['font-weight']) ?? (isTextBoxTag(node.tag) ? defaultFontWeightForTag(tag) : 400)
+  const fontFamily = style['font-family']?.trim() || ctx.fontFamily
+  const color = style.color ?? ctx.color
+  const opacity = parseNumber(node.attrs.opacity) ?? 1
+  return { color, fontFamily, fontSize, fontWeight, opacity }
+}
+
+function layoutDrawMeta(node: FvgNode, ctx: LayoutContext) {
+  const style = parseStyle(node.attrs.style)
+  return {
+    draw: node.draw,
+    attr: { ...node.attrs },
+    style,
+    computed: computeDrawStyle(node, ctx, style),
+    text: directTextContent(node),
+  }
+}
+
+function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode | null {
+  if (!node.draw) return null
+  const style = parseStyle(node.attrs.style)
+  const w = parsePx(style.width) ?? parseNumber(node.attrs.width)
+  const h = parsePx(style.height) ?? parseNumber(node.attrs.height)
+  if (w == null || h == null) return null
+  const appearance = readAppearance(node.attrs, style, ctx)
+  return {
+    kind: 'custom',
+    path: ctx.pathPrefix,
+    id: node.attrs.id,
+    tag: node.tag,
+    x: 0,
+    y: 0,
+    width: w,
+    height: h,
+    ink: { x: 0, y: 0, width: w, height: h },
+    ...appearance,
+    ...layoutDrawMeta(node, ctx),
+  }
+}
+
+function layoutUnknownOrCustom(node: FvgNode, ctx: LayoutContext): LayoutNode | null {
+  const custom = layoutCustomDraw(node, ctx)
+  if (custom) return custom
+  ctx.issues.push({ level: 'warn', code: 'unknown-tag', path: ctx.pathPrefix, message: `未知标签 ${node.tag}` })
+  return null
 }
 
 function outerFromContent(
@@ -288,6 +353,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     ...appearance,
     textLayout,
     textAlign,
+    ...layoutDrawMeta(node, ctx),
   }
 }
 
@@ -331,6 +397,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     r: parseNumber(node.attrs.r),
     rxEllipse: parseNumber(node.attrs.rx),
     ry: parseNumber(node.attrs.ry),
+    ...layoutDrawMeta(node, ctx),
   }
 }
 
@@ -381,6 +448,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     stroke,
     strokeWidth,
     fill,
+    ...layoutDrawMeta(node, ctx),
   }
 }
 
@@ -439,6 +507,17 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       minCross: direction === 'row' ? nested.height : nested.width,
       preferredMain: direction === 'row' ? nested.width : nested.height,
       preferredCross: direction === 'row' ? nested.height : nested.width,
+      isText: false,
+    }
+  }
+  const custom = layoutCustomDraw(node, ctx)
+  if (custom) {
+    return {
+      node: custom,
+      minMain: direction === 'row' ? custom.width : custom.height,
+      minCross: direction === 'row' ? custom.height : custom.width,
+      preferredMain: direction === 'row' ? custom.width : custom.height,
+      preferredCross: direction === 'row' ? custom.height : custom.width,
       isText: false,
     }
   }
@@ -577,6 +656,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ...appearance,
     direction,
     children: laidChildren,
+    ...layoutDrawMeta(node, ctx),
   }
 }
 
@@ -600,8 +680,8 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
-      ctx.issues.push({ level: 'warn', code: 'unknown-tag', path, message: `未知标签 ${ch.tag}` })
-      continue
+      laid = layoutUnknownOrCustom(ch, subCtx)
+      if (!laid) continue
     }
     const cx = parseNumber(ch.attrs.cx)
     const cy = parseNumber(ch.attrs.cy)
@@ -676,11 +756,12 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ink,
     ...appearance,
     children,
+    ...layoutDrawMeta(node, ctx),
   }
 }
 
-export async function layoutSource(source: string, baseDir: string): Promise<FvgDocument> {
-  const nodes = parseFvg(source)
+export async function layoutSource(source: string | FvgNode, baseDir: string): Promise<FvgDocument> {
+  const nodes = typeof source === 'string' ? parseFvg(source) : [source]
   const fontNodes: Array<{ family: string; src: string }> = []
   let rootNode: FvgNode | null = null
   for (const n of nodes) {

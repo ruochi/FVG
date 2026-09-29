@@ -1,3 +1,28 @@
+import type { CanvasRenderingContext2D } from '@napi-rs/canvas'
+
+export type StyleMap = Record<string, string>
+
+export type DrawComputedStyle = {
+  color: string
+  fontFamily: string
+  fontSize: number
+  fontWeight: number
+  opacity: number
+}
+
+export type DrawElSnapshot = {
+  tag: string
+  id?: string
+  text: string
+  attr: Record<string, string>
+  style: StyleMap
+  computed: DrawComputedStyle
+  w: number
+  h: number
+}
+
+export type DrawFn = (ctx: CanvasRenderingContext2D, el: DrawElSnapshot) => void
+
 export type Box = {
   x: number
   y: number
@@ -141,6 +166,11 @@ export type LayoutNodeBase = {
   border?: { width: number; color: string }
   borderRadius?: number
   padding: { top: number; right: number; bottom: number; left: number }
+  draw?: DrawFn
+  attr: Record<string, string>
+  style: StyleMap
+  computed: DrawComputedStyle
+  text: string
 }
 
 export type LayerLayoutNode = LayoutNodeBase & {
@@ -183,12 +213,17 @@ export type LineLayoutNode = LayoutNodeBase & {
   dash?: number[]
 }
 
+export type CustomLayoutNode = LayoutNodeBase & {
+  kind: 'custom'
+}
+
 export type LayoutNode =
   | LayerLayoutNode
   | FlexLayoutNode
   | TextLayoutNode
   | ShapeLayoutNode
   | LineLayoutNode
+  | CustomLayoutNode
 
 export type FvgDocument = {
   width: number

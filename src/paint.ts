@@ -8,6 +8,7 @@ import type {
   ShapeLayoutNode,
   TextLayoutNode,
 } from './types.js'
+import type { DrawElSnapshot } from './types.js'
 
 export type PaintOptions = {
   width: number
@@ -204,6 +205,33 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.restore()
 }
 
+function buildDrawEl(node: LayoutNode): DrawElSnapshot {
+  return {
+    tag: node.tag,
+    id: node.id,
+    text: node.text,
+    attr: node.attr,
+    style: node.style,
+    computed: node.computed,
+    w: node.width,
+    h: node.height,
+  }
+}
+
+function runElementDraw(ctx: CanvasRenderingContext2D, node: LayoutNode) {
+  if (!node.draw) return
+  ctx.save()
+  ctx.translate(node.x, node.y)
+  const cx = node.width / 2
+  const cy = node.height / 2
+  ctx.translate(cx, cy)
+  ctx.rotate((node.rotate * Math.PI) / 180)
+  ctx.scale(node.scale, node.scale)
+  ctx.translate(-cx, -cy)
+  node.draw(ctx, buildDrawEl(node))
+  ctx.restore()
+}
+
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
   ctx.save()
   ctx.globalAlpha *= node.opacity
@@ -214,10 +242,13 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     drawShape(ctx, node)
   } else if (node.kind === 'line') {
     drawLine(ctx, node)
+  } else if (node.kind === 'custom') {
+    drawBoxChrome(ctx, node)
   } else if (node.kind === 'flex' || node.kind === 'layer') {
     drawBoxChrome(ctx, node)
     for (const ch of node.children) paintNode(ctx, ch, debug)
   }
+  runElementDraw(ctx, node)
   if (debug) drawDebugOverlay(ctx, node)
   ctx.restore()
 }

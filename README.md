@@ -39,6 +39,31 @@ import { renderFvg } from '@dc/fvg'
 const { png, report } = await renderFvg(source, { scale: 0.5 })
 ```
 
+用 `h()` 或 JSX 构建节点时，可给任意元素挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
+
+```ts
+import { h, renderFvg } from '@dc/fvg'
+
+const root = h(
+  'fvg',
+  { width: '400', height: '300', background: '#fff' },
+  h(
+    'h1',
+    {
+      cx: '200',
+      cy: '150',
+      draw: (ctx, el) => {
+        ctx.strokeStyle = el.computed.color
+        ctx.strokeRect(0, 0, el.w, el.h)
+      },
+    },
+    '标题',
+  ),
+)
+
+await renderFvg(root)
+```
+
 ## 测试
 
 ```bash

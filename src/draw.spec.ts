@@ -1,0 +1,130 @@
+import { beforeAll, describe, expect, it } from 'vitest'
+import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { h } from './h.js'
+import { initFontsForMeasure } from './fonts.js'
+import { layoutSource } from './layout.js'
+import { renderFvg } from './render.js'
+
+const pkgDir = join(fileURLToPath(import.meta.url), '..', '..')
+const helloPath = join(pkgDir, 'examples', 'hello.fvg')
+
+beforeAll(async () => {
+  for (const dir of [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']) {
+    if (await initFontsForMeasure({ fontsCacheDir: dir })) break
+  }
+})
+
+async function pixelAt(png: Buffer, x: number, y: number): Promise<[number, number, number, number]> {
+  const img = await loadImage(png)
+  const c = createCanvas(img.width, img.height)
+  const ctx = c.getContext('2d')
+  ctx.drawImage(img, 0, 0)
+  const d = ctx.getImageData(x, y, 1, 1).data
+  return [d[0]!, d[1]!, d[2]!, d[3]!]
+}
+
+describe('draw(ctx, el)', () => {
+  it('h1 draw 收到 attr、style、computed 并在底边着色', async () => {
+    let seen: Record<string, unknown> | null = null
+
+    const root = h(
+      'fvg',
+      { width: '400', height: '300', background: '#ffffff', color: '#111111' },
+      h(
+        'h1',
+        {
+          cx: '200',
+          cy: '150',
+          anchor: 'center',
+          style: 'font-size:48px; color:#ff0000',
+          draw: (ctx, el) => {
+            seen = {
+              cx: el.attr.cx,
+              color: el.computed.color,
+              fontSize: el.computed.fontSize,
+              w: el.w,
+              h: el.h,
+            }
+            ctx.strokeStyle = '#00ff00'
+            ctx.lineWidth = 4
+            ctx.beginPath()
+            ctx.moveTo(0, el.h - 2)
+            ctx.lineTo(el.w, el.h - 2)
+            ctx.stroke()
+          },
+        },
+        'Hi',
+      ),
+    )
+
+    const { png } = await renderFvg(root, { scale: 1 })
+    expect(seen).toMatchObject({
+      cx: '200',
+      color: '#ff0000',
+      fontSize: 48,
+    })
+    expect((seen as { w: number }).w).toBeGreaterThan(0)
+    expect((seen as { h: number }).h).toBeGreaterThan(0)
+
+    const doc = await layoutSource(root, process.cwd())
+    const node = doc.root.children[0]!
+    const px = Math.round(node.x + node.width / 2)
+    const py = Math.round(node.y + node.height - 2)
+    const [r, g, b, a] = await pixelAt(png, px, py)
+    expect(a).toBeGreaterThan(200)
+    expect(g).toBeGreaterThan(200)
+    expect(r).toBeLessThan(50)
+    expect(b).toBeLessThan(50)
+  })
+
+  it('未知标签带 draw 与尺寸时参与布局', async () => {
+    let drawCalled = false
+    const root = h(
+      'fvg',
+      { width: '200', height: '200', background: '#000000' },
+      h(
+        'Ring',
+        {
+          cx: '100',
+          cy: '100',
+          style: 'width:80px; height:80px',
+          draw: (ctx, el) => {
+            drawCalled = true
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, el.w, el.h)
+          },
+        },
+      ),
+    )
+
+    const doc = await layoutSource(root, process.cwd())
+    const laid = doc.root.children[0]!
+    expect(laid.kind).toBe('custom')
+    expect(laid.width).toBe(80)
+    expect(typeof laid.draw).toBe('function')
+
+    const { png, report } = await renderFvg(root)
+    expect(drawCalled).toBe(true)
+    expect(report.issues.some((i) => i.code === 'unknown-tag')).toBe(false)
+    const ring = report.elements.find((e) => e.tag === 'Ring')
+    expect(ring).toBeTruthy()
+    const cx = Math.round((ring!.box.left + ring!.box.right) / 2)
+    const cy = Math.round((ring!.box.top + ring!.box.bottom) / 2)
+    const [r, g, b] = await pixelAt(png, cx, cy)
+    expect(r + g + b).toBeGreaterThan(400)
+  })
+
+  it('hello.fvg 无 draw 时结果不变', async () => {
+    const source = await readFile(helloPath, 'utf8')
+    const { report } = await renderFvg(source, {
+      baseDir: join(pkgDir, 'examples'),
+    })
+    expect(report.width).toBe(1080)
+    expect(report.height).toBe(1920)
+    expect(report.elements.length).toBeGreaterThan(0)
+  })
+})

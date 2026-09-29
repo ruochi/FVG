@@ -16,6 +16,10 @@ function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
     rotate: 0,
     scale: 1,
     padding: { top: 0, right: 0, bottom: 0, left: 0 },
+    attr: {},
+    style: {},
+    computed: { color: '#111', fontFamily: 'ChillDuanSans', fontSize: 88, fontWeight: 700, opacity: 1 },
+    text: 'A',
     textAlign: 'left',
     textLayout: {
       lines: [],
@@ -41,6 +45,10 @@ function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
     rotate: 0,
     scale: 1,
     padding: { top: 0, right: 0, bottom: 0, left: 0 },
+    attr: {},
+    style: {},
+    computed: { color: '#111', fontFamily: 'ChillDuanSans', fontSize: 40, fontWeight: 400, opacity: 1 },
+    text: '',
     children: [text],
   }
   return {

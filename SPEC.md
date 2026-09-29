@@ -215,9 +215,50 @@ fvg check scene.fvg                                      # 只输出检查结果
 
 默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/fvg/fonts`。
 
-## 10. 预留（后续版本）
+## 10. 自定义绘制 draw
 
-- `draw` 钩子：任何元素都可以挂 JS 函数自定义绘制（`ctx`、`w`、`h`、测量工具）。
+程序调用（React / Vue JSX 或 `h()`）时，任意元素可挂 `draw={(ctx, el) => { ... }}`。纯 `.fvg` 文本和 CLI 无法携带函数，行为与 v0.1 相同。
+
+绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`；渲染器会先平移到该盒子，再绕中心应用元素的 `rotate`、`scale`（与形状一致）。`opacity` 由外层统一乘到 `globalAlpha`。
+
+`el` 字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `tag`、`id` | 标签名与 `id` |
+| `text` | 该节点直接文本子节点（不含行内标签内的字） |
+| `attr` | 标签原始属性（含 `cx`、`cy`、`anchor`、`style` 字符串等） |
+| `style` | 本标签 `style` 解析后的键值 |
+| `computed` | `color`、`fontFamily`、`fontSize`、`fontWeight`、`opacity`（继承根上的 `color` / `font-family` 与文字默认字号） |
+| `w`、`h` | 布局外框宽高 |
+
+未知标签若同时带有 `draw` 以及 `width` 与 `height`（属性或 `style`），会当作自定义盒子参与布局，不再报 `unknown-tag`；缺少尺寸时仍警告并跳过。
+
+```ts
+import { h, renderFvg } from '@dc/fvg'
+
+const root = h('fvg', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
+  h('h1', {
+    cx: '540', cy: '700', anchor: 'center',
+    style: 'font-size:96px; color:#f7931a',
+    draw: (ctx, el) => {
+      ctx.strokeStyle = el.computed.color
+      ctx.lineWidth = 8
+      ctx.beginPath()
+      ctx.moveTo(0, el.h - 6)
+      ctx.lineTo(el.w, el.h - 6)
+      ctx.stroke()
+    },
+  }, '比特币减半'),
+)
+
+await renderFvg(root)
+```
+
+JSX 可将 `jsxImportSource` 设为 `@dc/fvg`，使用 `@dc/fvg/jsx-runtime`。
+
+## 11. 预留（后续版本）
+
 - `frame(t)`：每个时刻生成一份 FVG，导出视频和联系表。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、渐变、阴影、`Image`。
