@@ -257,9 +257,45 @@ await renderFvg(root)
 
 JSX 可将 `jsxImportSource` 设为 `@dc/fvg`，使用 `@dc/fvg/jsx-runtime`。
 
-## 11. 预留（后续版本）
+## 11. 帧序列
 
-- `frame(t)`：每个时刻生成一份 FVG，导出视频和联系表。
+动画由程序按时间生成一棵 FVG 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFvg` 不传 `t` 时，`el.t` 为 `0`。
+
+```ts
+import { h, renderComposition, type Composition } from '@dc/fvg'
+
+const scene: Composition = {
+  id: 'halving',
+  width: 1080,
+  height: 1920,
+  fps: 30,
+  durationInFrames: 90,
+  component: ({ frame, fps, t }) =>
+    h('fvg', { width: '1080', height: '1920', background: '#0f1115' },
+      h('h1', { cy: String(700 + Math.sin(t) * 40) }, '比特币减半'),
+    ),
+}
+
+const { frames, contactSheet } = await renderComposition(scene)
+```
+
+`renderComposition` 对 `frame = 0 .. durationInFrames - 1` 调用 `component({ frame, fps, t: frame / fps })`，再 `renderFvg(node, { t })`。`fps` 必须大于 0，`durationInFrames` 为不小于 1 的整数。返回每一帧的 PNG，以及一张白色底的联系表：列数约为帧数的平方根，单元格按比例缩小，不放大。
+
+随时间变化的位置、尺寸和文字写在 `component` 里，布局每一帧重新计算。`draw` 里用 `el.t` 读取同一个秒数。
+
+三个纯函数不绘制画面：
+
+| 函数 | 作用 |
+| --- | --- |
+| `interpolate(value, inputRange, outputRange)` | 线性映射，默认超出区间时钳制 |
+| `spring({ frame, fps })` | 阻尼弹簧，从 0 趋近 1。`frame` 为 0 时是 0 |
+| `sequence(input, { from, durationInFrames }, render)` | 当前帧落在区间内时，把减去 `from` 的局部 `frame` 和 `t` 交给 `render`；否则返回 `null` |
+
+同一 `frame` 调用两次，得到同一张 PNG。命令行仍只渲染 `.fvg` 文件。
+
+## 12. 预留（后续版本）
+
+- 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、渐变、阴影、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。

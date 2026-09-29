@@ -21,6 +21,7 @@ export async function renderFvg(source: string | FvgNode, options: RenderOptions
     background: doc.background,
     scale: options.scale ?? 1,
     debug: options.debug ?? false,
+    t: options.t ?? 0,
   })
   const report = buildReport(doc)
   return { png, report }

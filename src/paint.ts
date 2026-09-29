@@ -16,6 +16,7 @@ export type PaintOptions = {
   background: string
   scale: number
   debug: boolean
+  t: number
 }
 
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -205,7 +206,7 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.restore()
 }
 
-function buildDrawEl(node: LayoutNode): DrawElSnapshot {
+function buildDrawEl(node: LayoutNode, t: number): DrawElSnapshot {
   return {
     tag: node.tag,
     id: node.id,
@@ -215,10 +216,11 @@ function buildDrawEl(node: LayoutNode): DrawElSnapshot {
     computed: node.computed,
     w: node.width,
     h: node.height,
+    t,
   }
 }
 
-function runElementDraw(ctx: CanvasRenderingContext2D, node: LayoutNode) {
+function runElementDraw(ctx: CanvasRenderingContext2D, node: LayoutNode, t: number) {
   if (!node.draw) return
   ctx.save()
   ctx.translate(node.x, node.y)
@@ -228,11 +230,11 @@ function runElementDraw(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.rotate((node.rotate * Math.PI) / 180)
   ctx.scale(node.scale, node.scale)
   ctx.translate(-cx, -cy)
-  node.draw(ctx, buildDrawEl(node))
+  node.draw(ctx, buildDrawEl(node, t))
   ctx.restore()
 }
 
-function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean) {
+function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number) {
   ctx.save()
   ctx.globalAlpha *= node.opacity
   if (node.kind === 'text') {
@@ -246,9 +248,9 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     drawBoxChrome(ctx, node)
   } else if (node.kind === 'flex' || node.kind === 'layer') {
     drawBoxChrome(ctx, node)
-    for (const ch of node.children) paintNode(ctx, ch, debug)
+    for (const ch of node.children) paintNode(ctx, ch, debug, t)
   }
-  runElementDraw(ctx, node)
+  runElementDraw(ctx, node, t)
   if (debug) drawDebugOverlay(ctx, node)
   ctx.restore()
 }
@@ -267,7 +269,7 @@ export function paintDocument(
   }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  for (const ch of root.children) paintNode(ctx, ch, opts.debug)
+  for (const ch of root.children) paintNode(ctx, ch, opts.debug, opts.t)
   if (opts.debug) drawDebugOverlay(ctx, root)
   ctx.restore()
   return canvas.toBuffer('image/png')

@@ -19,6 +19,8 @@ export type DrawElSnapshot = {
   computed: DrawComputedStyle
   w: number
   h: number
+  /** 当前帧的时间，单位秒。单帧渲染缺省为 0。 */
+  t: number
 }
 
 export type DrawFn = (ctx: CanvasRenderingContext2D, el: DrawElSnapshot) => void
@@ -241,4 +243,6 @@ export type RenderOptions = {
   debug?: boolean
   baseDir?: string
   fontsCacheDir?: string
+  /** 当前帧的时间，单位秒。缺省为 0。 */
+  t?: number
 }
