@@ -21,6 +21,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "pythagoras": "tsx examples/render-pythagoras.ts",
     "fvg": "tsx src/cli.ts"
   },
   "license": "MIT",
