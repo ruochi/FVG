@@ -1,12 +1,14 @@
 <fvg width="1080" height="800" background="#fafafa" color="#222">
-  <Row cx="540" cy="400" style="gap:20px; padding:24px; max-width:900px">
-    <div style="padding:20px; background:#fff; border-radius:16px; width:260px">
-      <h3 style="color:#f7931a">减半</h3>
-      <p style="font-size:32px">区块奖励减少一半，大约每四年发生一次。</p>
-    </div>
-    <div style="padding:20px; background:#fff; border-radius:16px; width:260px">
-      <h3>供应</h3>
-      <p style="font-size:32px">总量上限 2100 万枚。</p>
-    </div>
-  </Row>
+  <Layer cx="540" cy="400">
+    <Row style="gap:20px; padding:24px; max-width:900px">
+      <Column style="padding:20px; background:#fff; border-radius:16px; width:260px; gap:12px">
+        <h3 style="color:#f7931a">减半</h3>
+        <p style="width:220px; font-size:32px">区块奖励减少一半，大约每四年发生一次。</p>
+      </Column>
+      <Column style="padding:20px; background:#fff; border-radius:16px; width:260px; gap:12px">
+        <h3>供应</h3>
+        <p style="width:220px; font-size:32px">总量上限 2100 万枚。</p>
+      </Column>
+    </Row>
+  </Layer>
 </fvg>

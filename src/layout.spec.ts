@@ -40,12 +40,44 @@ describe('layoutSource', () => {
     )
     const layer = doc.root.children[0]
     expect(layer?.kind).toBe('layer')
-    const [line, polygon] = (layer as { children: Array<{ x: number; y: number }> }).children
-    // 盒子 = 几何范围 + 半个描边 + 4px 余量
-    expect(line?.x).toBe(4)
-    expect(line?.y).toBe(4)
-    expect(polygon?.x).toBe(95)
-    expect(polygon?.y).toBe(95)
+    const [line, polygon] = (layer as { children: Array<{ x: number; y: number; width: number; height: number; ink: { y: number; height: number } }> }).children
+    // 盒子是纯几何范围，描边只进 ink
+    expect(line?.x).toBe(10)
+    expect(line?.y).toBe(10)
+    expect(line?.width).toBe(40)
+    expect(line?.height).toBe(0)
+    expect(line?.ink.y).toBe(-2)
+    expect(line?.ink.height).toBe(4)
+    expect(polygon?.x).toBe(100)
+    expect(polygon?.y).toBe(100)
+  })
+
+  it('Rect 两点写法可以反着写，和尺寸写法同时出现时报错', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="400"><Rect x1="80" y1="60" x2="20" y2="10" fill="#fff" /><Rect x1="0" y1="0" x2="40" y2="20" width="10" height="10" /></fvg>`,
+      process.cwd(),
+    )
+    const [reversed, mixed] = doc.root.children as Array<{ x: number; y: number; width: number; height: number }>
+    expect(reversed).toMatchObject({ x: 20, y: 10, width: 60, height: 50 })
+    expect(mixed).toMatchObject({ x: 0, y: 0, width: 40, height: 20 })
+    expect(doc.issues.some((issue) => issue.code === 'invalid-attr' && issue.hint)).toBe(true)
+  })
+
+  it('Row 直接定位和包一层 Layer 得到同一个盒子', async () => {
+    const direct = await layoutSource(
+      `<fvg width="800" height="400"><Row cx="120" cy="64" anchor="top-left" style="gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></Row></fvg>`,
+      process.cwd(),
+    )
+    const wrapped = await layoutSource(
+      `<fvg width="800" height="400"><Layer cx="120" cy="64" anchor="top-left"><Row style="gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></Row></Layer></fvg>`,
+      process.cwd(),
+    )
+    const row = direct.root.children[0]!
+    const layer = wrapped.root.children[0]!
+    expect(layer.x).toBeCloseTo(row.x, 3)
+    expect(layer.y).toBeCloseTo(row.y, 3)
+    expect(layer.width).toBeCloseTo(row.width, 3)
+    expect(layer.height).toBeCloseTo(row.height, 3)
   })
 
   it('Row 里带内边距的短文字不被小数宽度挤到换行', async () => {

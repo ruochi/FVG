@@ -364,6 +364,18 @@ export type LayoutTextOptions = {
 }
 
 export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
+  if (!opts.segments.some((segment) => segment.text.trim().length > 0)) {
+    return {
+      lines: [],
+      contentWidth: 0,
+      contentHeight: 0,
+      minWidth: 0,
+      ink: { x: 0, y: 0, width: 0, height: 0 },
+      fontSize: opts.fontSize,
+      autoWrap: false,
+      overflowFixed: false,
+    }
+  }
   const unitsRaw = segmentsToUnits(opts.segments)
   const paragraphGroups = bindLineBreakUnits(unitsRaw)
   const allLines: Unit[][] = []

@@ -1,25 +1,28 @@
 # FVG 规范 v0.1（Flex Vector Graphics）
 
-FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。
+FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：结构标签只有 `Layer`、`Row`、`Column`，文字叶子用 HTML 写法，图形叶子用 SVG 写法。
 动画 = 程序为每个时刻生成一份 FVG（v0.2 起）。
 
 设计原则：
 
 1. **一律实际像素**：所有数字都是像素，可以写 `px` 后缀，不支持百分比、em、rem。
-2. **中心点定位**：自由摆放时用 `cx`、`cy` 表示元素中心，所有元素都一样。
+2. **位置由父级决定**：`Layer` 负责定位，`Row`/`Column` 负责排布。叶子怎么定位，看它由什么定义（见第 3 节）。
 3. **y 轴向下**：和 Canvas、HTML 一致，`cy="400"` 表示距离父级顶部 400 像素。
 4. **显式写了就照做**：写了尺寸、位置就严格使用，不会被悄悄改掉；有问题只在报告里指出。
 5. **没写的由渲染器决定，并写进报告**：比如自动换行。
+6. **写错了要说怎么改**：有歧义或会被忽略的写法报 `warn` 并给出 `hint`；含义明确但不规范的写法照常渲染，报 `info`。不认识的属性名一律保留，给 `draw` 用。
 
 ## 1. 文件结构
 
 ```html
 <fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
   <font family="DeYiHei" src="https://example.com/deyihei.otf" />
-  <Column cx="540" cy="700" style="gap:32px">
-    <h1>比特币减半</h1>
-    <p style="color:#f7931a">每四年一次</p>
-  </Column>
+  <Layer cx="540" cy="700">
+    <Column style="gap:32px; align-items:center">
+      <h1>比特币减半</h1>
+      <p style="color:#f7931a">每四年一次</p>
+    </Column>
+  </Layer>
 </fvg>
 ```
 
@@ -62,6 +65,23 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 `rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
 
+属性归属：
+
+| 属性 | 写在哪 |
+| --- | --- |
+| `cx`、`cy`、`anchor` | 只对 `Layer` 的子元素有效。`Row`/`Column` 的子元素写了报 `warn` |
+| `flex`、`flex-grow`、`flex-shrink` | 只对 `Row`/`Column` 的子元素有效。`Layer` 的子元素写了报 `warn` |
+| `opacity`、`rotate`、`scale`、`origin` | 所有元素 |
+| `x1`、`y1`、`x2`、`y2`、`points`、`d` | 所在 `Layer` 的局部坐标 |
+
+叶子的定位：
+
+| 叶子 | 怎么定位 |
+| --- | --- |
+| 文字，以及没写宽高的 `Layer` | `cx`、`cy` + `anchor`。尺寸要排完才知道，所以需要 `anchor` |
+| 形状、带 `draw` 和尺寸的自定义元素 | 中心写法（`cx`、`cy` 永远是中心）或两点写法 `x1 y1 x2 y2`。尺寸是自己写的，不用 `anchor` |
+| 线条 | 端点、`points`、`d` 本身就是坐标，不写 `cx`、`cy` |
+
 没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
 
 `anchor` 示例：`<h1 cx="60" cy="120" anchor="top-left">` 表示标题左上角在 (60, 120)，也就是左对齐排版。
@@ -79,9 +99,21 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 `style` 支持 `background`、`border`、`border-radius`、`overflow`。
 
+`Row`、`Column` 的规范定位是包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。直接写在 `Row`/`Column` 上也能渲染，报告记一条 `info`。
+
+```html
+<Layer cx="120" cy="64" anchor="top-left">
+  <Row style="gap:40px; align-items:center">
+    <h2 style="font-size:56px">勾股定理</h2>
+  </Row>
+</Layer>
+```
+
 ### 4.2 Row、Column：flex 排列
 
-`Row` 横向排列，`Column` 纵向排列，子元素的 `cx`、`cy` 无效。
+`Row` 横向排列，`Column` 纵向排列。子元素只能是文字、`Row`、`Column`、`Layer`。
+
+图形要放进 flex，包一层写了宽高的 `Layer`，或者改用 `div` 盒子（`width`、`height`、`background`、`border-radius`）。形状直接放进来会照尺寸渲染并报 `info`；线条直接放进来不渲染，报 `warn`。两点坐标写在 flex 里的形状上不渲染，报 `warn`。
 
 `style` 支持的属性：
 
@@ -140,15 +172,19 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 ## 6. 形状
 
-| 标签 | 尺寸属性 |
-| --- | --- |
-| `Rect` | `width`、`height`、`rx`（圆角） |
-| `Circle` | `r` |
-| `Ellipse` | `rx`、`ry` |
+两种写法只能选一种。两点可以反着写，取最小最大。`Circle` 只有中心写法。
+
+| 标签 | 中心写法 | 两点写法 |
+| --- | --- | --- |
+| `Rect` | `cx` `cy` `width` `height`，另有 `rx`（圆角） | `x1` `y1` `x2` `y2`，对角两个角 |
+| `Ellipse` | `cx` `cy` `rx` `ry` | `x1` `y1` `x2` `y2`，外接矩形的对角 |
+| `Circle` | `cx` `cy` `r` | 不支持 |
+
+`Rect` 写 SVG 的 `x` `y` `width` `height` 时，按左上角渲染，并报 `info`。形状上写 `anchor` 也照做，并报 `info`。
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
-形状可以放在 Layer 里（用 `cx`、`cy` 定位），也可以放在 Row/Column 里参与排列。
+带 `draw` 且写了尺寸的自定义元素，定位和形状相同。
 
 ## 7. 线条
 
@@ -159,7 +195,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `Polyline`、`Polygon` | `points="x,y x,y …"` |
 | `Path` | `d`（SVG 路径语法） |
 
-- 线条只能放在 Layer 里，坐标是 **Layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。
+- 线条只能放在 Layer 里，坐标是 **Layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
+- 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
 - `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
 - `Polygon`、`Path` 的 `fill` 默认 `none`。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
@@ -186,7 +223,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
     }
   ],
   "issues": [
-    { "level": "error", "code": "overflow-canvas", "path": "fvg/p[2]", "message": "…" }
+    { "level": "warn", "code": "invalid-child", "path": "fvg/Row[0]/Line[0]", "message": "线条不能放在 Row/Column 内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
   ]
 }
 ```
@@ -208,8 +245,12 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `text-overlap` | warn | 两段文字的着墨区域重叠 |
 | `min-font-size` | warn | 字号小于 `画布宽度 / 1080 × 24` |
 | `auto-wrap` | info | 文字超出可用宽度，被自动换行 |
-| `unknown-tag`、`invalid-attr` | warn | 不认识的标签，或无法解析的属性值 |
-| `invalid-child` | warn | 非法子元素（如 `Line`/`Path` 放在 `Row`/`Column` 内） |
+| `non-canonical` | info | 含义明确，但不是规范写法。照常渲染，`hint` 里是规范写法 |
+| `unknown-tag` | warn | 不认识的标签 |
+| `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
+| `invalid-child` | warn | 非法子元素：线条放进 `Row`/`Column`，或文字盒子里放了 `h1`–`h3`、`p`、`div` |
+
+每条问题都可以带 `hint`，是可以直接照做的改法。
 
 ## 9. 命令行
 
@@ -226,7 +267,7 @@ fvg check scene.fvg                                      # 只输出检查结果
 
 程序调用（React / Vue JSX 或 `h()`）时，任意元素可挂 `draw={(ctx, el) => { ... }}`。纯 `.fvg` 文本和 CLI 无法携带函数，行为与 v0.1 相同。
 
-绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`；渲染器会先平移到该盒子，再绕中心应用元素的 `rotate`、`scale`（与形状一致）。`opacity` 由外层统一乘到 `globalAlpha`。
+绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素盒子的左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`，并且已经包含该元素和所有祖先 `Layer` 的 `rotate`、`scale`（绕各自的 `origin`）。线条的盒子是纯几何范围，所以水平线的 `el.h` 是 0。尺寸用 `el.w`、`el.h`，不要从 `el.attr` 推算。`opacity` 由外层统一乘到 `globalAlpha`。自定义属性原样出现在 `el.attr` 里。
 
 `el` 字段：
 

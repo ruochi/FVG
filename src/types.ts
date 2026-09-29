@@ -76,6 +76,8 @@ export type Issue = {
   code: string
   path: string
   message: string
+  /** 可直接照做的改法。 */
+  hint?: string
 }
 
 export type Anchor =
