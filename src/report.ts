@@ -30,6 +30,8 @@ function walk(node: LayoutNode, ox: number, oy: number, elements: ElementReport[
 
   if (node.kind === 'layer' || node.kind === 'flex') {
     for (const ch of node.children) walk(ch, absX, absY, elements)
+  } else if (node.kind === 'sqrt') {
+    walk(node.child, absX, absY, elements)
   }
 }
 

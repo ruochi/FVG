@@ -27,6 +27,7 @@ import {
   isTextBoxTag,
   layoutText,
 } from './text.js'
+import { layoutMath } from './math/lower.js'
 import { FONT_TAG, isFlexTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
 import type {
   Anchor,
@@ -276,7 +277,26 @@ function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
   return geom
 }
 
+function warnMathInText(node: FvgNode, ctx: LayoutContext) {
+  const visit = (n: FvgNode) => {
+    for (const c of n.children) {
+      if (typeof c === 'string') continue
+      if (c.tag === 'math') {
+        ctx.issues.push({
+          level: 'warn',
+          code: 'invalid-child',
+          path: ctx.pathPrefix,
+          message: '文字盒子里不能放 math',
+        })
+      }
+      visit(c)
+    }
+  }
+  visit(node)
+}
+
 function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: number): TextLayoutNode {
+  warnMathInText(node, ctx)
   const style = parseStyle(node.attrs.style)
   const tag = node.tag.toLowerCase()
   const fontSize = parsePx(style['font-size']) ?? defaultFontSizeForTag(tag)
@@ -510,6 +530,17 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       isText: false,
     }
   }
+  if (node.tag === 'math') {
+    const laid = layoutMath(node, ctx)
+    return {
+      node: laid,
+      minMain: direction === 'row' ? laid.width : laid.height,
+      minCross: direction === 'row' ? laid.height : laid.width,
+      preferredMain: direction === 'row' ? laid.width : laid.height,
+      preferredCross: direction === 'row' ? laid.height : laid.width,
+      isText: false,
+    }
+  }
   const custom = layoutCustomDraw(node, ctx)
   if (custom) {
     return {
@@ -679,6 +710,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
     else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
+    else if (ch.tag === 'math') laid = layoutMath(ch, subCtx)
     else {
       laid = layoutUnknownOrCustom(ch, subCtx)
       if (!laid) continue

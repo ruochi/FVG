@@ -1,0 +1,9 @@
+<fvg width="1080" height="480" background="#0f1115" color="#ffffff">
+  <Row cx="540" cy="240" style="gap:8px; align-items:center">
+    <span>因此</span>
+    <math>
+      <mi>π</mi><mo>≈</mo><mn>4</mn><mo>·</mo>
+      <mfrac><mi>N</mi><mi>M</mi></mfrac>
+    </math>
+  </Row>
+</fvg>

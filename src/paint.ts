@@ -1,5 +1,6 @@
 import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
+import { paintMathSqrtPath } from './math/sqrt.js'
 import type {
   FlexLayoutNode,
   LayerLayoutNode,
@@ -246,9 +247,23 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     drawLine(ctx, node)
   } else if (node.kind === 'custom') {
     drawBoxChrome(ctx, node)
+  } else if (node.kind === 'sqrt') {
+    ctx.save()
+    ctx.translate(node.x, node.y)
+    ctx.strokeStyle = node.color
+    ctx.lineWidth = node.thickness
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    paintMathSqrtPath(ctx, node.width, node.height, node.surdWidth, node.thickness)
+    ctx.stroke()
+    paintNode(ctx, node.child, debug, t)
+    ctx.restore()
   } else if (node.kind === 'flex' || node.kind === 'layer') {
     drawBoxChrome(ctx, node)
+    ctx.save()
+    ctx.translate(node.x, node.y)
     for (const ch of node.children) paintNode(ctx, ch, debug, t)
+    ctx.restore()
   }
   runElementDraw(ctx, node, t)
   if (debug) drawDebugOverlay(ctx, node)

@@ -41,6 +41,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | --- | --- |
 | 容器 | `Layer`、`Row`、`Column` |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
+| 公式 | `math`（MathML 子集，见 4.3） |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
 | 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path` |
 
@@ -94,14 +95,30 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 子元素可以写的 flex 属性：`flex-grow`、`flex-shrink`、`align-self`、`width`、`height`。
 
 - 文字默认 `flex-shrink:1`，空间不够时会换行变窄，但不会窄过最长的一个不可断开的词。
-- 形状默认 `flex-shrink:0`，不会被压扁。
+- 形状和公式默认 `flex-shrink:0`，不会被压扁。
 
 **可用宽度**：放在 Layer 里、没写 `width` 的 Row/Column，最宽只能到 Layer 的宽度（根 Layer 要减去左右安全区）。
+
+### 4.3 math：公式
+
+`<math>` 是布局节点，可以放在 `Layer`、`Row`、`Column` 里，不能放进文字盒子。和正文同一行时，用 `Row` 把文字和公式排在一起。
+
+字号默认 40px，也可用 `style="font-size:…"`。公式内部的 em 按这一层字号换成像素。公式不换行。
+
+支持的标签：`math`、`mrow`、`mi`、`mn`、`mo`、`mtext`、`mfrac`、`msub`、`msup`、`msubsup`、`msqrt`、`mroot`、`munder`、`mover`、`munderover`、`mtable`、`mtr`、`mtd`。
+
+- `math`、`mrow` 横向排列，间距为 0。运算符左右空隙由运算符本身决定。
+- `mfrac` 是分子、分数线、分母。分子分母字号为 0.85 倍，线上下各留 0.28em。
+- `msub`、`msup`、`msubsup` 的上下标在基座旁边，`msubsup` 叠在同一列。求和、连乘和 `lim` 等的上下标改到基座正上、正下。积分号放大 1.35 倍，上下限在符号右侧。
+- `msqrt` 左侧是随内容变高的根号笔画。`mroot` 的指数在根号左上。
+- `mtable` 按行排列，行距 0.2em，单元格间距 0.45em。
+
+间距规则见 [MATHML.md](MATHML.md)。
 
 ## 5. 文字
 
 最外层的文字标签是一个**文字盒子**，里面只能放文字和行内标签（`span`、`strong`、`b`、`em`、`br`）。
-要排列多段文字，请用 `Row`/`Column`，不要在文字盒子里嵌套 `div`、`p`。
+要排列多段文字，请用 `Row`/`Column`，不要在文字盒子里嵌套 `div`、`p`。公式写在同级的 `<math>` 里，不要写进文字盒子。
 
 ### 5.1 默认样式
 
@@ -202,7 +219,7 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `min-font-size` | warn | 字号小于 `画布宽度 / 1080 × 24` |
 | `auto-wrap` | info | 文字超出可用宽度，被自动换行 |
 | `unknown-tag`、`invalid-attr` | warn | 不认识的标签，或无法解析的属性值 |
-| `invalid-child` | warn | 非法子元素（如 `Line`/`Path` 放在 `Row`/`Column` 内） |
+| `invalid-child` | warn | 非法子元素（如 `Line`/`Path` 放在 `Row`/`Column` 内，或 `<math>` 放进文字盒子） |
 
 ## 9. 命令行
 
