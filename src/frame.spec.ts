@@ -61,8 +61,10 @@ describe('el.t', () => {
 
 describe('renderComposition', () => {
   it('4 帧首尾像素不同，联系表是 PNG', async () => {
-    const { frames, contactSheet } = await renderComposition(slide)
+    const { frames, reports, contactSheet } = await renderComposition(slide)
     expect(frames).toHaveLength(4)
+    expect(reports).toHaveLength(4)
+    expect(reports[0]!.elements.some((e) => e.tag === 'Rect')).toBe(true)
     const [r0, g0, b0] = await pixelAt(frames[0]!, 4, 16)
     const [r3, g3, b3] = await pixelAt(frames[3]!, 4, 16)
     expect(r0 + g0 + b0).toBeGreaterThan(700)
