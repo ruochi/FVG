@@ -120,6 +120,7 @@ function readAppearance(attrs: Record<string, string>, style: Record<string, str
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
+    origin: parseAnchor(attrs.origin),
   }
 }
 
@@ -443,6 +444,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     opacity: parseNumber(node.attrs.opacity) ?? 1,
     rotate: parseNumber(node.attrs.rotate) ?? 0,
     scale: parseNumber(node.attrs.scale) ?? 1,
+    origin: parseAnchor(node.attrs.origin),
     padding: ZERO_EDGES,
     geometry: localGeom,
     stroke,
@@ -716,37 +718,35 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     p.child.y = tl.y
   }
 
-  if (layerW > 0 && layerH > 0) {
+  // 原点固定在左上角。负坐标的内容可以画出盒子，但不会把其他子元素一起平移。
+  const bothFixed = (fixedW ?? 0) > 0 && (fixedH ?? 0) > 0
+  if (bothFixed) {
+    layerW = fixedW!
+    layerH = fixedH!
     for (const p of placed) positionOne(p, layerW, layerH)
   } else {
-    for (const p of placed) positionOne(p, 0, 0)
-    let union = emptyBox()
     for (const p of placed) {
-      union = unionBoxes(union, { x: p.child.x, y: p.child.y, width: p.child.width, height: p.child.height })
+      if (!p.useDefaultCenter) positionOne(p, 0, 0)
     }
-    layerW = fixedW ?? Math.max(union.width, 0)
-    layerH = fixedH ?? Math.max(union.height, 0)
+    let maxRight = 0
+    let maxBottom = 0
+    let maxDefaultW = 0
+    let maxDefaultH = 0
     for (const p of placed) {
-      if (p.useDefaultCenter) {
-        p.cx = layerW / 2
-        p.cy = layerH / 2
-      }
-      positionOne(p, layerW, layerH)
-    }
-    union = emptyBox()
-    for (const p of placed) {
-      union = unionBoxes(union, { x: p.child.x, y: p.child.y, width: p.child.width, height: p.child.height })
-    }
-    const dx = union.x < 0 ? -union.x : 0
-    const dy = union.y < 0 ? -union.y : 0
-    if (dx || dy) {
-      for (const p of placed) {
-        p.child.x += dx
-        p.child.y += dy
+      const explicit = p.ownCoords || !p.useDefaultCenter
+      if (explicit) {
+        maxRight = Math.max(maxRight, p.child.x + p.child.width)
+        maxBottom = Math.max(maxBottom, p.child.y + p.child.height)
+      } else {
+        maxDefaultW = Math.max(maxDefaultW, p.child.width)
+        maxDefaultH = Math.max(maxDefaultH, p.child.height)
       }
     }
-    if (!fixedW) layerW = union.width + dx
-    if (!fixedH) layerH = union.height + dy
+    layerW = fixedW != null && fixedW > 0 ? fixedW : Math.max(0, maxRight, maxDefaultW)
+    layerH = fixedH != null && fixedH > 0 ? fixedH : Math.max(0, maxBottom, maxDefaultH)
+    for (const p of placed) {
+      if (p.useDefaultCenter && !p.ownCoords) positionOne(p, layerW, layerH)
+    }
   }
 
   let ink = emptyBox()
@@ -767,6 +767,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ink,
     ...appearance,
     children,
+    overflow: node.attrs.overflow === 'hidden' || style.overflow === 'hidden' ? 'hidden' : 'visible',
     ...layoutDrawMeta(node, ctx),
   }
 }
