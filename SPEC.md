@@ -55,11 +55,12 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 | `id` | 报告里用来指认元素 |
 | `cx`、`cy` | 在 `Layer` 里的定位点，默认是元素中心（见 `anchor`）；在 `Row`/`Column` 里无效 |
 | `anchor` | 定位点在元素上的哪个位置，九宫格：`center`（默认）、`top`、`bottom`、`left`、`right`、`top-left`、`top-right`、`bottom-left`、`bottom-right` |
-| `opacity` | 0 到 1 |
-| `rotate` | 绕元素中心旋转，单位度，顺时针为正 |
-| `scale` | 绕元素中心缩放 |
+| `opacity` | 0 到 1。嵌套时逐层相乘 |
+| `rotate` | 绕 `origin` 旋转，单位度，顺时针为正。对文字、线条、形状和 Layer 都生效；Layer 上的旋转作用到整棵子树 |
+| `scale` | 绕 `origin` 缩放，同样作用到整棵子树 |
+| `origin` | 旋转和缩放的支点，取值和 `anchor` 一样，默认 `center` |
 
-`rotate`、`scale` 只影响绘制，不影响布局；报告里的盒子是变换前的。
+`rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
 
 没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
 
@@ -67,14 +68,16 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 
 ## 4. 容器
 
-### 4.1 Layer：自由摆放
+### 4.1 Layer：自由摆放，也可以当分组
 
-子元素用 `cx`、`cy` 在 Layer 的局部坐标里定位，原点是 Layer 的左上角。
+子元素用 `cx`、`cy` 在 Layer 的局部坐标里定位，原点是 Layer 的左上角。Layer 可以嵌套。外层的 `opacity`、`rotate`、`scale` 会作用到里面的全部子元素，所以一组要一起移动、旋转或缩放时，包一层 Layer 即可。
 
-- 写了 `width`、`height`：Layer 就是这么大。
-- 没写：Layer 的大小等于所有子元素盒子的并集，也就是自动包住内容。
+- 写了 `width`、`height`：Layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
+- 没写：宽高等于从原点到内容右下角的距离，没写 `cx`、`cy` 的子元素放在这个盒子的中心。坐标在负方向的子元素会画到盒子外面，但不会把其他子元素一起平移。
 
-`style` 支持 `background`、`border`、`border-radius`。
+`overflow="hidden"` 按 Layer 的盒子裁剪子元素。默认 `visible`。
+
+`style` 支持 `background`、`border`、`border-radius`、`overflow`。
 
 ### 4.2 Row、Column：flex 排列
 
@@ -176,7 +179,8 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
       "id": "title",
       "tag": "h1",
       "box": { "x": 330, "y": 600, "width": 420, "height": 106, "left": 330, "top": 600, "right": 750, "bottom": 706, "centerX": 540, "centerY": 653 },
-      "ink": { "...": "字形或图形实际着墨的范围，字段同 box" },
+      "ink": { "...": "变换并裁剪后的着墨外接矩形，字段同 box" },
+      "opacity": 1,
       "fontSize": 88,
       "lines": [{ "text": "比特币减半", "box": { "...": "..." } }]
     }
@@ -187,8 +191,11 @@ FVG 用标签描述**一帧画面**：图形用 SVG 的写法，文字用 HTML �
 }
 ```
 
-- `box`：布局盒子（含 padding 和 border），坐标相对画布左上角。
-- `ink`：实际着墨范围。文字是字形的真实边界，形状包含描边宽度。
+- `box`：布局盒子（含 padding 和 border），只累加平移，不受 `rotate`、`scale` 影响。
+- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 Layer 求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。
+- `opacity`：从根到该元素逐层相乘后的透明度。
+
+`opacity` 小于 0.01 的元素仍会出现在 `elements` 里，但不参与下面的越界、安全区、重叠和最小字号检查。最小字号按声明的 `font-size` 判断，不乘 `scale`。
 
 检查项：
 

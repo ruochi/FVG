@@ -28,7 +28,6 @@ const envelope = (frame: number, from: number, to: number, fade: number) =>
   Math.min(ramp(frame, from, from + fade), 1 - ramp(frame, to - fade, to))
 const pop = (frame: number, from: number) =>
   spring({ frame: frame - from, fps: FPS, config: { damping: 11, stiffness: 140 } })
-const shown = (opacity: number) => opacity > 0.001
 
 const n = (v: number) => String(Math.round(v * 100) / 100)
 const add = (p: Pt, q: Pt, k = 1): Pt => [p[0] + q[0] * k, p[1] + q[1] * k]
@@ -58,7 +57,6 @@ function equation(parts: EquationPart[], size: number, gap: number, opacity = 1)
 }
 
 function label(content: string, color: string, at: Pt, anchor: string, opacity: number, size = 48) {
-  if (!shown(opacity)) return null
   return h(
     'p',
     { cx: n(at[0]), cy: n(at[1]), anchor, opacity: n(opacity), style: `font-size:${size}px; color:${color}` },
@@ -101,7 +99,6 @@ function drawProgress(ctx: CanvasRenderingContext2D, el: DrawElSnapshot) {
 
 function intro(frame: number) {
   const opacity = 1 - ramp(frame, 80, 98)
-  if (!shown(opacity)) return null
   const rise = pop(frame, 0)
   return h(
     'Column',
@@ -129,7 +126,6 @@ function stepIndex(frame: number) {
 
 function header(frame: number) {
   const opacity = ramp(frame, 90, 110)
-  if (!shown(opacity)) return null
   const active = stepIndex(frame)
   return h(
     'Row',
@@ -171,7 +167,6 @@ function caption(frame: number) {
   const c = CAPTIONS.find((item) => frame >= item.from && frame < item.to)
   if (!c) return null
   const opacity = envelope(frame, c.from, c.to, 12)
-  if (!shown(opacity)) return null
   return h(
     'Column',
     { cx: '120', cy: '260', anchor: 'top-left', opacity: n(opacity), style: 'gap:28px; align-items:start' },
@@ -218,7 +213,6 @@ function squareOn(p: Pt, q: Pt, out: Pt, progress: number, color: string, fill: 
 }
 
 function grid(p: Pt, q: Pt, out: Pt, cells: number, color: string, opacity: number): FvgNode[] {
-  if (!shown(opacity)) return []
   const along: Pt = [(q[0] - p[0]) / cells, (q[1] - p[1]) / cells]
   const across: Pt = [out[0] / cells, out[1] / cells]
   const line = (from: Pt, to: Pt) =>
@@ -250,7 +244,6 @@ function dot(at: Pt, scale: number) {
 
 function areaTag(content: string, color: string, at: Pt, frame: number, from: number) {
   const opacity = ramp(frame, from, from + 15)
-  if (!shown(opacity)) return null
   return h(
     'div',
     {
@@ -265,8 +258,7 @@ function areaTag(content: string, color: string, at: Pt, frame: number, from: nu
 }
 
 function figure(frame: number) {
-  const opacity = 1 - ramp(frame, 520, 535)
-  if (frame < 100 || !shown(opacity)) return null
+  const opacity = frame < 100 ? 0 : 1 - ramp(frame, 520, 535)
   const labelsOut = 1 - ramp(frame, 300, 312)
   const gridOpacity = ramp(frame, 435, 465)
   const fillOpacity = ramp(frame, 240, 270)
@@ -274,32 +266,28 @@ function figure(frame: number) {
   return h(
     'Layer',
     { cx: '500', cy: '400', width: '1000', height: '800', opacity: n(opacity) },
-    shown(fillOpacity)
-      ? h('Polygon', {
-          points: points([P0, P1, P2]),
-          fill: 'rgba(122,162,255,0.10)',
-          stroke: 'none',
-          opacity: n(fillOpacity),
-        })
-      : null,
+    h('Polygon', {
+      points: points([P0, P1, P2]),
+      fill: 'rgba(122,162,255,0.10)',
+      stroke: 'none',
+      opacity: n(fillOpacity),
+    }),
     squareOn(P2, P0, OUT_A, ramp(frame, 315, 365), A, 'rgba(62,207,196,0.16)'),
     squareOn(P0, P1, OUT_B, ramp(frame, 345, 395), B, 'rgba(122,162,255,0.16)'),
     squareOn(P2, P1, OUT_C, ramp(frame, 375, 435), C, 'rgba(245,193,108,0.16)'),
     ...grid(P2, P0, OUT_A, 3, 'rgba(62,207,196,0.55)', gridOpacity),
     ...grid(P0, P1, OUT_B, 4, 'rgba(122,162,255,0.55)', gridOpacity),
     ...grid(P2, P1, OUT_C, 5, 'rgba(245,193,108,0.55)', gridOpacity),
-    shown(markerOpacity)
-      ? h('Polyline', {
-          points: points([
-            [P0[0], P0[1] - 28],
-            [P0[0] + 28, P0[1] - 28],
-            [P0[0] + 28, P0[1]],
-          ]),
-          stroke: INK,
-          'stroke-width': '3',
-          opacity: n(markerOpacity),
-        })
-      : null,
+    h('Polyline', {
+      points: points([
+        [P0[0], P0[1] - 28],
+        [P0[0] + 28, P0[1] - 28],
+        [P0[0] + 28, P0[1]],
+      ]),
+      stroke: INK,
+      'stroke-width': '3',
+      opacity: n(markerOpacity),
+    }),
     edge(P0, P2, ramp(frame, 110, 150), A),
     edge(P0, P1, ramp(frame, 150, 190), B),
     edge(P2, P1, ramp(frame, 190, 240), C),
@@ -330,9 +318,40 @@ const PIECES: Array<{ corners: Pt[]; enterFrom: Pt; move: Pt; moveAt: number }> 
   { corners: [[PB, PS], [0, PS], [0, PB]], enterFrom: [-1, 1], move: [PA, -PB], moveAt: 770 },
 ]
 
+/** 三角形用固定的局部顶点，平移只改它所在 Layer 的位置。 */
+function pieceLayer(piece: (typeof PIECES)[number], index: number, frame: number) {
+  const enter = ramp(frame, 560 + 15 * index, 585 + 15 * index)
+  const moved = ramp(frame, piece.moveAt, piece.moveAt + 40)
+  const offset = add(
+    [piece.enterFrom[0] * 48 * (1 - enter), piece.enterFrom[1] * 48 * (1 - enter)],
+    piece.move,
+    moved,
+  )
+  const minX = Math.min(...piece.corners.map((p) => p[0]))
+  const minY = Math.min(...piece.corners.map((p) => p[1]))
+  const width = Math.max(...piece.corners.map((p) => p[0])) - minX
+  const height = Math.max(...piece.corners.map((p) => p[1])) - minY
+  return h(
+    'Layer',
+    {
+      cx: n(minX + offset[0]),
+      cy: n(minY + offset[1]),
+      anchor: 'top-left',
+      width: n(width),
+      height: n(height),
+      opacity: n(enter),
+    },
+    h('Polygon', {
+      points: points(piece.corners.map(([x, y]) => [x - minX, y - minY])),
+      fill: 'rgba(255,138,122,0.30)',
+      stroke: TRI,
+      'stroke-width': '4',
+    }),
+  )
+}
+
 function proof(frame: number) {
   const opacity = Math.min(ramp(frame, 540, 555), 1 - ramp(frame, 855, 870))
-  if (!shown(opacity)) return null
   const outlineScale = interpolate(
     spring({ frame: frame - 540, fps: FPS, config: { damping: 14, stiffness: 120 } }),
     [0, 1],
@@ -356,69 +375,61 @@ function proof(frame: number) {
   return h(
     'Layer',
     { cx: '500', cy: '400', width: '1000', height: '800', opacity: n(opacity) },
+    h(
+      'Layer',
+      {
+        cx: n(PO[0]),
+        cy: n(PO[1]),
+        anchor: 'top-left',
+        width: String(PS),
+        height: String(PS),
+        scale: n(outlineScale),
+      },
+      h('Rect', {
+        cx: n(PS / 2),
+        cy: n(PS / 2),
+        width: String(PS),
+        height: String(PS),
+        fill: 'rgba(255,255,255,0.03)',
+        stroke: INK,
+        'stroke-width': '4',
+      }),
+      ...PIECES.map((piece, i) => pieceLayer(piece, i, frame)),
+    ),
     h('Rect', {
       cx: n(PO[0] + PS / 2),
       cy: n(PO[1] + PS / 2),
-      width: String(PS),
-      height: String(PS),
-      fill: 'rgba(255,255,255,0.03)',
-      stroke: INK,
+      width: String(5 * PU),
+      height: String(5 * PU),
+      rotate: n((Math.atan2(PA, PB) * 180) / Math.PI),
+      fill: 'rgba(245,193,108,0.22)',
+      stroke: C,
       'stroke-width': '4',
-      scale: n(outlineScale),
+      opacity: n(cOpacity),
     }),
-    shown(cOpacity)
-      ? h('Rect', {
-          cx: n(PO[0] + PS / 2),
-          cy: n(PO[1] + PS / 2),
-          width: String(5 * PU),
-          height: String(5 * PU),
-          rotate: n((Math.atan2(PA, PB) * 180) / Math.PI),
-          fill: 'rgba(245,193,108,0.22)',
-          stroke: C,
-          'stroke-width': '4',
-          opacity: n(cOpacity),
-        })
-      : null,
-    shown(abOpacity)
-      ? h('Rect', {
-          cx: n(PO[0] + PA / 2),
-          cy: n(PO[1] + PA / 2),
-          width: String(PA),
-          height: String(PA),
-          fill: 'rgba(62,207,196,0.22)',
-          stroke: A,
-          'stroke-width': '4',
-          opacity: n(abOpacity),
-        })
-      : null,
-    shown(abOpacity)
-      ? h('Rect', {
-          cx: n(PO[0] + PA + PB / 2),
-          cy: n(PO[1] + PA + PB / 2),
-          width: String(PB),
-          height: String(PB),
-          fill: 'rgba(122,162,255,0.22)',
-          stroke: B,
-          'stroke-width': '4',
-          opacity: n(abOpacity),
-        })
-      : null,
-    ...PIECES.map((piece, i) => {
-      const enter = ramp(frame, 560 + 15 * i, 585 + 15 * i)
-      if (!shown(enter)) return null
-      const moved = ramp(frame, piece.moveAt, piece.moveAt + 40)
-      const offset = add([piece.enterFrom[0] * 48 * (1 - enter), piece.enterFrom[1] * 48 * (1 - enter)], piece.move, moved)
-      return h('Polygon', {
-        points: points(piece.corners.map(([x, y]) => add(inProof(x, y), offset))),
-        fill: 'rgba(255,138,122,0.30)',
-        stroke: TRI,
-        'stroke-width': '4',
-        opacity: n(enter),
-      })
+    h('Rect', {
+      cx: n(PO[0] + PA / 2),
+      cy: n(PO[1] + PA / 2),
+      width: String(PA),
+      height: String(PA),
+      fill: 'rgba(62,207,196,0.22)',
+      stroke: A,
+      'stroke-width': '4',
+      opacity: n(abOpacity),
     }),
-    shown(sideOpacity) ? tick(0) : null,
-    shown(sideOpacity) ? tick(PA) : null,
-    shown(sideOpacity) ? tick(PS) : null,
+    h('Rect', {
+      cx: n(PO[0] + PA + PB / 2),
+      cy: n(PO[1] + PA + PB / 2),
+      width: String(PB),
+      height: String(PB),
+      fill: 'rgba(122,162,255,0.22)',
+      stroke: B,
+      'stroke-width': '4',
+      opacity: n(abOpacity),
+    }),
+    tick(0),
+    tick(PA),
+    tick(PS),
     label('a', A, [PO[0] + PA / 2, PO[1] - 16], 'bottom', sideOpacity),
     label('b', B, [PO[0] + PA + PB / 2, PO[1] - 16], 'bottom', sideOpacity),
     label('c²', C, inProof(PS / 2, PS / 2), 'center', cOpacity, 80),
@@ -429,7 +440,6 @@ function proof(frame: number) {
 
 function outro(frame: number) {
   const opacity = ramp(frame, 880, 900)
-  if (!shown(opacity)) return null
   return h(
     'Column',
     {

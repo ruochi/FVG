@@ -1,45 +1,102 @@
-import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode, TextLayoutNode } from './types.js'
-import { boxToRect, translateBox } from './types.js'
+import { applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
+import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode } from './types.js'
+import { boxToRect, translateBox, unionBoxes } from './types.js'
+
+const VISIBLE_OPACITY = 0.01
 
 function inkOverlap(a: Box, b: Box): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
 }
 
-function walk(node: LayoutNode, ox: number, oy: number, elements: ElementReport[]) {
+function hasArea(b: Box): boolean {
+  return b.width > 1e-3 && b.height > 1e-3
+}
+
+function clipInk(ink: Box, clip: Box | undefined): Box {
+  return clip ? intersectBox(ink, clip) : ink
+}
+
+function nodeMatrix(parent: Matrix, node: LayoutNode): Matrix {
+  if (node.rotate === 0 && node.scale === 1) return parent
+  const o = originOffset(node.origin, node.width, node.height)
+  return multiply(parent, aroundPivot(node.x + o.x, node.y + o.y, node.rotate, node.scale))
+}
+
+function walk(
+  node: LayoutNode,
+  parentMatrix: Matrix,
+  parentOpacity: number,
+  ox: number,
+  oy: number,
+  clip: Box | undefined,
+  elements: ElementReport[],
+) {
   const absX = ox + node.x
   const absY = oy + node.y
-  const box = boxToRect({ x: absX, y: absY, width: node.width, height: node.height })
-  const ink = boxToRect(translateBox(node.ink, absX, absY))
+  const matrix = nodeMatrix(parentMatrix, node)
+  const opacity = parentOpacity * node.opacity
+  let ink = clipInk(applyToBox(matrix, translateBox(node.ink, node.x, node.y)), clip)
+  if (node.kind === 'layer' && node.overflow === 'hidden') {
+    const selfClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
+    ink = intersectBox(ink, clip ? intersectBox(selfClip, clip) : selfClip)
+  }
+
   const entry: ElementReport = {
     path: node.path,
     id: node.id,
     tag: node.tag,
-    box,
-    ink,
+    box: boxToRect({ x: absX, y: absY, width: node.width, height: node.height }),
+    ink: boxToRect(ink),
+    opacity,
   }
   if (node.kind === 'text') {
+    const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
+    const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
     entry.fontSize = node.textLayout.fontSize
     entry.lines = node.textLayout.lines.map((line) => ({
       text: line.segments.map((s) => s.text).join(''),
-      box: boxToRect(
-        translateBox(line.ink, absX + node.padding.left + (node.border?.width ?? 0), absY + node.padding.top + (node.border?.width ?? 0)),
-      ),
+      box: boxToRect(clipInk(applyToBox(matrix, translateBox(line.ink, contentX, contentY)), clip)),
     }))
   }
   elements.push(entry)
 
   if (node.kind === 'layer' || node.kind === 'flex') {
-    for (const ch of node.children) walk(ch, absX, absY, elements)
+    const inset = node.kind === 'flex' ? node.padding.left + (node.border?.width ?? 0) : 0
+    const insetY = node.kind === 'flex' ? node.padding.top + (node.border?.width ?? 0) : 0
+    const childMatrix = multiply(matrix, translated(node.x + inset, node.y + insetY))
+    let childClip = clip
+    if (node.kind === 'layer' && node.overflow === 'hidden') {
+      const layerClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
+      childClip = clip ? intersectBox(layerClip, clip) : layerClip
+    }
+    const start = elements.length
+    for (const ch of node.children) walk(ch, childMatrix, opacity, absX + inset, absY + insetY, childClip, elements)
+    // 容器的着墨改用子元素报告（已经带上变换和裁剪），避免把被裁掉的部分算进父级。
+    let union: Box | null = null
+    const add = (b: Box) => {
+      if (b.width <= 1e-3 || b.height <= 1e-3) return
+      union = union ? unionBoxes(union, b) : b
+    }
+    if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
+      add(clipInk(applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height }), clip))
+    }
+    for (let i = start; i < elements.length; i++) add(elements[i]!.ink)
+    if (union && node.kind === 'layer' && node.overflow === 'hidden') {
+      const selfClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
+      union = intersectBox(union, clip ? intersectBox(selfClip, clip) : selfClip)
+    }
+    if (union) entry.ink = boxToRect(union)
   }
 }
 
 export function buildReport(doc: FvgDocument): FvgReport {
   const elements: ElementReport[] = []
-  walk(doc.root, 0, 0, elements)
+  walk(doc.root, IDENTITY, 1, 0, 0, undefined, elements)
 
   const issues: Issue[] = [...doc.issues]
+  const visible = elements.filter((el) => el.opacity >= VISIBLE_OPACITY && hasArea(el.ink))
 
-  for (const el of elements) {
+  for (const el of visible) {
     if (el.ink.right > doc.width + 1e-3 || el.ink.bottom > doc.height + 1e-3 || el.ink.left < -1e-3 || el.ink.top < -1e-3) {
       issues.push({
         level: 'error',
@@ -69,7 +126,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
     }
   }
 
-  const textInks = elements.filter((e) => e.lines != null)
+  const textInks = visible.filter((e) => e.lines != null)
   for (let i = 0; i < textInks.length; i++) {
     for (let j = i + 1; j < textInks.length; j++) {
       const a = textInks[i]!

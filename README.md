@@ -88,6 +88,17 @@ const { frames, contactSheet } = await renderComposition(scene)
 
 `draw` 里通过 `el.t` 读取秒数（`frame / fps`）。不传 `t` 的单帧渲染里，`el.t` 为 `0`。
 
+嵌套的 `Layer` 可以当分组：外层的 `rotate`、`scale`、`opacity` 作用到整棵子树，子元素用组内坐标。
+
+```tsx
+h(
+  'Layer',
+  { cx: '200', cy: '200', width: '120', height: '80', scale: '1.2', origin: 'center' },
+  h('Rect', { cx: '60', cy: '40', width: '120', height: '80', fill: '#fff' }),
+  h('Layer', { cx: '30', cy: '20', width: '40', height: '40' }, h('Circle', { cx: '20', cy: '20', r: '8', fill: '#3ecfc4' })),
+)
+```
+
 ## 测试
 
 ```bash

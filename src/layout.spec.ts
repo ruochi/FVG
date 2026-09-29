@@ -58,6 +58,20 @@ describe('layoutSource', () => {
     for (const child of row.children) expect(child.textLayout.lines).toHaveLength(1)
   })
 
+  it('没写宽高的 Layer 原点固定，负坐标不会平移其他子元素', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="400"><Layer><Rect cx="10" cy="10" anchor="top-left" width="20" height="20" /><Rect cx="-40" cy="30" anchor="top-left" width="20" height="20" /></Layer></fvg>`,
+      process.cwd(),
+    )
+    const layer = doc.root.children[0]
+    expect(layer?.kind).toBe('layer')
+    const [first, second] = (layer as { children: Array<{ x: number; y: number }> }).children
+    expect(first?.x).toBe(10)
+    expect(first?.y).toBe(10)
+    expect(second?.x).toBe(-40)
+    expect(second?.y).toBe(30)
+  })
+
   it('invalid-child 线条进 Row', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><Row><Line x1="0" y1="0" x2="10" y2="10" /></Row></fvg>`,

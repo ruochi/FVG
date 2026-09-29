@@ -99,7 +99,10 @@ export type ElementReport = {
   id?: string
   tag: string
   box: Rect
+  /** 变换并裁剪后的着墨外接矩形。 */
   ink: Rect
+  /** 逐层相乘后的有效透明度。 */
+  opacity: number
   fontSize?: number
   lines?: TextLineReport[]
 }
@@ -164,6 +167,8 @@ export type LayoutNodeBase = {
   opacity: number
   rotate: number
   scale: number
+  /** 变换支点，缺省为盒子中心。 */
+  origin?: Anchor
   background?: string
   border?: { width: number; color: string }
   borderRadius?: number
@@ -178,6 +183,8 @@ export type LayoutNodeBase = {
 export type LayerLayoutNode = LayoutNodeBase & {
   kind: 'layer'
   children: LayoutNode[]
+  /** 缺省为 visible。hidden 时按盒子裁剪子元素。 */
+  overflow?: 'visible' | 'hidden'
 }
 
 export type FlexLayoutNode = LayoutNodeBase & {
