@@ -64,6 +64,30 @@ const root = h(
 await renderFvg(root)
 ```
 
+按帧生成一组 PNG 和一张联系表：
+
+```ts
+import { h, renderComposition, type Composition } from '@dc/fvg'
+
+const scene: Composition = {
+  id: 'slide',
+  width: 32,
+  height: 32,
+  fps: 4,
+  durationInFrames: 4,
+  component: ({ frame }) =>
+    h(
+      'fvg',
+      { width: '32', height: '32', background: '#000' },
+      h('Rect', { width: '8', height: '32', cx: String(4 + frame * 8), cy: '16', fill: '#fff' }),
+    ),
+}
+
+const { frames, contactSheet } = await renderComposition(scene)
+```
+
+`draw` 里通过 `el.t` 读取秒数（`frame / fps`）。不传 `t` 的单帧渲染里，`el.t` 为 `0`。
+
 ## 测试
 
 ```bash
