@@ -48,6 +48,16 @@ describe('layoutSource', () => {
     expect(polygon?.y).toBe(95)
   })
 
+  it('Row 里带内边距的短文字不被小数宽度挤到换行', async () => {
+    const doc = await layoutSource(
+      `<fvg width="1920" height="1080"><Row style="gap:20px"><div style="padding:2px 29px; font-size:72px">a²</div><div style="padding:4px 22px; border:2px solid #333; font-size:44px">1 三角形</div></Row></fvg>`,
+      process.cwd(),
+    )
+    expect(doc.issues.filter((i) => i.code === 'auto-wrap')).toEqual([])
+    const row = doc.root.children[0] as { children: Array<{ textLayout: { lines: unknown[] } }> }
+    for (const child of row.children) expect(child.textLayout.lines).toHaveLength(1)
+  })
+
   it('invalid-child 线条进 Row', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><Row><Line x1="0" y1="0" x2="10" y2="10" /></Row></fvg>`,

@@ -555,6 +555,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   const Yoga = await ensureYoga()
   const config = Yoga.Config.create()
   config.setUseWebDefaults(true)
+  // Text children are re-laid out at their Yoga width; pixel rounding could shave off a fraction and force a wrap.
+  config.setPointScaleFactor(0)
   const root = Yoga.Node.createWithConfig(config)
   root.setFlexDirection(direction === 'row' ? FlexDirection.Row : FlexDirection.Column)
   root.setJustifyContent(justify)
@@ -582,7 +584,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     const childFvg = childNodes[i]!
     const chParsed = parseStyle(childFvg.attrs.style)
     const { grow, shrink } = parseFlexGrowShrink(chParsed, m.isText)
-    const yn = Yoga.Node.create()
+    const yn = Yoga.Node.createWithConfig(config)
     yn.setFlexGrow(grow)
     yn.setFlexShrink(shrink)
     yn.setFlexBasisAuto()
