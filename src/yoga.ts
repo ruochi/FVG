@@ -13,3 +13,8 @@ export async function ensureYoga(): Promise<YogaApi> {
   if (!yogaApi) throw new Error('Yoga 未加载')
   return yogaApi
 }
+
+export function getYoga(): YogaApi {
+  if (!yogaApi) throw new Error('Yoga 未加载')
+  return yogaApi
+}

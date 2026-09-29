@@ -248,7 +248,10 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     drawBoxChrome(ctx, node)
   } else if (node.kind === 'flex' || node.kind === 'layer') {
     drawBoxChrome(ctx, node)
+    ctx.save()
+    ctx.translate(node.x, node.y)
     for (const ch of node.children) paintNode(ctx, ch, debug, t)
+    ctx.restore()
   }
   runElementDraw(ctx, node, t)
   if (debug) drawDebugOverlay(ctx, node)
