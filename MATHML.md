@@ -2,7 +2,9 @@
 
 本文只规定 FVG 如何接公式。实现时请按 dc 里已经画对的行为来做，不要另写一套间距。
 
-FVG 当前不支持 MathML。文字标签只有 `h1`、`h2`、`h3`、`p`、`div`、`span`，行内只有 `span`、`strong`、`b`、`em`、`br`。写进文件的 `<math>`、`<mfrac>`、`<msqrt>` 会被当成不认识的标签丢掉。
+FVG 已按本文接入 MathML。`<math>` 是布局节点，可以放在 `Layer`、`Row`、`Column` 里。文字盒子里不能再套公式。
+
+文档里写死的数字已照用。没给出数值的间距暂定在 `src/math/rules.ts`：`SUP_SUB_SIZE_RATIO`（0.7）、`moSpacingEm`（关系符左右 0.28em，二元运算符左右 0.22em）、`mathRuleThicknessPx`（`max(1, 字号 × 0.06)`）、`MSQRT_SURD_WIDTH_EM`（0.7）和 `MSQRT_SURD_WIDTH_RATIO`（0.08）。以后可以整份换成 dc 的表。
 
 ## 参考代码在哪
 
@@ -49,13 +51,13 @@ FVG 只复用规则，自己画。建议抽一个两边都能用的小模块：�
 FVG 的文字盒子里不能再套布局。`<math>` 是和 `row` 一样的布局节点，可以放在 `layer`、`row`、`column` 里。和正文同一行时，用 `row` 把文字和公式排在一起：
 
 ```html
-<row style="gap:8px; align-items:center">
+<Row style="gap:8px; align-items:center">
   <span>因此</span>
   <math>
     <mi>π</mi><mo>≈</mo><mn>4</mn><mo>·</mo>
     <mfrac><mi>N</mi><mi>M</mi></mfrac>
   </math>
-</row>
+</Row>
 ```
 
 ## 至少要覆盖的用例

@@ -219,6 +219,14 @@ export type CustomLayoutNode = LayoutNodeBase & {
   kind: 'custom'
 }
 
+export type SqrtLayoutNode = LayoutNodeBase & {
+  kind: 'sqrt'
+  surdWidth: number
+  color: string
+  thickness: number
+  child: LayoutNode
+}
+
 export type LayoutNode =
   | LayerLayoutNode
   | FlexLayoutNode
@@ -226,6 +234,7 @@ export type LayoutNode =
   | ShapeLayoutNode
   | LineLayoutNode
   | CustomLayoutNode
+  | SqrtLayoutNode
 
 export type FvgDocument = {
   width: number
