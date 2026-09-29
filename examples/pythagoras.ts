@@ -2,7 +2,6 @@ import type { CanvasRenderingContext2D } from '@napi-rs/canvas'
 import {
   h,
   interpolate,
-  sequence,
   spring,
   type Composition,
   type DrawElSnapshot,
@@ -121,72 +120,47 @@ function drawFigure(ctx: CanvasRenderingContext2D, el: DrawElSnapshot) {
   }
 }
 
-function titleBlock(input: FrameInput) {
-  const rise = spring({ frame: input.frame, fps: input.fps, config: { damping: 14, stiffness: 80 } })
-  const opacity = interpolate(rise, [0, 1], [0, 1])
+const COPY_W = 500
+
+function copyLine(text: string, style: string, opacity: number) {
+  return h('p', { opacity: n(opacity), style: `width:${COPY_W}px; text-align:center; ${style}` }, text)
+}
+
+/** 左侧文案共用一条中线，每行都在 500px 宽里居中。 */
+function copyColumn(input: FrameInput) {
+  const titleOpacity = interpolate(spring({ frame: input.frame, fps: input.fps, config: { damping: 14, stiffness: 80 } }), [0, 1], [0, 1])
+  const definitionOpacity = interpolate(input.frame, [28, 42], [0, 1])
+  const formulaOpacity = interpolate(input.frame, [52, 64], [0, 1])
+  const exampleOpacity = interpolate(input.frame, [132, 148], [0, 1])
   return h(
-    'h1',
+    'Column',
     {
-      cx: '250',
-      cy: n(118 - (1 - rise) * 28),
-      anchor: 'center',
-      opacity: n(opacity),
-      style: 'font-size:76px; color:#f4f1ea; text-align:center',
+      cx: '300',
+      cy: '72',
+      anchor: 'top',
+      style: `width:${COPY_W}px; gap:36px; align-items:center`,
     },
-    '勾股定理',
-  )
-}
-
-function definition(input: FrameInput) {
-  return sequence(input, { from: 28, durationInFrames: DURATION - 28 }, (local) => {
-    const opacity = interpolate(local.frame, [0, 14], [0, 1])
-    return h(
+    copyLine('勾股定理', 'font-size:76px; font-weight:700; color:#f4f1ea', titleOpacity),
+    h(
       'p',
       {
-        cx: '250',
-        cy: '210',
-        anchor: 'center',
-        opacity: n(opacity),
-        style: `width:420px; font-size:32px; color:${MUTED}; text-align:center; line-height:1.45`,
+        opacity: n(definitionOpacity),
+        style: `width:${COPY_W}px; text-align:center; font-size:32px; color:${MUTED}; line-height:1.45`,
       },
-      '直角三角形中，两条直角边的平方和等于斜边的平方',
-    )
-  })
-}
-
-function formula(input: FrameInput) {
-  return sequence(input, { from: 52, durationInFrames: DURATION - 52 }, (local) => {
-    const opacity = interpolate(local.frame, [0, 12], [0, 1])
-    return h(
-      'p',
-      {
-        cx: '250',
-        cy: '340',
-        anchor: 'center',
-        opacity: n(opacity),
-        style: 'font-size:54px; color:#f5c16c; text-align:center',
-      },
-      'a² + b² = c²',
-    )
-  })
-}
-
-function example(input: FrameInput) {
-  return sequence(input, { from: 132, durationInFrames: DURATION - 132 }, (local) => {
-    const opacity = interpolate(local.frame, [0, 16], [0, 1])
-    return h(
+      '直角三角形中',
+      h('br'),
+      '两条直角边的平方和',
+      h('br'),
+      '等于斜边的平方',
+    ),
+    copyLine('a² + b² = c²', 'font-size:54px; color:#f5c16c', formulaOpacity),
+    h(
       'Column',
-      {
-        cx: '280',
-        cy: '530',
-        anchor: 'center',
-        opacity: n(opacity),
-        style: 'width:460px; gap:16px; align-items:center',
-      },
-      h('p', { style: `width:460px; font-size:32px; color:${INK}; text-align:center` }, '勾 = 3，股 = 4，弦 = 5'),
-      h('p', { style: 'width:460px; font-size:44px; color:#f4f1ea; text-align:center' }, '9 + 16 = 25'),
-    )
-  })
+      { opacity: n(exampleOpacity), style: `width:${COPY_W}px; gap:16px; align-items:center` },
+      copyLine('勾 = 3，股 = 4，弦 = 5', `font-size:32px; color:${INK}`, 1),
+      copyLine('9 + 16 = 25', 'font-size:44px; color:#f4f1ea', 1),
+    ),
+  )
 }
 
 export const pythagoras: Composition = {
@@ -215,10 +189,7 @@ export const pythagoras: Composition = {
           numbers: n(numbers),
           draw: drawFigure,
         }),
-        titleBlock(input),
-        definition(input),
-        formula(input),
-        example(input),
+        copyColumn(input),
       ),
     )
   },
