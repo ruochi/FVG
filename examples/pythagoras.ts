@@ -101,17 +101,15 @@ function intro(frame: number) {
   const opacity = 1 - ramp(frame, 80, 98)
   const rise = pop(frame, 0)
   return h(
+    'Layer',
+    { cx: '960', cy: n(540 + (1 - rise) * 40), anchor: 'center', opacity: n(opacity) },
+    h(
     'Column',
-    {
-      cx: '960',
-      cy: n(540 + (1 - rise) * 40),
-      anchor: 'center',
-      opacity: n(opacity),
-      style: 'gap:36px; align-items:center',
-    },
+    { style: 'gap:36px; align-items:center' },
     h('h1', { opacity: n(ramp(frame, 0, 18)), style: `font-size:150px; color:${INK}` }, '勾股定理'),
     h('p', { opacity: n(ramp(frame, 14, 32)), style: `font-size:52px; color:${MUTED}` }, '直角三角形三条边之间的关系'),
     equation([['a²', A], '+', ['b²', B], '=', ['c²', C]], 72, 20, ramp(frame, 28, 46)),
+    ),
   )
 }
 
@@ -128,8 +126,11 @@ function header(frame: number) {
   const opacity = ramp(frame, 90, 110)
   const active = stepIndex(frame)
   return h(
+    'Layer',
+    { cx: '120', cy: '64', anchor: 'top-left', opacity: n(opacity) },
+    h(
     'Row',
-    { cx: '120', cy: '64', anchor: 'top-left', opacity: n(opacity), style: 'gap:40px; align-items:center' },
+    { style: 'gap:40px; align-items:center' },
     h('h2', { style: `font-size:56px; color:${INK}` }, '勾股定理'),
     h(
       'Row',
@@ -146,6 +147,7 @@ function header(frame: number) {
           `${i + 1} ${step}`,
         ),
       ),
+    ),
     ),
   )
 }
@@ -168,8 +170,11 @@ function caption(frame: number) {
   if (!c) return null
   const opacity = envelope(frame, c.from, c.to, 12)
   return h(
+    'Layer',
+    { cx: '120', cy: '260', anchor: 'top-left', opacity: n(opacity) },
+    h(
     'Column',
-    { cx: '120', cy: '260', anchor: 'top-left', opacity: n(opacity), style: 'gap:28px; align-items:start' },
+    { style: 'gap:28px; align-items:start' },
     h('p', { style: `font-size:44px; color:${C}` }, c.step),
     h(
       'Column',
@@ -177,6 +182,7 @@ function caption(frame: number) {
       ...c.body.map((line) => h('p', { style: `font-size:56px; color:${INK}; white-space:nowrap` }, line)),
     ),
     c.equation ? equation(c.equation, 56, 16) : null,
+    ),
   )
 }
 
@@ -441,17 +447,15 @@ function proof(frame: number) {
 function outro(frame: number) {
   const opacity = ramp(frame, 880, 900)
   return h(
+    'Layer',
+    { cx: '960', cy: n(580 + (1 - opacity) * 30), anchor: 'center', opacity: n(opacity) },
+    h(
     'Column',
-    {
-      cx: '960',
-      cy: n(580 + (1 - opacity) * 30),
-      anchor: 'center',
-      opacity: n(opacity),
-      style: 'gap:44px; align-items:center',
-    },
+    { style: 'gap:44px; align-items:center' },
     h('p', { style: `font-size:56px; color:${MUTED}` }, '空出的面积相等，所以'),
     equation([['a²', A], '+', ['b²', B], '=', ['c²', C]], 110, 28),
     h('p', { style: `font-size:52px; color:${INK}` }, '3² + 4² = 5²，也就是 9 + 16 = 25'),
+    ),
   )
 }
 

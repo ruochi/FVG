@@ -60,7 +60,7 @@ describe('paint containers', () => {
       h(
         'Layer',
         { cx: '100', cy: '100', width: '100', height: '100', rotate: '90' },
-        h('Rect', { cx: '50', cy: '10', anchor: 'top', width: '100', height: '20', fill: '#ffffff' }),
+        h('Rect', { x1: '0', y1: '10', x2: '100', y2: '30', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -96,7 +96,7 @@ describe('paint containers', () => {
       h(
         'Layer',
         { cx: '100', cy: '20', anchor: 'top-left', width: '100', height: '100', rotate: '90', origin: 'top-left' },
-        h('Rect', { cx: '0', cy: '40', anchor: 'top-left', width: '10', height: '40', fill: '#ffffff' }),
+        h('Rect', { x1: '0', y1: '40', x2: '10', y2: '80', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -141,5 +141,48 @@ describe('paint containers', () => {
     )
     const linePng = await renderFvg(line)
     expect((await pixelAt(linePng.png, 100, 96))[0]).toBeGreaterThan(200)
+  })
+
+  it('空 div 色块不报 text-overflow', async () => {
+    const root = h(
+      'fvg',
+      { width: '120', height: '80', background: '#000000' },
+      h('Layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('Row', { style: 'gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
+    )
+    const { png, report } = await renderFvg(root)
+    expect(report.issues.some((issue) => issue.code === 'text-overflow')).toBe(false)
+    expect((await pixelAt(png, 20, 24))[0]).toBeGreaterThan(200)
+  })
+
+  it('flex:1 的分隔线占满剩余宽度', async () => {
+    const root = h(
+      'fvg',
+      { width: '300', height: '80', background: '#000000' },
+      h(
+        'Layer',
+        { cx: '10', cy: '30', anchor: 'top-left' },
+        h(
+          'Row',
+          { style: 'width:280px; gap:8px; align-items:center' },
+          h('p', { style: 'font-size:32px; color:#ffffff' }, '左'),
+          h('div', { style: 'flex:1; height:4px; background:#ffffff' }),
+          h('p', { style: 'font-size:32px; color:#ffffff' }, '右'),
+        ),
+      ),
+    )
+    const { png, report } = await renderFvg(root)
+    expect(report.issues.filter((issue) => issue.level === 'error')).toEqual([])
+    expect((await pixelAt(png, 150, 48))[0]).toBeGreaterThan(200)
+  })
+
+  it('直接定位的 Row 和包一层 Layer 画出来一样', async () => {
+    const row = h('Row', { style: 'gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙'))
+    const direct = h('fvg', { width: '400', height: '120', background: '#000000' }, h('Row', { cx: '20', cy: '30', anchor: 'top-left', style: 'gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙')))
+    const wrapped = h('fvg', { width: '400', height: '120', background: '#000000' }, h('Layer', { cx: '20', cy: '30', anchor: 'top-left' }, row))
+    const a = await renderFvg(direct)
+    const b = await renderFvg(wrapped)
+    const pa = await pixelAt(a.png, 30, 40)
+    const pb = await pixelAt(b.png, 30, 40)
+    expect(Array.from(pa)).toEqual(Array.from(pb))
   })
 })
