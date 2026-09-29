@@ -145,13 +145,20 @@ function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
 function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
   ctx.save()
   ctx.translate(node.x, node.y)
-  ctx.strokeStyle = node.stroke
-  ctx.fillStyle = node.stroke
-  ctx.lineWidth = node.strokeWidth
+  const stroked = node.stroke !== 'none' && node.strokeWidth > 0
+  if (stroked) {
+    ctx.strokeStyle = node.stroke
+    ctx.fillStyle = node.stroke
+    ctx.lineWidth = node.strokeWidth
+  }
   ctx.lineCap = node.strokeLinecap ?? 'round'
   ctx.lineJoin = node.strokeLinejoin ?? 'round'
   const g = node.geometry
   if (g.kind === 'line' || g.kind === 'arrow') {
+    if (!stroked) {
+      ctx.restore()
+      return
+    }
     ctx.beginPath()
     ctx.moveTo(g.x1, g.y1)
     ctx.lineTo(g.x2, g.y2)
@@ -161,7 +168,7 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
       drawArrowHead(ctx, g.x1, g.y1, g.x2, g.y2, head)
     }
   } else if (g.kind === 'polyline') {
-    if (g.points.length < 2) {
+    if (g.points.length < 2 || !stroked) {
       ctx.restore()
       return
     }
@@ -182,14 +189,14 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
       ctx.fillStyle = node.fill
       ctx.fill()
     }
-    ctx.stroke()
+    if (stroked) ctx.stroke()
   } else if (g.kind === 'path') {
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill
       ctx.fill(p)
     }
-    ctx.stroke(p)
+    if (stroked) ctx.stroke(p)
   } else {
     // 未知线条类型
   }

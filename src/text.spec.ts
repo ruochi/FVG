@@ -32,6 +32,30 @@ describe('layoutText', () => {
     expect(r.lines.some((l) => l.segments.some((s) => s.text === 'Bitcoin'))).toBe(true)
   })
 
+  it('行内保留空格，行首行尾去掉', () => {
+    if (!hasFont) return
+    const oneLine = layoutText({
+      segments: [{ text: 'a² + b² = c²', style: baseStyle }],
+      nowrap: true,
+      lineHeightRatio: 1.2,
+      fontSize: 40,
+    })
+    expect(oneLine.lines).toHaveLength(1)
+    expect(oneLine.lines[0]!.segments.map((s) => s.text).join('')).toBe('a² + b² = c²')
+
+    const wrapped = layoutText({
+      segments: [{ text: 'Bitcoin halving', style: baseStyle }],
+      maxWidth: 200,
+      lineHeightRatio: 1.2,
+      fontSize: 40,
+      textWrap: 'wrap',
+    })
+    for (const line of wrapped.lines) {
+      const text = line.segments.map((s) => s.text).join('')
+      expect(text).toBe(text.trim())
+    }
+  })
+
   it('br 硬换行', () => {
     if (!hasFont) return
     const segments: TextSegment[] = [

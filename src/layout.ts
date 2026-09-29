@@ -667,7 +667,14 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   const fixedH = parsePx(style.height) ?? parseNumber(node.attrs.height)
 
   const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
-  const placed: Array<{ child: LayoutNode; cx?: number; cy?: number; anchor: Anchor; useDefaultCenter: boolean }> = []
+  const placed: Array<{
+    child: LayoutNode
+    cx?: number
+    cy?: number
+    anchor: Anchor
+    useDefaultCenter: boolean
+    ownCoords: boolean
+  }> = []
 
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
@@ -691,6 +698,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
       cy: cy ?? undefined,
       anchor: parseAnchor(ch.attrs.anchor),
       useDefaultCenter: cx == null || cy == null,
+      ownCoords: laid.kind === 'line',
     })
   }
 
@@ -698,6 +706,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   let layerH = fixedH ?? 0
 
   const positionOne = (p: (typeof placed)[0], lw: number, lh: number) => {
+    if (p.ownCoords) return
     const cx = p.cx ?? lw / 2
     const cy = p.cy ?? lh / 2
     const tl = anchorTopLeft(cx, cy, p.child.width, p.child.height, p.anchor)

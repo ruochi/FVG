@@ -248,14 +248,22 @@ function bindLineBreakUnits(units: Unit[]): Unit[][] {
   return groups
 }
 
+/** 去掉行首行尾的空格，行内连续空格只留一个。 */
 function glueUnits(lineUnits: Unit[]): Unit[] {
+  let start = 0
+  let end = lineUnits.length
+  while (start < end && lineUnits[start]!.isSpace) start++
+  while (end > start && lineUnits[end - 1]!.isSpace) end--
   const out: Unit[] = []
-  for (let i = 0; i < lineUnits.length; i++) {
+  for (let i = start; i < end; i++) {
     const u = lineUnits[i]!
-    if (u.isSpace) continue
+    if (u.isSpace) {
+      if (!out[out.length - 1]?.isSpace) out.push(u)
+      continue
+    }
     let text = u.text
     let style = u.style
-    if (i + 1 < lineUnits.length) {
+    if (i + 1 < end) {
       const next = lineUnits[i + 1]!
       if (LINE_TAIL_FORBIDDEN.has(u.text.slice(-1)!) && !next.isSpace) {
         text += next.text
@@ -264,7 +272,7 @@ function glueUnits(lineUnits: Unit[]): Unit[] {
     }
     if (out.length > 0) {
       const prev = out[out.length - 1]!
-      if (LINE_HEAD_FORBIDDEN.has(text[0]!)) {
+      if (LINE_HEAD_FORBIDDEN.has(text[0]!) && !prev.isSpace) {
         out[out.length - 1] = {
           ...prev,
           text: prev.text + text,
@@ -372,12 +380,12 @@ export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
 
   let autoWrap = false
   for (const group of paragraphGroups) {
-    const natural = lineWidth(glueUnits(group.filter((u) => !u.isSpace)))
+    const natural = lineWidth(glueUnits(group))
     if (!opts.fixedWidth && !opts.nowrap && opts.maxWidth != null && natural > opts.maxWidth + 1e-3) {
       autoWrap = true
     }
     if (opts.nowrap || effectiveMax === Infinity) {
-      allLines.push(glueUnits(group.filter((u) => !u.isSpace)))
+      allLines.push(glueUnits(group))
     } else if (opts.textWrap === 'wrap') {
       allLines.push(...wrapParagraph(group, effectiveMax))
     } else {

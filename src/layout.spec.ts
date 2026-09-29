@@ -33,6 +33,21 @@ describe('layoutSource', () => {
     expect(line!.width).toBeGreaterThan(0)
   })
 
+  it('线条使用 Layer 的局部坐标，不被重新居中', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="400"><Layer cx="200" cy="200" width="300" height="300"><Line x1="10" y1="10" x2="50" y2="10" stroke-width="4" /><Polygon points="100,100 140,100 100,160" stroke-width="2" /></Layer></fvg>`,
+      process.cwd(),
+    )
+    const layer = doc.root.children[0]
+    expect(layer?.kind).toBe('layer')
+    const [line, polygon] = (layer as { children: Array<{ x: number; y: number }> }).children
+    // 盒子 = 几何范围 + 半个描边 + 4px 余量
+    expect(line?.x).toBe(4)
+    expect(line?.y).toBe(4)
+    expect(polygon?.x).toBe(95)
+    expect(polygon?.y).toBe(95)
+  })
+
   it('invalid-child 线条进 Row', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><Row><Line x1="0" y1="0" x2="10" y2="10" /></Row></fvg>`,
