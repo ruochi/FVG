@@ -8,6 +8,7 @@ import {
   type Node as YogaNode,
 } from 'yoga-layout/load'
 import { attachDrawTags } from './draw-tag.js'
+import { imageInk, loadLayerImage, parseObjectFit, parseObjectPosition } from './image.js'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
 import { ensureBuiltinFonts, registerFontsFromDocument } from './fonts.js'
@@ -39,8 +40,8 @@ import {
   isTextBoxTag,
   layoutText,
 } from './text.js'
-import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint, isDisplayFlex, rowColumnHint } from './rules.js'
-import { FONT_TAG, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint, isDisplayFlex, isHtmlTag, rowColumnHint } from './rules.js'
+import { FONT_TAG, isImageTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
 import type {
   Anchor,
   Box,
@@ -48,6 +49,7 @@ import type {
   DrawComputedStyle,
   FlexLayoutNode,
   FvgDocument,
+  ImageLayoutNode,
   Issue,
   LayerLayoutNode,
   LayoutNode,
@@ -74,6 +76,8 @@ export type LayoutContext = {
   pathPrefix: string
   symbols: Map<string, FvgNode>
   useStack: string[]
+  /** 解析 img 的相对路径。 */
+  baseDir: string
 }
 
 function isClosedFlag(raw: string | undefined): boolean {
@@ -353,7 +357,7 @@ function computeDrawStyle(node: FvgNode, ctx: LayoutContext, style: Record<strin
     parseFontWeight(style['font-weight']) ?? (isTextBoxTag(node.tag) ? defaultFontWeightForTag(tag) : 400)
   const fontFamily = style['font-family']?.trim() || ctx.fontFamily
   const color = style.color ?? ctx.color
-  const opacity = isTextBoxTag(node.tag) ? parseNumber(style.opacity) ?? 1 : parseNumber(node.attrs.opacity) ?? 1
+  const opacity = isHtmlTag(node.tag) ? parseNumber(style.opacity) ?? 1 : parseNumber(node.attrs.opacity) ?? 1
   return { color, fontFamily, fontSize, fontWeight, opacity }
 }
 
@@ -640,6 +644,135 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   }
 }
 
+function refitImageNode(node: ImageLayoutNode, x: number, y: number, width: number, height: number): ImageLayoutNode {
+  const bw = node.border?.width ?? 0
+  const contentW = Math.max(0, width - node.padding.left - node.padding.right - bw * 2)
+  const contentH = Math.max(0, height - node.padding.top - node.padding.bottom - bw * 2)
+  const ink = imageInk(
+    contentW,
+    contentH,
+    node.bitmap?.width ?? 0,
+    node.bitmap?.height ?? 0,
+    node.objectFit,
+    node.objectPosition,
+    node.padding.left + bw,
+    node.padding.top + bw,
+  )
+  return { ...node, x, y, width, height, ink }
+}
+
+function displaySrc(src: string): string {
+  if (/^data:/i.test(src)) return 'data URL'
+  return src.length > 160 ? `${src.slice(0, 157)}…` : src
+}
+
+async function layoutImage(node: FvgNode, ctx: LayoutContext): Promise<ImageLayoutNode> {
+  const style = parseStyle(node.attrs.style)
+  const appearance = readHtmlAppearance(style)
+  if (appearance.background) appearance.background = readPaint(appearance.background, 'transparent', ctx, 'background')
+  if (isDisplayFlex(node.attrs.style)) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: '图片不能当作 flex 容器',
+      hint: '排布用 <div style="display:flex">，把 <img src="…"> 放进去',
+    })
+  }
+  if (!node.attrs.src?.trim()) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: style.src ? `${node.tag} 的 src 要写成属性` : `${node.tag} 缺少 src`,
+      hint: '写成 <img src="cover.png" style="width:320px; height:180px" />。src 是属性，不要写进 style',
+    })
+  }
+  let bitmap: ImageLayoutNode['bitmap'] = null
+  if (node.attrs.src?.trim()) {
+    try {
+      bitmap = await loadLayerImage(node.attrs.src, ctx.baseDir)
+    } catch {
+      ctx.issues.push({
+        level: 'warn',
+        code: 'missing-image',
+        path: ctx.pathPrefix,
+        message: `图片无法加载: ${displaySrc(node.attrs.src.trim())}`,
+        hint: 'src 相对 .layer 所在目录，也可以写 http(s) 或 data URL',
+      })
+    }
+  }
+  const parsedFit = parseObjectFit(style['object-fit'])
+  if (parsedFit.invalid) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `不支持的 object-fit: ${style['object-fit']}`,
+      hint: '用 fill、contain、cover 或 none',
+    })
+  }
+  const parsedPos = parseObjectPosition(style['object-position'])
+  if (!parsedPos) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `不支持的 object-position: ${style['object-position']}`,
+      hint: '用 center、top-left、left top，或 50% 0%',
+    })
+  }
+  const objectFit = parsedFit.fit
+  const objectPosition = parsedPos ?? { x: 0.5, y: 0.5 }
+  const natW = bitmap?.width ?? 0
+  const natH = bitmap?.height ?? 0
+  const fixedW = parsePx(style.width)
+  const fixedH = parsePx(style.height)
+  const bw = appearance.border?.width ?? 0
+  const padX = appearance.padding.left + appearance.padding.right + bw * 2
+  const padY = appearance.padding.top + appearance.padding.bottom + bw * 2
+  let contentW: number
+  let contentH: number
+  if (fixedW != null && fixedH != null) {
+    contentW = Math.max(0, fixedW - padX)
+    contentH = Math.max(0, fixedH - padY)
+  } else if (fixedW != null) {
+    contentW = Math.max(0, fixedW - padX)
+    contentH = natW > 0 ? (contentW * natH) / natW : 0
+  } else if (fixedH != null) {
+    contentH = Math.max(0, fixedH - padY)
+    contentW = natH > 0 ? (contentH * natW) / natH : 0
+  } else {
+    contentW = natW
+    contentH = natH
+  }
+  const outer = outerFromContent(contentW, contentH, appearance.padding, appearance.border)
+  const laid = refitImageNode(
+    {
+      kind: 'image',
+      path: ctx.pathPrefix,
+      id: node.attrs.id,
+      tag: node.tag,
+      x: 0,
+      y: 0,
+      width: fixedW ?? outer.width,
+      height: fixedH ?? outer.height,
+      ink: { x: 0, y: 0, width: 0, height: 0 },
+      bitmap,
+      objectFit,
+      objectPosition,
+      ...appearance,
+      ...readEffects(style, ctx, ctx.color),
+      ...layoutDrawMeta(node, ctx),
+    },
+    0,
+    0,
+    fixedW ?? outer.width,
+    fixedH ?? outer.height,
+  )
+  return laid
+}
+
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
   const appearance = readAttrAppearance(node.attrs)
   let x = 0
@@ -821,6 +954,17 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       isText: false,
     }
   }
+  if (isImageTag(node.tag)) {
+    const laid = await layoutImage(node, ctx)
+    return {
+      node: laid,
+      minMain: direction === 'row' ? laid.width : laid.height,
+      minCross: direction === 'row' ? laid.height : laid.width,
+      preferredMain: direction === 'row' ? laid.width : laid.height,
+      preferredCross: direction === 'row' ? laid.height : laid.width,
+      isText: false,
+    }
+  }
   if (isTextBoxTag(node.tag)) {
     const laid = layoutTextBox(node, ctx, ctx.maxContentWidth)
     return {
@@ -969,6 +1113,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
       if (layout.width > re.width + 0.5) re.width = layout.width
       if (layout.height > re.height + 0.5) re.height = layout.height
       child = re
+    } else if (child.kind === 'image') {
+      child = refitImageNode(child, layout.left, layout.top, layout.width, layout.height)
     } else {
       child = { ...child, x: layout.left, y: layout.top, width: layout.width, height: layout.height }
       if (child.kind === 'layer' || child.kind === 'flex') {
@@ -1094,6 +1240,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     if (ch.tag === 'use') laid = await layoutUse(ch, subCtx)
     else if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
     else if (isDisplayFlex(ch.attrs.style) && isTextBoxTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
+    else if (isImageTag(ch.tag)) laid = await layoutImage(ch, subCtx)
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
@@ -1101,7 +1248,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
       laid = layoutUnknownOrCustom(ch, subCtx)
     }
     if (!laid) continue
-    const html = isTextBoxTag(ch.tag)
+    const html = isHtmlTag(ch.tag)
     const cx = html ? undefined : parseNumber(ch.attrs.cx)
     const cy = html ? undefined : parseNumber(ch.attrs.cy)
     placed.push({
@@ -1272,6 +1419,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
     pathPrefix: 'Layer',
     symbols,
     useStack: [],
+    baseDir,
   }
   const hadBackground = attrs.background != null && attrs.background.trim() !== ''
   const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'

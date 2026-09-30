@@ -2,7 +2,7 @@
 
 本文只规定 Flex Layer 如何接公式。实现时请按 dc 里已经画对的行为来做，不要另写一套间距。
 
-Flex Layer 当前不支持 MathML。文字标签只有 `h1`、`h2`、`h3`、`p`、`div`、`span`，行内只有 `span`、`strong`、`b`、`em`、`br`。写进文件的 `<math>`、`<mfrac>`、`<msqrt>` 会被当成不认识的标签丢掉。
+Flex Layer 当前不支持 MathML。文字标签只有 `h1`、`h2`、`h3`、`p`、`div`、`span`，行内只有 `span`、`strong`、`b`、`em`、`br`。图片用 HTML 的 `img`（`image` 同样可用）。写进文件的 `<math>`、`<mfrac>`、`<msqrt>` 会被当成不认识的标签丢掉。
 
 ## 参考代码在哪
 

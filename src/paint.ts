@@ -22,6 +22,7 @@ type PaintCtx = CanvasRenderingContext2D & {
   getTransform(): { a: number; b: number; c: number; d: number; e: number; f: number }
 }
 import { buildFontString } from './fonts.js'
+import { fitImageRect } from './image.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { originOffset } from './matrix.js'
@@ -29,6 +30,7 @@ import { colorFilterToCss } from './style.js'
 import type {
   GlassSpec,
   GlowSpec,
+  ImageLayoutNode,
   LayerLayoutNode,
   LayoutNode,
   LineLayoutNode,
@@ -119,6 +121,40 @@ function drawBoxChrome(ctx: CanvasRenderingContext2D, node: LayoutNode) {
       ctx.strokeRect(node.x + node.border.width / 2, node.y + node.border.width / 2, node.width - node.border.width, node.height - node.border.width)
     }
   }
+}
+
+function drawImageNode(ctx: CanvasRenderingContext2D, node: ImageLayoutNode, recolor?: string) {
+  const bw = node.border?.width ?? 0
+  const boxX = node.x + node.padding.left + bw
+  const boxY = node.y + node.padding.top + bw
+  const boxW = node.width - node.padding.left - node.padding.right - bw * 2
+  const boxH = node.height - node.padding.top - node.padding.bottom - bw * 2
+  const bitmap = node.bitmap
+  if (!bitmap || boxW <= 0 || boxH <= 0) return
+  const dest = fitImageRect(boxW, boxH, bitmap.width, bitmap.height, node.objectFit, node.objectPosition)
+  ctx.save()
+  if (node.borderRadius && node.borderRadius > 0) {
+    roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
+    ctx.clip()
+  }
+  ctx.beginPath()
+  ctx.rect(boxX, boxY, boxW, boxH)
+  ctx.clip()
+  const paint = ctx as PaintCtx
+  if (recolor) {
+    const tw = Math.max(1, Math.ceil(boxW))
+    const th = Math.max(1, Math.ceil(boxH))
+    const off = createCanvas(tw, th)
+    const octx = off.getContext('2d') as PaintCtx
+    octx.drawImage(bitmap, dest.x, dest.y, dest.width, dest.height)
+    octx.globalCompositeOperation = 'source-in'
+    octx.fillStyle = recolor
+    octx.fillRect(0, 0, tw, th)
+    paint.drawImage(off, boxX, boxY, boxW, boxH)
+  } else {
+    paint.drawImage(bitmap, boxX + dest.x, boxY + dest.y, dest.width, dest.height)
+  }
+  ctx.restore()
 }
 
 function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode, inkColor?: string) {
@@ -419,6 +455,11 @@ function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: nu
   if (node.kind === 'text') {
     if (node.background && node.background !== 'transparent') drawBoxSilhouette(ctx, node, spread, ink)
     drawTextNode(ctx, node, ink)
+    return
+  }
+  if (node.kind === 'image') {
+    if (node.background && node.background !== 'transparent') drawBoxSilhouette(ctx, node, spread, ink)
+    drawImageNode(ctx, node, ink)
     return
   }
   if (node.kind === 'custom') {
@@ -889,6 +930,9 @@ function paintBody(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, s
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
     drawTextNode(ctx, node)
+  } else if (node.kind === 'image') {
+    drawBoxChrome(ctx, node)
+    drawImageNode(ctx, node)
   } else if (node.kind === 'shape') {
     drawShape(ctx, node)
   } else if (node.kind === 'line') {

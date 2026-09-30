@@ -45,11 +45,12 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | 容器 | `Layer`（嵌套不填背景）。横排竖排用带 `display:flex` 的 `div` |
 | 绘制 | `draw`（子标签，正文 JS；程序侧也可用 `draw={fn}`） |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
+| 图片 | `img`（`image` 是同一个标签） |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
 | 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path`、`Curve` |
 | 复用 | `symbol`、`use` |
 
-- `Layer` 和图形首字母大写，文字标签全部小写（和 HTML 一样）。HTML 只写 `style`，`Layer` 和图形只写属性。
+- `Layer` 和图形首字母大写，文字和图片标签全部小写（和 HTML 一样）。HTML 只写 `style`，`Layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。
 - 后写的元素画在上面。
 - 不认识的标签会被忽略，并在报告里给出警告。
 
@@ -74,12 +75,14 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | `cx`、`cy`、`anchor`、`width`、`height`、`opacity`、`rotate`、`scale`、`origin` | `Layer` 的属性。HTML 上写了报 `warn` |
 | `flex`、`gap`、`align-items`、字号、颜色、背景 | HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn` |
 | `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `Layer` 的局部坐标 |
+| `src`、`alt` | 只写在 `img` 上。宽高仍放进 `style` |
 
 叶子的定位：
 
 | 叶子 | 怎么定位 |
 | --- | --- |
 | 文字，以及没写宽高的一组 HTML | 外包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上 |
+| 图片 `img` | 和文字一样，外包一层 `Layer` 来定位 |
 | 形状、带 `draw` 和尺寸的自定义元素 | 中心写法（`cx`、`cy` 永远是中心）或两点写法 `x1 y1 x2 y2`。尺寸是自己写的，不用 `anchor` |
 | 线条 | 端点、`points`、`d` 本身就是坐标，不写 `cx`、`cy` |
 
@@ -124,7 +127,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 ### 4.2 flex：HTML 排布
 
-`display:flex` 把 `div`（以及其他文字标签）变成排布容器，不再当文字盒子。默认横向。竖排写 `flex-direction:column`。子元素是文字、flex 容器或 `Layer`。
+`display:flex` 把 `div`（以及其他文字标签）变成排布容器，不再当文字盒子。默认横向。竖排写 `flex-direction:column`。子元素是文字、图片、flex 容器或 `Layer`。
 
 图形要放进 flex，包一层写了宽高的 `Layer`，或者改用 `div` 盒子（`width`、`height`、`background`、`border-radius`）。形状直接放进来会照尺寸渲染并报 `info`；线条直接放进来不渲染，报 `warn`。两点坐标写在 flex 里的形状上不渲染，报 `warn`。
 
@@ -142,7 +145,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 子元素可以写的 flex 属性：`flex-grow`、`flex-shrink`、`align-self`、`width`、`height`。
 
 - 文字默认 `flex-shrink:1`，空间不够时会换行变窄，但不会窄过最长的一个不可断开的词。
-- 形状默认 `flex-shrink:0`，不会被压扁。
+- 形状和图片默认 `flex-shrink:0`，不会被压扁。
 
 **可用宽度**：放在 Layer 里、没写 `width` 的 flex 容器，最宽只能到 Layer 的宽度（根 Layer 要减去左右安全区）。
 
@@ -183,6 +186,25 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 4. 中文可以在任意两个字之间断行；英文单词和连续数字不会被拆开。
 5. 避头尾：`，。、；：？！）」』》】…` 等不会出现在行首，`（「『《【` 等不会出现在行尾。
 6. 硬换行只用 `<br>`，源码里的换行和连续空格会被折叠成一个空格。
+
+### 5.4 图片
+
+`img` 是 HTML 标签，不是图形。`image` 和 `img` 是同一个标签。尺寸、圆角、透明度和效果写在 `style` 里；`src` 和 `alt` 写属性。
+
+```html
+<img src="cover.png" alt="封面" style="width:320px; height:180px; object-fit:cover; border-radius:16px" />
+```
+
+| 项 | 说明 |
+| --- | --- |
+| `src` | 必填属性。相对路径相对 `.layer` 所在目录，也支持 `http(s)` 和 data URL |
+| `alt` | 属性，不绘制 |
+| `width`、`height` | 外框尺寸，含 padding 和 border。都没写时用图片像素尺寸；只写一边时另一边按原比例 |
+| `object-fit` | `fill`（默认，拉伸铺满）、`contain`（整张放进盒子）、`cover`（铺满并裁切）、`none`（原始像素，不缩放） |
+| `object-position` | 默认 `center`。可写 `top`、`left`、`top-left`、`left top`，或相对图片盒子的 `0%`–`100%`（例如 `50% 0%`） |
+| `border-radius`、`opacity`、`padding`、`background`、`border` | 同其它 HTML。圆角会裁切图片 |
+
+图片可以放进 `display:flex`，默认不缩小。在 Layer 里和文字一样默认居中；要指定位置就外包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在那一层上。加载失败报 `missing-image`，写了宽高的盒子仍然占位。缺 `src` 报 `invalid-attr`。
 
 ## 6. 形状
 
@@ -331,8 +353,9 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `non-canonical` | info | 含义明确，但不是规范写法。照常渲染，`hint` 里是规范写法 |
 | `unknown-tag` | warn | 不认识的标签 |
 | `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
-| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，或文字盒子里放了 `h1`–`h3`、`p`、`div` |
+| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，文字盒子里放了 `h1`–`h3`、`p`、`div` 或图片 |
 | `invalid-draw` | error / warn | `<draw>` 语法错误（error）或内容为空（warn） |
+| `missing-image` | warn | `img` 的 `src` 读不到 |
 | `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |
 | `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
 | `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |

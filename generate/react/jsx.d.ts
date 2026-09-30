@@ -110,6 +110,9 @@ declare global {
       b: FvgCommon
       em: FvgCommon
       br: FvgCommon
+      /** HTML 图片。src、alt 是属性，宽高写 style。`image` 与 `img` 相同。 */
+      img: FvgCommon & { src?: string; alt?: string }
+      image: FvgCommon & { src?: string; alt?: string }
     }
   }
 }

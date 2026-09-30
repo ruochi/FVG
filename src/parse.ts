@@ -9,7 +9,7 @@ export type FvgNode = {
 
 export type FvgChild = string | FvgNode
 
-const VOID_TAGS = new Set(['br', 'font'])
+const VOID_TAGS = new Set(['br', 'font', 'img', 'image'])
 
 const CLOSE_TAG_RE = /<\s*\/\s*([a-zA-Z][\w-]*)\s*>/y
 const OPEN_TAG_RE = /<\s*([a-zA-Z][\w-]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*(\/)?\s*>/y
@@ -102,7 +102,7 @@ export function parseFvg(source: string): FvgNode[] {
     }
     const node: FvgNode = { tag, attrs, children: [] }
     stack[stack.length - 1].children.push(node)
-    if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
+    if (!open[3] && !VOID_TAGS.has(tag.toLowerCase())) stack.push(node)
     pos = lt + open[0].length
   }
 

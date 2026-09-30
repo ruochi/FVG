@@ -17,6 +17,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 | 叶子 | 在 Layer 里 | 在 flex 里 |
 | --- | --- | --- |
 | 文字 `h1` `h2` `h3` `p` `div` `span` | 外包 `Layer` 来定位。文字本身只写 `style` | 直接放 |
+| 图片 `img`（`image` 相同） | 外包 `Layer` 来定位。`src` 是属性，宽高和 `object-fit` 写 `style` | 直接放，默认不缩小 |
 | `Rect` | `cx cy width height`，或 `x1 y1 x2 y2`（对角，可反着写） | 不规范。包一层有宽高的 Layer，或改用 div |
 | `Ellipse` | `cx cy rx ry`，或两点写法表示外接矩形 | 同上 |
 | `Circle` | `cx cy r`（圆心） | 同上 |
@@ -31,7 +32,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 ## 属性归属
 
-HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。图形的填充写成 `fill`。`Layer` 不填背景：色块用 `Rect`、`div`，或 `<draw>`。不认识的属性会保留给 `draw`。
+HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。图片也是 HTML：`<img src="cover.png" style="width:320px; height:180px; object-fit:cover" />`，`src` 留在属性上。图形的填充写成 `fill`。`Layer` 不填背景：色块用 `Rect`、`div`，或 `<draw>`。不认识的属性会保留给 `draw`。
 
 ## 报告
 
