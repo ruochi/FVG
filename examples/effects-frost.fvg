@@ -1,0 +1,25 @@
+<fvg width="720" height="1080" background="#0b1020" color="#f4efe4" font-family="Kai">
+  <Rect x1="0" y1="0" x2="720" y2="1080" fill="linear-gradient(to bottom, #081018, #1a3352 50%, #6e7c72)" />
+
+  <Circle cx="480" cy="260" r="80" fill="#f6f1e6" glow="48 #f3ead4" />
+  <Circle cx="240" cy="760" r="90" fill="#c9a227" opacity="0.35" blur="10" />
+  <Circle cx="500" cy="820" r="64" fill="#3ecfc4" opacity="0.4" blur="8" />
+
+  <Rect x1="0" y1="420" x2="720" y2="460" fill="#f4efe4" opacity="0.55" />
+  <Rect x1="80" y1="200" x2="120" y2="900" fill="#f7931a" opacity="0.45" />
+
+  <!-- 毛玻璃卡片 -->
+  <Rect cx="360" cy="620" width="560" height="360" rx="28"
+        fill="#ffffff28" backdrop-blur="18" border="1 #ffffff55"
+        shadow="0 18 36 #00000055" />
+
+  <Layer cx="360" cy="560" anchor="center">
+    <h1 style="font-size:72px; color:#f7f2e8">寒潮</h1>
+  </Layer>
+  <Layer cx="360" cy="650" anchor="center">
+    <p style="font-size:32px; color:#e8e0d0">backdrop-blur 毛玻璃</p>
+  </Layer>
+  <Layer cx="360" cy="720" anchor="center">
+    <p style="font-size:28px; color:#c9d0d8; filter:saturate(0.7)">背后条纹与月晕被柔化</p>
+  </Layer>
+</fvg>
