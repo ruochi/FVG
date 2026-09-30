@@ -20,6 +20,7 @@ import {
   parseColorFilter,
   parseEdges,
   parseFontWeight,
+  parseGlass,
   parseGlow,
   parseNoise,
   parseNumber,
@@ -50,6 +51,7 @@ import type {
   LayoutNode,
   BlendMode,
   ColorFilterSpec,
+  GlassSpec,
   GlowSpec,
   LineGeometry,
   LineLayoutNode,
@@ -140,6 +142,7 @@ type EffectFields = {
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
+  glass?: GlassSpec
   colorFilter?: ColorFilterSpec[]
   blend?: BlendMode
 }
@@ -225,6 +228,23 @@ function readEffects(src: EffectSource, ctx: LayoutContext, glowColor: string): 
   if (parsedBlend) out.blend = parsedBlend
   else if (blendRaw && blendRaw.trim() !== 'none') {
     warnInvalid(ctx, 'blend', blendRaw, '写成 multiply、screen、overlay、soft-light、lighten、darken 或 source-over')
+  }
+
+  const glassRaw = src.glass
+  const parsedGlass = parseGlass(glassRaw)
+  if (parsedGlass) out.glass = parsedGlass
+  else if (glassRaw && glassRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'glass', glassRaw, '写成 regular、clear、thick，或 24 #ffffff33')
+  }
+
+  if (out.glass && out.backdropBlur != null) {
+    ctx.issues.push({
+      level: 'info',
+      code: 'non-canonical',
+      path: ctx.pathPrefix,
+      message: '同时写了 glass 与 backdrop-blur，以 glass 为准',
+      hint: '删掉 backdrop-blur，或只用 backdrop-blur 做简单毛玻璃',
+    })
   }
 
   if (out.blur != null && out.colorFilter) {

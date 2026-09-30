@@ -7,6 +7,7 @@ import {
   parseColorFilter,
   parseEdges,
   parseFontWeight,
+  parseGlass,
   parseGlow,
   parseNoise,
   parsePx,
@@ -47,5 +48,11 @@ describe('style', () => {
     expect(colorFilterToCss([{ name: 'hue-rotate', value: 15 }])).toBe('hue-rotate(15deg)')
     expect(parseShadow('0 8 #00000055')).toEqual({ x: 0, y: 8, blur: 0, spread: 0, color: '#00000055' })
     expect(parseGlow('48px #f6f1e7')).toEqual({ blur: 48, spread: 0, color: '#f6f1e7' })
+    expect(parseGlass('thick')).toMatchObject({ variant: 'thick', blur: 36, refraction: 0.5 })
+    expect(parseGlass('clear')).toMatchObject({ variant: 'clear', blur: 0, refraction: 1 })
+    expect(parseGlass('24 #ffffff33')).toMatchObject({ variant: 'regular', blur: 24, tint: '#ffffff33' })
+    expect(parseGlass('clear 0 #a8c8ff20')).toMatchObject({ variant: 'clear', blur: 0, tint: '#a8c8ff20' })
+    expect(parseGlass('0')).toMatchObject({ variant: 'regular', blur: 0 })
+    expect(parseGlass('nope')).toBeUndefined()
   })
 })

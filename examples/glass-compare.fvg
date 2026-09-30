@@ -1,0 +1,65 @@
+<fvg width="1080" height="1280" background="#0a0e14" color="#f4f1ea" font-family="Kai">
+  <Rect x1="0" y1="0" x2="1080" y2="1280" fill="linear-gradient(to bottom, #121826, #1a3348 50%, #243c38)" />
+
+  <!-- 共用背景：圆点 + 网格条，方便左右对比 -->
+  <Circle cx="280" cy="420" r="130" fill="#ff5aa5" />
+  <Circle cx="800" cy="420" r="130" fill="#ff5aa5" />
+  <Circle cx="280" cy="900" r="140" fill="#3ecfc4" />
+  <Circle cx="800" cy="900" r="140" fill="#3ecfc4" />
+  <Rect x1="0" y1="360" x2="1080" y2="372" fill="#ffffff" opacity="0.9" />
+  <Rect x1="0" y1="400" x2="1080" y2="412" fill="#f5c16c" />
+  <Rect x1="0" y1="440" x2="1080" y2="452" fill="#7b6cff" />
+  <Rect x1="0" y1="480" x2="1080" y2="492" fill="#ffffff" opacity="0.9" />
+  <Rect x1="0" y1="820" x2="1080" y2="832" fill="#ffffff" opacity="0.9" />
+  <Rect x1="0" y1="860" x2="1080" y2="872" fill="#ff9f1c" />
+  <Rect x1="0" y1="900" x2="1080" y2="912" fill="#3ecfc4" />
+  <Rect x1="0" y1="940" x2="1080" y2="952" fill="#ffffff" opacity="0.9" />
+  <Rect x1="160" y1="240" x2="180" y2="1100" fill="#ffffff" opacity="0.75" />
+  <Rect x1="220" y1="240" x2="240" y2="1100" fill="#ff9f1c" opacity="0.85" />
+  <Rect x1="680" y1="240" x2="700" y2="1100" fill="#ffffff" opacity="0.75" />
+  <Rect x1="740" y1="240" x2="760" y2="1100" fill="#ff9f1c" opacity="0.85" />
+
+  <Layer cx="64" cy="48" anchor="top-left">
+    <h1 style="font-size:48px; color:#f7f2e8">毛玻璃 vs 透明折射</h1>
+  </Layer>
+  <Layer cx="64" cy="110" anchor="top-left">
+    <p style="font-size:26px; color:#9aa7b5">同一背景 · 左 thick · 右 clear</p>
+  </Layer>
+
+  <!-- 左：毛玻璃 -->
+  <Rect cx="300" cy="520" width="400" height="300" rx="32"
+        fill="#ffffff20" glass="thick" border="1.5 #ffffff66" />
+  <Layer cx="300" cy="450" anchor="center">
+    <p style="font-size:36px; color:#ffffff">毛玻璃</p>
+  </Layer>
+  <Layer cx="300" cy="520" anchor="center">
+    <p style="font-size:28px; color:#e8eef4">glass="thick"</p>
+  </Layer>
+  <Layer cx="300" cy="580" anchor="center">
+    <p style="font-size:24px; color:#c5d0da">糊 · 细节消失</p>
+  </Layer>
+
+  <!-- 右：透明折射 -->
+  <Rect cx="780" cy="520" width="400" height="300" rx="32"
+        fill="#ffffff10" glass="clear" border="1.5 #ffffff88" />
+  <Layer cx="780" cy="450" anchor="center">
+    <p style="font-size:36px; color:#ffffff">透明玻璃</p>
+  </Layer>
+  <Layer cx="780" cy="520" anchor="center">
+    <p style="font-size:28px; color:#e8eef4">glass="clear"</p>
+  </Layer>
+  <Layer cx="780" cy="580" anchor="center">
+    <p style="font-size:24px; color:#c5d0da">零模糊 · 边缘折射</p>
+  </Layer>
+
+  <!-- 下方再各放一枚圆形透镜对照 -->
+  <Circle cx="300" cy="960" r="110" fill="#ffffff18" glass="thick" border="1.5 #ffffff66" />
+  <Layer cx="300" cy="960" anchor="center">
+    <p style="font-size:28px; color:#ffffff">frost</p>
+  </Layer>
+
+  <Circle cx="780" cy="960" r="110" fill="#ffffff10" glass="clear" border="1.5 #ffffff88" />
+  <Layer cx="780" cy="960" anchor="center">
+    <p style="font-size:28px; color:#ffffff">lens</p>
+  </Layer>
+</fvg>

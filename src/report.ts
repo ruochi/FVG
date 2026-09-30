@@ -56,6 +56,7 @@ function walk(
   if (node.blur != null) entry.blur = node.blur
   if (node.backdropBlur != null) entry.backdropBlur = node.backdropBlur
   if (node.noise) entry.noise = node.noise
+  if (node.glass) entry.glass = node.glass
   if (node.colorFilter) entry.filter = node.colorFilter
   if (node.blend) entry.blend = node.blend
   if (node.kind === 'text') {
@@ -119,6 +120,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
       el.shadow ? el.shadow.blur * 2 + el.shadow.spread + Math.max(Math.abs(el.shadow.x), Math.abs(el.shadow.y)) : 0,
       el.glow ? el.glow.blur * 2 + el.glow.spread : 0,
       el.blur != null ? el.blur * 2 : 0,
+      el.glass ? el.glass.blur * 2 : 0,
     )
     if (!inkOutside && effectPad > 0) {
       const outside =

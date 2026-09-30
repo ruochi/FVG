@@ -126,6 +126,31 @@ describe('绘制', () => {
     expect(el?.innerGlow?.blur).toBe(10)
   })
 
+  it('clear glass 不模糊：中心原样透出，边缘弧面把内侧内容折射出来', async () => {
+    // 左红右青，分界 x=165；圆心 (100,100) r=80 → 右缘弧面里的青色像素被向内折射成红色
+    const scene = (glass: string) =>
+      `<fvg width="240" height="200" background="#000000">
+        <Rect x="0" y="0" width="165" height="200" fill="#ff0000" />
+        <Rect x="165" y="0" width="75" height="200" fill="#00e5ff" />
+        <Circle cx="100" cy="100" r="80" fill="#ffffff00" ${glass} />
+      </fvg>`
+    const withGlass = await renderFvg(scene('glass="clear"'))
+    const plain = await renderFvg(scene(''))
+    const g = await pixels(withGlass.png)
+    const p = await pixels(plain.png)
+    expect(g.at(100, 100)).toEqual(p.at(100, 100))
+    expect(p.at(172, 100)[0]).toBeLessThan(15)
+    expect(g.at(172, 100)[0]).toBeGreaterThan(150)
+    // 折射后的红青分界仍然锐利：过渡不超过 3px
+    let soft = 0
+    for (let x = 100; x < 178; x++) {
+      const r = g.at(x, 100)[0]
+      if (r > 30 && r < 225) soft++
+    }
+    expect(soft).toBeLessThanOrEqual(3)
+    expect(withGlass.report.elements.some((el) => el.glass?.variant === 'clear' && el.glass.blur === 0)).toBe(true)
+  })
+
   it('文字投影跟随字形墨迹，不是整块盒子', async () => {
     // 「一」只有中间横笔；红影右移 20px。盒子上沿内侧若出现红斑，说明仍按 box 投影。
     const { png, report } = await renderFvg(

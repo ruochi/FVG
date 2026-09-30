@@ -202,6 +202,73 @@ export function parseBlend(value: string | undefined): BlendMode | undefined {
   return (BLEND_MODES as readonly string[]).includes(v) ? (v as BlendMode) : undefined
 }
 
+export type GlassVariant = 'regular' | 'clear' | 'thick'
+export type GlassValue = {
+  variant: GlassVariant
+  blur: number
+  tint?: string
+  /** 折射强度 0–1：边缘最大向内位移 = bezel × 0.5 × refraction */
+  refraction: number
+  specular: number
+  /** 边缘弧面宽度，占短边的比例 */
+  bezel: number
+  /** 色散：R/B 通道位移差 */
+  dispersion: number
+}
+
+const GLASS_PRESETS: Record<GlassVariant, Omit<GlassValue, 'variant' | 'tint'>> = {
+  // clear：不模糊，折射清晰；regular：略糊；thick：毛玻璃
+  clear: { blur: 0, refraction: 1, specular: 0.7, bezel: 0.24, dispersion: 0.06 },
+  regular: { blur: 6, refraction: 0.85, specular: 0.6, bezel: 0.22, dispersion: 0.04 },
+  thick: { blur: 36, refraction: 0.5, specular: 0.6, bezel: 0.2, dispersion: 0 },
+}
+
+/**
+ * `glass` 语法：
+ * - `clear` / `regular` / `thick`
+ * - `24` 或 `24px`（自定义模糊，其余按 regular；`0` 即不模糊）
+ * - `clear #a8c8ff20` / `regular 8 #ffffff22`（可加色调）
+ */
+function looksLikeColorToken(token: string): boolean {
+  const t = token.trim()
+  return (
+    t.startsWith('#') ||
+    /^(rgb|rgba|hsl|hsla)\(/i.test(t) ||
+    t.toLowerCase() === 'transparent' ||
+    t.toLowerCase() === 'white' ||
+    t.toLowerCase() === 'black'
+  )
+}
+
+export function parseGlass(value: string | undefined): GlassValue | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const tokens = splitCssTokens(value)
+  if (tokens.length < 1 || tokens.length > 3) return undefined
+  let variant: GlassVariant = 'regular'
+  let blur: number | undefined
+  let tint: string | undefined
+  let sawVariant = false
+  for (const token of tokens) {
+    const key = token.toLowerCase()
+    if (key === 'regular' || key === 'clear' || key === 'thick') {
+      variant = key
+      sawVariant = true
+      continue
+    }
+    const px = parsePx(token)
+    if (px !== undefined) {
+      if (px < 0 || blur !== undefined) return undefined
+      blur = px
+      continue
+    }
+    if (tint !== undefined || !looksLikeColorToken(token)) return undefined
+    tint = token
+  }
+  if (!sawVariant && blur === undefined && tint === undefined) return undefined
+  const preset = GLASS_PRESETS[variant]
+  return { ...preset, variant, blur: blur ?? preset.blur, tint }
+}
+
 export function parseFontWeight(value: string | undefined): number | undefined {
   if (!value) return undefined
   const v = value.trim().toLowerCase()
