@@ -237,6 +237,33 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
     )
   }
 
+  // overlay 仅 Layer；use / 图形 / HTML 误写都警告
+  if (node.tag !== 'Layer' && present(attrs, 'overlay')) {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        'overlay 只写在 Layer 上',
+        '外包一层 Layer，例如 <Layer overlay="#00000066"><Rect …/></Layer>',
+      ),
+    )
+  }
+  if (html) {
+    const styleMap = parseStyle(attrs.style)
+    if (styleMap.overlay) {
+      out.push(
+        flagged(
+          'warn',
+          'invalid-attr',
+          path,
+          'overlay 只写在 Layer 上',
+          '不要写在 HTML style 里；外包 <Layer overlay="…">',
+        ),
+      )
+    }
+  }
+
   if (usesAttributes(node) && hasStyle(attrs)) {
     out.push(
       flagged(

@@ -10,6 +10,7 @@ import {
   parseGlass,
   parseGlow,
   parseNoise,
+  parseOverlay,
   parsePx,
   parseShadow,
 } from './style.js'
@@ -54,5 +55,33 @@ describe('style', () => {
     expect(parseGlass('clear 0 #a8c8ff20')).toMatchObject({ variant: 'clear', blur: 0, tint: '#a8c8ff20' })
     expect(parseGlass('0')).toMatchObject({ variant: 'regular', blur: 0 })
     expect(parseGlass('nope')).toBeUndefined()
+  })
+
+  it('parseOverlay：纯色 / 渐变 + opacity + blend', () => {
+    expect(parseOverlay('#00000066')).toEqual({ paint: '#00000066', opacity: 1, blend: 'source-over' })
+    expect(parseOverlay('#ff8800 0.4 multiply')).toEqual({
+      paint: '#ff8800',
+      opacity: 0.4,
+      blend: 'multiply',
+    })
+    expect(parseOverlay('multiply 50% #112233')).toBeUndefined()
+    expect(parseOverlay('#112233 multiply 50%')).toEqual({
+      paint: '#112233',
+      opacity: 0.5,
+      blend: 'multiply',
+    })
+    expect(parseOverlay('#112233 50% multiply')).toEqual({
+      paint: '#112233',
+      opacity: 0.5,
+      blend: 'multiply',
+    })
+    expect(parseOverlay('linear-gradient(to bottom, #fff0, #0008) soft-light')).toEqual({
+      paint: 'linear-gradient(to bottom, #fff0, #0008)',
+      opacity: 1,
+      blend: 'soft-light',
+    })
+    expect(parseOverlay('multiply')).toBeUndefined()
+    expect(parseOverlay('nope 2')).toBeUndefined()
+    expect(parseOverlay('none')).toBeUndefined()
   })
 })

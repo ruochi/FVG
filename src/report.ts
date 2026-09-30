@@ -56,6 +56,7 @@ function walk(
   if (node.blur != null) entry.blur = node.blur
   if (node.backdropBlur != null) entry.backdropBlur = node.backdropBlur
   if (node.noise) entry.noise = node.noise
+  if (node.overlay) entry.overlay = node.overlay
   if (node.glass) entry.glass = node.glass
   if (node.colorFilter) entry.filter = node.colorFilter
   if (node.blend) entry.blend = node.blend

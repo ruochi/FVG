@@ -50,6 +50,22 @@ describe('属性归属', () => {
     expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('style'))).toBe(true)
   })
 
+  it('非 Layer 写 overlay 报 warn', async () => {
+    const report = await issues(
+      `<Layer width="200" height="100"><Rect cx="40" cy="40" width="40" height="40" fill="#fff" overlay="#00000066" /></Layer>`,
+    )
+    const hit = report.issues.find((issue) => issue.message.includes('overlay'))
+    expect(hit?.level).toBe('warn')
+    expect(hit?.hint).toContain('Layer')
+  })
+
+  it('HTML style 写 overlay 报 warn', async () => {
+    const report = await issues(
+      `<Layer width="200" height="100"><Layer cx="20" cy="20" anchor="top-left"><p style="overlay:#00000066; font-size:24px">x</p></Layer></Layer>`,
+    )
+    expect(report.issues.some((issue) => issue.message.includes('overlay') && issue.hint?.includes('Layer'))).toBe(true)
+  })
+
   it('形状写 anchor 报 non-canonical，仍然按 anchor 绘制', async () => {
     const report = await issues(`<Layer width="400" height="200"><Rect cx="10" cy="20" anchor="top-left" width="30" height="40" /></Layer>`)
     expect(report.issues.some((issue) => issue.code === 'non-canonical')).toBe(true)

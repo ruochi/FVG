@@ -28,6 +28,11 @@ type FvgEffects = {
   blend?: string
 }
 
+/** 仅 Layer：纯色/渐变叠加 */
+type FvgLayerOverlay = {
+  overlay?: string
+}
+
 type FvgShape = FvgPositioned &
   FvgEffects & {
     r?: number | string
@@ -51,7 +56,8 @@ declare global {
        * `background` 只在根上当画布底色；嵌套 Layer 不填背景，色块用 Rect / HTML / draw。
        */
       Layer: FvgPositioned &
-        FvgEffects & {
+        FvgEffects &
+        FvgLayerOverlay & {
           width?: number | string
           height?: number | string
           /** 仅根节点：画布底色。嵌套 Layer 写了会 warn 并忽略 */

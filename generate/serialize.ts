@@ -44,6 +44,7 @@ const ATTR_ORDER = [
   'blur',
   'backdrop-blur',
   'noise',
+  'overlay',
   'glass',
   'filter',
   'blend',

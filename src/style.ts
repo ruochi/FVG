@@ -74,6 +74,8 @@ function splitCssTokens(value: string): string[] {
 export type ShadowValue = { x: number; y: number; blur: number; spread: number; color?: string }
 export type GlowValue = { blur: number; spread: number; color?: string }
 export type NoiseValue = { amount: number; color?: string }
+/** Layer 专用：`overlay="<paint> [opacity] [blend]"` */
+export type OverlayValue = { paint: string; opacity: number; blend: BlendMode }
 export type ColorFilterFn =
   | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
   | { name: 'hue-rotate'; value: number }
@@ -141,6 +143,56 @@ export function parseNoise(value: string | undefined): NoiseValue | undefined {
   const color = tokens[1]
   if (color !== undefined && parsePx(color) !== undefined) return undefined
   return { amount, color }
+}
+
+function parseOpacityToken(token: string): number | undefined {
+  const t = token.trim()
+  const pct = /^(-?\d*\.?\d+)\s*%$/.exec(t)
+  if (pct) {
+    const n = Number.parseFloat(pct[1]!) / 100
+    return Number.isFinite(n) && n >= 0 && n <= 1 ? n : undefined
+  }
+  // 不带单位的纯数字才当透明度；带 px 的留给其它解析
+  if (/px$/i.test(t)) return undefined
+  const n = Number(t)
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : undefined
+}
+
+/**
+ * Layer 专用叠加：`overlay="<paint> [opacity] [blend]"`。
+ * paint 为纯色或 linear-gradient / radial-gradient / gradient；opacity 与 blend 顺序可互换。
+ */
+export function parseOverlay(value: string | undefined): OverlayValue | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const tokens = splitCssTokens(value)
+  if (tokens.length < 1 || tokens.length > 3) return undefined
+  const paint = tokens[0]!
+  if (!paint || paint.toLowerCase() === 'none') return undefined
+  // 混合模式名不能当 paint（须写在后面）
+  if (parseBlend(paint)) return undefined
+  let opacity = 1
+  let blend: BlendMode = 'source-over'
+  let sawOpacity = false
+  let sawBlend = false
+  for (let i = 1; i < tokens.length; i++) {
+    const token = tokens[i]!
+    const asBlend = parseBlend(token)
+    if (asBlend) {
+      if (sawBlend) return undefined
+      blend = asBlend
+      sawBlend = true
+      continue
+    }
+    const asOpacity = parseOpacityToken(token)
+    if (asOpacity !== undefined) {
+      if (sawOpacity) return undefined
+      opacity = asOpacity
+      sawOpacity = true
+      continue
+    }
+    return undefined
+  }
+  return { paint, opacity, blend }
 }
 
 const COLOR_FILTER_NAMES = new Set([

@@ -6,7 +6,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 | 标签 | 做什么 |
 | --- | --- |
-| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景** |
+| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景**。纯色/渐变叠加用 `overlay`（仅 Layer） |
 | `draw` | 子标签。正文是 JS（`ctx`、`el`），画在父元素内容之后。程序侧也可用 `draw={fn}` |
 | `div` 写 `display:flex` | 排布。默认横向；竖排加 `flex-direction:column`。`gap` `align-items` `justify-content` `padding` `flex` 都在 `style` 里 |
 
@@ -25,7 +25,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 形状和自定义元素不用 `anchor`，也不写 `style`。色块、圆点、分隔线用 div：`<div style="width:28px; height:28px; border-radius:14px; background:#3ecfc4">`，分隔线用 `flex:1; height:4px`。
 
-`fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。图形写属性，文字写在 `style` 里。
+`fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。**仅 Layer**：`overlay="#00000066"` / `overlay="#ff8800 0.4 multiply"` / `overlay="linear-gradient(to bottom, #fff0, #0008) soft-light"`。图形写属性，文字写在 `style` 里。
 
 竖排：`style="writing-mode:vertical-rl"`。字体名 `Song`、`Kai`、`Brush` 不用自带字体文件。
 
