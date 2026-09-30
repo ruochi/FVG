@@ -151,6 +151,7 @@ flowchart TD
 | --- | --- |
 | [SPEC.md](SPEC.md) | 标签、属性、布局、报告字段 |
 | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | 一页写法 |
+| [docs/EFFECTS.md](docs/EFFECTS.md) | 滤镜 / 效果扩展草案（尚未实现） |
 | [GENERATE.md](GENERATE.md) | Vue / React 生成 FVG 的依赖与模板 |
 | [README.md](README.md) | 安装、常用命令、API 入口 |
 | **本文 AI.md** | 生成 + 验证 + AI 协作闭环 |

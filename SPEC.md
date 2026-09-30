@@ -412,3 +412,4 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
+- 滤镜 / 效果扩展（`inner-shadow`、`blur`、`inner-glow`、`backdrop-blur`、`noise`、`filter`、`blend` 等）：草案见 [docs/EFFECTS.md](docs/EFFECTS.md)。这些名字已保留，不要挪作他用；现行只实现 `shadow`、`glow`。
