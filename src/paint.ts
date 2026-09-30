@@ -1,6 +1,7 @@
 import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
 import { canvasPaint, isGradient } from './gradient.js'
+import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { originOffset } from './matrix.js'
 import type { GlowSpec, LayerLayoutNode, LayoutNode, LineLayoutNode, ShadowSpec, ShapeLayoutNode, TextLayoutNode } from './types.js'
 import type { DrawElSnapshot } from './types.js'
@@ -18,8 +19,35 @@ type PaintState = { canvasWidth: number; canvasHeight: number }
 
 const SILHOUETTE = '#000000'
 
-function paintOf(ctx: CanvasRenderingContext2D, value: string, x: number, y: number, w: number, h: number) {
+function paintOf(
+  ctx: CanvasRenderingContext2D,
+  value: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  pad = 0,
+) {
+  if (isGradientPaint(value)) {
+    const box: GradientBox = { x, y, width: w, height: h }
+    return gradientStyle(ctx, value, box, pad)
+  }
   return canvasPaint(ctx, value, x, y, w, h)
+}
+
+function shapePad(node: ShapeLayoutNode): number {
+  return node.stroke !== 'none' && node.strokeWidth > 0 ? node.strokeWidth / 2 + 2 : 1
+}
+
+function linePad(node: LineLayoutNode): number {
+  const stroked = node.stroke !== 'none' && node.strokeWidth > 0
+  if (!stroked) return 1
+  let pad = node.strokeWidth / 2 + 2
+  if (node.geometry.kind === 'arrow') {
+    const head = node.geometry.head ?? Math.max(12, node.strokeWidth * 4)
+    pad = Math.max(pad, head + 2)
+  }
+  return pad
 }
 
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -78,26 +106,27 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode, inkCo
 function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
   const x = node.x
   const y = node.y
+  const pad = shapePad(node)
   if (node.shape === 'rect') {
     const r = node.rx ?? 0
     if (r > 0) {
       roundRectPath(ctx, x, y, node.width, node.height, r)
       if (node.fill !== 'none') {
-        ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height)
+        ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height, pad)
         ctx.fill()
       }
       if (node.stroke !== 'none') {
-        ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height)
+        ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height, pad)
         ctx.lineWidth = node.strokeWidth
         ctx.stroke()
       }
     } else {
       if (node.fill !== 'none') {
-        ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height)
+        ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height, pad)
         ctx.fillRect(x, y, node.width, node.height)
       }
       if (node.stroke !== 'none') {
-        ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height)
+        ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height, pad)
         ctx.lineWidth = node.strokeWidth
         ctx.strokeRect(x, y, node.width, node.height)
       }
@@ -106,11 +135,11 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
     ctx.beginPath()
     ctx.arc(x + node.width / 2, y + node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
     if (node.fill !== 'none') {
-      ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height)
+      ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height, pad)
       ctx.fill()
     }
     if (node.stroke !== 'none') {
-      ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height)
+      ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height, pad)
       ctx.lineWidth = node.strokeWidth
       ctx.stroke()
     }
@@ -126,11 +155,11 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
       Math.PI * 2,
     )
     if (node.fill !== 'none') {
-      ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height)
+      ctx.fillStyle = paintOf(ctx, node.fill, node.x, node.y, node.width, node.height, pad)
       ctx.fill()
     }
     if (node.stroke !== 'none') {
-      ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height)
+      ctx.strokeStyle = paintOf(ctx, node.stroke, node.x, node.y, node.width, node.height, pad)
       ctx.lineWidth = node.strokeWidth
       ctx.stroke()
     }
@@ -152,13 +181,14 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode, silhouett
   ctx.translate(node.x, node.y)
   const stroked = node.stroke !== 'none' && node.strokeWidth > 0
   const lineWidth = silhouette ? Math.max(0.5, node.strokeWidth + spread * 2) : node.strokeWidth
+  const pad = linePad(node)
   if (silhouette) {
     ctx.strokeStyle = SILHOUETTE
     ctx.fillStyle = SILHOUETTE
     ctx.lineWidth = lineWidth
   } else if (stroked) {
-    ctx.strokeStyle = paintOf(ctx, node.stroke, 0, 0, node.width, node.height)
-    ctx.fillStyle = paintOf(ctx, node.stroke, 0, 0, node.width, node.height)
+    ctx.strokeStyle = paintOf(ctx, node.stroke, 0, 0, node.width, node.height, pad)
+    ctx.fillStyle = paintOf(ctx, node.stroke, 0, 0, node.width, node.height, pad)
     ctx.lineWidth = node.strokeWidth
   }
   ctx.lineCap = node.strokeLinecap ?? 'round'
@@ -196,14 +226,14 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode, silhouett
     for (let i = 1; i < g.points.length; i++) ctx.lineTo(g.points[i]!.x, g.points[i]!.y)
     ctx.closePath()
     if (node.fill !== 'none') {
-      if (!silhouette) ctx.fillStyle = paintOf(ctx, node.fill, 0, 0, node.width, node.height)
+      if (!silhouette) ctx.fillStyle = paintOf(ctx, node.fill, 0, 0, node.width, node.height, pad)
       ctx.fill()
     }
     if (stroked) ctx.stroke()
   } else if (g.kind === 'path') {
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
-      if (!silhouette) ctx.fillStyle = paintOf(ctx, node.fill, 0, 0, node.width, node.height)
+      if (!silhouette) ctx.fillStyle = paintOf(ctx, node.fill, 0, 0, node.width, node.height, pad)
       ctx.fill(p)
     }
     if (stroked) ctx.stroke(p)
@@ -380,7 +410,14 @@ export function paintDocument(
   const canvas = createCanvas(w, h)
   const ctx = canvas.getContext('2d')
   const state = { canvasWidth: w, canvasHeight: h }
-  if (opts.background !== 'transparent') {
+  const rootPaintsBackground =
+    root.background != null &&
+    root.background !== 'transparent' &&
+    root.x === 0 &&
+    root.y === 0 &&
+    root.width >= opts.width &&
+    root.height >= opts.height
+  if (!rootPaintsBackground && opts.background !== 'transparent') {
     if (isGradient(opts.background)) {
       ctx.save()
       ctx.scale(opts.scale, opts.scale)
@@ -394,8 +431,7 @@ export function paintDocument(
   }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  for (const ch of root.children) paintNode(ctx, ch, opts.debug, opts.t, state)
-  if (opts.debug) drawDebugOverlay(ctx, root)
+  paintNode(ctx, root, opts.debug, opts.t, state)
   ctx.restore()
   return canvas.toBuffer('image/png')
 }

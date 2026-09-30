@@ -166,7 +166,7 @@ function readPaint(raw: string, fallback: string, ctx: LayoutContext, label: str
     code: 'invalid-attr',
     path: ctx.pathPrefix,
     message: `无法解析 ${label}: ${raw}`,
-    hint: '例如 linear-gradient(to bottom, #0b1026, #d5ddd4) 或 radial-gradient(at 35% 30%, #fff, #fff0)',
+    hint: '例如 gradient(#112233, #ff8800)、linear-gradient(to bottom, #0b1026, #d5ddd4) 或 radial-gradient(at 35% 30%, #fff, #fff0)',
   })
   return fallback
 }
@@ -1097,7 +1097,6 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   const attrs = rootNode.attrs
   const width = parseNumber(attrs.width) ?? 1080
   const height = parseNumber(attrs.height) ?? 1920
-  const background = attrs.background ?? '#ffffff'
   const color = attrs.color ?? '#111111'
   const fontFamily = attrs['font-family'] ?? 'ChillDuanSans'
   const safe = parseSafe(attrs.safe, width, height)
@@ -1118,18 +1117,21 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       hint: '把 width、background、opacity 写成属性',
     })
   }
-  const root = await layoutLayer(
-    rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer' } : rootNode,
-    {
-      color,
-      fontFamily,
-      maxContentWidth,
-      issues,
-      pathPrefix: 'fvg',
-      symbols,
-      useStack: [],
-    },
-  )
+  const paintCtx: LayoutContext = {
+    color,
+    fontFamily,
+    maxContentWidth,
+    issues,
+    pathPrefix: 'fvg',
+    symbols,
+    useStack: [],
+  }
+  const hadBackground = attrs.background != null && attrs.background.trim() !== ''
+  const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'
+  const rootAttrs = hadBackground ? { ...attrs, background } : attrs
+  const rootForLayout =
+    rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer', attrs: rootAttrs } : { ...rootNode, attrs: rootAttrs }
+  const root = await layoutLayer(rootForLayout, paintCtx)
 
   root.width = width
   root.height = height

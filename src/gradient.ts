@@ -1,4 +1,7 @@
 import type { CanvasRenderingContext2D } from '@napi-rs/canvas'
+import { isGradientPaint, parseFieldGradient, rgbaToCss, sampleGradient } from './gradientField.js'
+
+export { isGradientPaint, sampleGradient }
 
 export type GradientStop = { color: string; offset: number }
 
@@ -95,8 +98,8 @@ function assignOffsets(stops: Array<{ color: string; offset?: number }>): Gradie
   return out
 }
 
-/** 解析 `linear-gradient(...)` / `radial-gradient(...)`。不是渐变时返回 undefined。 */
-export function parseGradient(value: string | undefined): Gradient | undefined {
+/** 解析 `linear-gradient(...)` / `radial-gradient(...)`。不是这种写法时返回 undefined。 */
+export function parseCssGradient(value: string | undefined): Gradient | undefined {
   if (!value) return undefined
   const match = /^(linear-gradient|radial-gradient)\(([\s\S]*)\)$/i.exec(value.trim())
   if (!match) return undefined
@@ -129,13 +132,29 @@ export function parseGradient(value: string | undefined): Gradient | undefined {
 }
 
 export function isGradient(value: string | undefined): boolean {
-  return value != null && /^(linear-gradient|radial-gradient)\(/i.test(value.trim())
+  if (value == null) return false
+  const text = value.trim()
+  return isGradientPaint(text) || /^(linear-gradient|radial-gradient)\(/i.test(text)
+}
+
+/**
+ * `gradient()` 返回矩阵渐变；`linear-gradient` / `radial-gradient` 返回 CSS 渐变。
+ * 写了 `gradient()` 但解析失败时返回 null。
+ */
+export function parseGradient(value: string | undefined): Gradient | ReturnType<typeof parseFieldGradient> | undefined {
+  if (value != null && isGradientPaint(value)) return parseFieldGradient(value)
+  return parseCssGradient(value)
 }
 
 /** 渐变取第一个色标，给光晕默认色用。普通颜色原样返回。 */
 export function solidPaint(value: string | undefined, fallback: string): string {
   if (!value || value === 'none' || value === 'transparent') return fallback
-  const gradient = parseGradient(value)
+  if (isGradientPaint(value)) {
+    const field = parseFieldGradient(value)
+    if (!field) return fallback
+    return rgbaToCss(field.first)
+  }
+  const gradient = parseCssGradient(value)
   if (gradient) return gradient.stops[0]?.color ?? fallback
   return value
 }
@@ -148,7 +167,7 @@ export function canvasPaint(
   w: number,
   h: number,
 ): string | ReturnType<CanvasRenderingContext2D['createLinearGradient']> {
-  const gradient = parseGradient(value)
+  const gradient = parseCssGradient(value)
   if (!gradient) return value
   const width = Math.max(w, 1)
   const height = Math.max(h, 1)
