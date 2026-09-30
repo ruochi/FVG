@@ -206,10 +206,10 @@ export type GlassVariant = 'regular' | 'clear' | 'thick'
 export type GlassValue = { variant: GlassVariant; blur: number; tint?: string; refraction: number; specular: number }
 
 const GLASS_PRESETS: Record<GlassVariant, Omit<GlassValue, 'variant' | 'tint'>> = {
-  // 近似 iOS Liquid Glass：散射模糊 + 轻微透镜放大 + 顶部高光
-  regular: { blur: 22, refraction: 0.045, specular: 0.55 },
-  clear: { blur: 14, refraction: 0.03, specular: 0.35 },
-  thick: { blur: 34, refraction: 0.07, specular: 0.7 },
+  // regular：平衡；clear：更透、折射更明显；thick：毛玻璃，糊得多、折射弱一点
+  regular: { blur: 22, refraction: 0.05, specular: 0.55 },
+  clear: { blur: 8, refraction: 0.11, specular: 0.45 },
+  thick: { blur: 36, refraction: 0.035, specular: 0.65 },
 }
 
 /**

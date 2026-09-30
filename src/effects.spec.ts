@@ -127,28 +127,27 @@ describe('绘制', () => {
   })
 
   it('glass 透镜折射会放大边缘背后的内容', async () => {
-    // 左半红右半青，玻璃圆盖在分界上；折射后圆内边缘色带应比无折射时更「外扩」
+    // clear：弱模糊强折射。左红右青，圆盖在分界上，折射后右侧像素更偏红
     const withGlass = await renderFvg(
       `<fvg width="160" height="120" background="#000000">
         <Rect x="0" y="0" width="80" height="120" fill="#ff0000" />
         <Rect x="80" y="0" width="80" height="120" fill="#00e5ff" />
-        <Circle cx="80" cy="60" r="40" fill="#ffffff22" glass="thick" />
+        <Circle cx="80" cy="60" r="40" fill="#ffffff10" glass="clear" />
       </fvg>`,
     )
     const plain = await renderFvg(
       `<fvg width="160" height="120" background="#000000">
         <Rect x="0" y="0" width="80" height="120" fill="#ff0000" />
         <Rect x="80" y="0" width="80" height="120" fill="#00e5ff" />
-        <Circle cx="80" cy="60" r="40" fill="#ffffff22" backdrop-blur="34" />
+        <Circle cx="80" cy="60" r="40" fill="#ffffff10" backdrop-blur="8" />
       </fvg>`,
     )
     const g = await pixels(withGlass.png)
     const p = await pixels(plain.png)
-    // 取圆内偏右一点：折射应从更靠分界/左侧取样，红色分量往往更高
-    const glassPx = g.at(100, 60)
-    const blurPx = p.at(100, 60)
+    const glassPx = g.at(102, 60)
+    const blurPx = p.at(102, 60)
     expect(glassPx[0]).toBeGreaterThan(blurPx[0] + 8)
-    expect(withGlass.report.elements.some((el) => el.glass?.variant === 'thick')).toBe(true)
+    expect(withGlass.report.elements.some((el) => el.glass?.variant === 'clear')).toBe(true)
   })
 
   it('文字投影跟随字形墨迹，不是整块盒子', async () => {
