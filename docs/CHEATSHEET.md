@@ -56,6 +56,13 @@ HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 
     <Circle cx="200" cy="60" r="16" fill="#f4f1ea" />
     <Line x1="160" y1="60" x2="184" y2="60" stroke="#f4f1ea" stroke-width="4" />
   </Layer>
+  <!-- 嵌套 Layer 不写 background；要自己画用 draw -->
+  <Layer width="120" height="80" cx="640" cy="300">
+    <draw>
+      ctx.fillStyle = '#f5c16c'
+      ctx.fillRect(0, 0, el.w, el.h)
+    </draw>
+  </Layer>
 </Layer>
 ```
 

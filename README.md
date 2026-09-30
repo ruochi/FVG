@@ -19,6 +19,7 @@ npm run build
 
 ```bash
 npx tsx src/cli.ts render examples/hello.layer -o hello.png --report hello.json
+npx tsx src/cli.ts render examples/draw-layer.layer -o draw-layer.png   # Layer + <draw>
 npx tsx src/cli.ts render examples/hello.layer --debug --scale 0.5
 npx tsx src/cli.ts check examples/hello.layer
 ```

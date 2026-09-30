@@ -1,10 +1,12 @@
 /**
  * AI 参考模板：Vue 生成 Flex Layer
  *
- * - 根必须是 <Layer width height>
+ * - 根必须是 <Layer width height background>（background 仅根上画布底色）
+ * - 嵌套 Layer 不填背景；色块用 Rect / HTML style / <draw>
  * - Layer 和图形首字母大写，只用属性；文字和 div 只用 style
  * - 排布用 <div style="display:flex">，不要 row / column
  * - PascalCase 组件名在 components 里注册，展开后不留组件名
+ * - 自定义绘制见 generate/vue/draw-example.ts
  */
 import { renderVueFvg } from './renderVueFvg.js'
 

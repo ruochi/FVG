@@ -30,9 +30,10 @@ AI 应始终把 **`.layer` 或生成它的脚本**当作可版本化的产物；
 
 - **HTML** 用 `style`：字号、颜色、`gap`、`padding`、`background`。排布写 `<div style="display:flex">`。
 - **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`、以及其它效果（见 EFFECTS）。标签首字母大写。
+- **嵌套 `Layer` 不填背景**：色块用 `<Rect fill>`、HTML `style="background:…"`，或子标签 `<draw>…</draw>`（正文是 JS，变量 `ctx`、`el`）。
 - 文字要定位时外包 `<Layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。
 
-根节点是 `<Layer width="…" height="…" background="…">`。不要写 `row`、`column`。参考 [examples/](examples/)。
+根节点是 `<Layer width="…" height="…" background="…">`（这里的 `background` 是**画布底色**）。不要写 `row`、`column`。参考 [examples/](examples/)、[examples/draw-layer.layer](examples/draw-layer.layer)。
 
 ### 2.2 Vue 模板
 
@@ -128,6 +129,7 @@ flowchart TD
 | --- | --- |
 | HTML 用 `style`，`Layer` 和图形用属性 | 和渲染器的归属表一致；图形写 `style` 会 `warn` |
 | 根与定位用大写 `Layer`，图形首字母大写，文字小写 | `circle` 和 `Circle` 不是同一个标签，小写会被丢掉 |
+| 嵌套 `Layer` / `use` 不写 `background` | 会 `warn` 并忽略；色块用 `Rect` / HTML / `<draw>` |
 | 排布用 `div` 的 `display:flex` | `Row` / `Column` 会 `unknown-tag` |
 | 线条放在 `Layer` 里，用 `x1`…`d` | 直接放进 flex 不渲染 |
 | 文字的 `cx` 写在外包的 `Layer` 上 | 写在 `h1` / `p` 上会 `warn` |
@@ -143,6 +145,7 @@ flowchart TD
 | 字距和 `gap` 不一致 | 读 SPEC `line-height`；用 debug 看 **ink** 间距 |
 | flex 子项被挤爆 | 加宽 flex 容器或缩小子项 |
 | 阴影/光晕看不见 | 查 `fill`/`stroke`/`glow` 颜色与背景对比；看 `effect` 矩形 |
+| 嵌套 Layer 写了 background 没颜色 | 属预期；改成 `Rect` 或 `<draw>` |
 | 不知道改哪个节点 | 报告里的 `path` |
 
 ## 7. 仓库内文档索引

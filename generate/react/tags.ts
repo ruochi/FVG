@@ -12,3 +12,5 @@ export const Polyline = 'Polyline'
 export const Polygon = 'Polygon'
 export const Path = 'Path'
 export const Curve = 'Curve'
+/** `.layer` 里的 `<draw>` 子标签；正文是 JS（ctx、el） */
+export const draw = 'draw'

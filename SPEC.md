@@ -42,7 +42,8 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 | 类别 | 标签 |
 | --- | --- |
-| 容器 | `Layer`。横排竖排用带 `display:flex` 的 `div` |
+| 容器 | `Layer`（嵌套不填背景）。横排竖排用带 `display:flex` 的 `div` |
+| 绘制 | `draw`（子标签，正文 JS；程序侧也可用 `draw={fn}`） |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
 | 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path`、`Curve` |

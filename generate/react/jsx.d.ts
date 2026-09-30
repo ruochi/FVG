@@ -46,11 +46,15 @@ declare global {
   namespace JSX {
     interface IntrinsicElements {
       font: { family?: string; src?: string }
-      /** 根画布与定位容器：根上写 width/height/background/color/safe */
+      /**
+       * 根画布与定位容器。
+       * `background` 只在根上当画布底色；嵌套 Layer 不填背景，色块用 Rect / HTML / draw。
+       */
       Layer: FvgPositioned &
         FvgEffects & {
           width?: number | string
           height?: number | string
+          /** 仅根节点：画布底色。嵌套 Layer 写了会 warn 并忽略 */
           background?: string
           color?: string
           'font-family'?: string
@@ -63,8 +67,16 @@ declare global {
           border?: string
           'border-radius'?: string | number
         }
+      /** 子标签：正文 JS，可用 ctx、el；不参与布局 */
+      draw: FvgCommon
       symbol: FvgCommon & { width?: number | string; height?: number | string }
-      use: FvgPositioned & { href?: string; rotate?: number | string; scale?: number | string }
+      use: FvgPositioned & {
+        href?: string
+        rotate?: number | string
+        scale?: number | string
+        /** 忽略；色块用 Rect / HTML / draw */
+        background?: string
+      }
       Rect: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
       Circle: FvgShape
       Ellipse: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
