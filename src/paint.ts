@@ -289,8 +289,7 @@ export function paintDocument(
   }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  for (const ch of root.children) paintNode(ctx, ch, opts.debug, opts.t)
-  if (opts.debug) drawDebugOverlay(ctx, root)
+  paintNode(ctx, root, opts.debug, opts.t)
   ctx.restore()
   return canvas.toBuffer('image/png')
 }

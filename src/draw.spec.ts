@@ -165,6 +165,39 @@ describe('draw(ctx, el)', () => {
     expect(total).toBe('33')
   })
 
+  it('根节点 fvg 的 draw 在子元素之后执行', async () => {
+    let seen: { w: number; h: number; t: number } | null = null
+    let childAtDraw: number[] | null = null
+    const root = h(
+      'fvg',
+      {
+        width: '80',
+        height: '40',
+        background: '#000000',
+        draw: (ctx, el) => {
+          seen = { w: el.w, h: el.h, t: el.t }
+          const px = ctx.getImageData(70, 20, 1, 1).data
+          childAtDraw = [px[0]!, px[1]!, px[2]!]
+          ctx.fillStyle = '#ff0000'
+          ctx.fillRect(0, 0, 4, 4)
+        },
+      },
+      h('Rect', { width: '10', height: '10', cx: '70', cy: '20', fill: '#00ff00' }),
+    )
+
+    const { png } = await renderFvg(root, { t: 0.25 })
+    expect(seen).toEqual({ w: 80, h: 40, t: 0.25 })
+    expect(childAtDraw![1]).toBeGreaterThan(200)
+    const corner = await pixelAt(png, 1, 1)
+    expect(corner[0]).toBeGreaterThan(200)
+    expect(corner[1]).toBeLessThan(40)
+    expect(corner[2]).toBeLessThan(40)
+    const child = await pixelAt(png, 70, 20)
+    expect(child[1]).toBeGreaterThan(200)
+    expect(child[0]).toBeLessThan(40)
+    expect(child[2]).toBeLessThan(40)
+  })
+
   it('hello.fvg 无 draw 时结果不变', async () => {
     const source = await readFile(helloPath, 'utf8')
     const { report } = await renderFvg(source, {
