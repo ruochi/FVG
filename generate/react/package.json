@@ -1,0 +1,13 @@
+{
+  "name": "@dc/fvg-generate-react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "React JSX → FVG text (not PNG rendering)",
+  "dependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0"
+  }
+}

@@ -21,7 +21,7 @@ async function pixelAt(png: Buffer, x: number, y: number) {
 }
 
 describe('paint containers', () => {
-  it('Column 子元素画在 Column 的位置上', async () => {
+  it('竖向 flex 的子元素画在容器中间', async () => {
     const root = h(
       'fvg',
       { width: '200', height: '200', background: '#000000' },
