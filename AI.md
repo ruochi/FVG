@@ -56,8 +56,8 @@ npx tsx src/cli.ts render out.layer -o out.png --report out.json
 ```
 
 ```ts
-import { renderFvg } from '@dc/flexlayer'
-const { png, report } = await renderFvg(source, { baseDir: process.cwd() })
+import { renderFlexLayer } from '@dc/flexlayer'
+const { png, report } = await renderFlexLayer(source, { baseDir: process.cwd() })
 ```
 
 ## 3. 验证：由轻到重

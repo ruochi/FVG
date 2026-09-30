@@ -2,7 +2,7 @@
  * 用 Vue 生成海报：城市爵士夜 · 1080×1620
  * 运行：npx tsx generate/vue/build-poster-city-jazz.mts
  */
-import { renderVueFvg } from './renderVueFvg.js'
+import { renderVueFlexLayer } from './renderVueFlexLayer.js'
 
 export type ScheduleItem = { time: string; act: string }
 export type StarDot = { x: number; y: number; r: number; glow?: string }
@@ -32,7 +32,7 @@ export const cityJazzBindings = {
 }
 
 export function renderCityJazzPosterVue(): string {
-  return renderVueFvg({
+  return renderVueFlexLayer({
     template: `
 <Layer width="1080" height="1620" background="#0a1628" color="#e8eef7" safe="48">
   <Circle

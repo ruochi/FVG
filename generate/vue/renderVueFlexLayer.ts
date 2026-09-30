@@ -4,42 +4,42 @@ import { createRenderer, createVNode, defineComponent, type RendererElement } fr
 import {
   createHostElement,
   createHostText,
-  serializeFvgDocument,
-  type FvgHostChild,
-  type FvgHostElement,
+  serializeFlexLayerDocument,
+  type FlexLayerHostChild,
+  type FlexLayerHostElement,
 } from '../serialize.js'
 
 const SKIP_PROP = new Set(['key', 'ref', 'ref_for', 'ref_key', 'class'])
 
-export type VueFvgComponent = {
+export type VueFlexLayerComponent = {
   props?: unknown
   template?: string
-  components?: Record<string, VueFvgComponent>
+  components?: Record<string, VueFlexLayerComponent>
   setup?: (...args: never[]) => Record<string, unknown>
   render?: (...args: never[]) => unknown
   [key: string]: unknown
 }
 
-export type VueFvgOptions = {
+export type VueFlexLayerOptions = {
   template: string
   bindings?: Record<string, unknown>
-  components?: Record<string, VueFvgComponent>
+  components?: Record<string, VueFlexLayerComponent>
 }
 
-type HostNode = FvgHostElement | FvgHostText
+type HostNode = FlexLayerHostElement | FlexLayerHostText
 
-function parentNode(node: HostNode): FvgHostElement | null {
-  return 'parent' in node ? (node.parent as FvgHostElement | null) : null
+function parentNode(node: HostNode): FlexLayerHostElement | null {
+  return 'parent' in node ? (node.parent as FlexLayerHostElement | null) : null
 }
 
-function patchProp(el: FvgHostElement, key: string, _prev: unknown, next: unknown): void {
+function patchProp(el: FlexLayerHostElement, key: string, _prev: unknown, next: unknown): void {
   if (SKIP_PROP.has(key) || key.startsWith('on')) return
   if (next == null || next === false) delete el.props[key]
   else el.props[key] = next
 }
 
-function insert(child: HostNode, parent: FvgHostElement, anchor?: HostNode | null): void {
-  const c = child as HostNode & { parent?: FvgHostElement | null }
+function insert(child: HostNode, parent: FlexLayerHostElement, anchor?: HostNode | null): void {
+  const c = child as HostNode & { parent?: FlexLayerHostElement | null }
   if (c.parent) remove(child)
   c.parent = parent
   if (anchor) {
@@ -53,7 +53,7 @@ function insert(child: HostNode, parent: FvgHostElement, anchor?: HostNode | nul
 }
 
 function remove(child: HostNode): void {
-  const c = child as HostNode & { parent?: FvgHostElement | null }
+  const c = child as HostNode & { parent?: FlexLayerHostElement | null }
   const parent = c.parent
   if (!parent) return
   const index = parent.children.indexOf(child)
@@ -72,9 +72,9 @@ function setText(node: HostNode, text: string): void {
   if (node.kind === 'text') node.text = text
 }
 
-function setElementText(el: FvgHostElement, text: string): void {
+function setElementText(el: FlexLayerHostElement, text: string): void {
   for (const child of el.children) {
-    const c = child as FvgHostChild & { parent?: FvgHostElement | null }
+    const c = child as FlexLayerHostChild & { parent?: FlexLayerHostElement | null }
     c.parent = undefined
   }
   el.children = text ? [Object.assign(createHostText(text), { parent: el })] : []
@@ -85,18 +85,18 @@ function cloneNode(node: HostNode): HostNode {
   const copy = createHostElement(node.tag)
   copy.props = { ...node.props }
   copy.children = node.children.map((child) => {
-    const cloned = cloneNode(child as HostNode) as HostNode & { parent?: FvgHostElement }
+    const cloned = cloneNode(child as HostNode) as HostNode & { parent?: FlexLayerHostElement }
     cloned.parent = copy
     return cloned
   })
   return copy
 }
 
-const { render } = createRenderer<HostNode, FvgHostElement>({
+const { render } = createRenderer<HostNode, FlexLayerHostElement>({
   patchProp,
   insert,
   remove,
-  createElement: (tag) => Object.assign(createHostElement(tag), { parent: null as FvgHostElement | null }),
+  createElement: (tag) => Object.assign(createHostElement(tag), { parent: null as FlexLayerHostElement | null }),
   createText: (text) => createHostText(text),
   createComment: (text) => createHostText(`<!--${text}-->`),
   setText,
@@ -130,16 +130,16 @@ function compileRender(template: string, componentNames: Set<string>): RenderFn 
 }
 
 function prepareComponent(
-  comp: VueFvgComponent,
-  registry: Record<string, VueFvgComponent>,
-  seen: WeakMap<object, VueFvgComponent>,
-): VueFvgComponent {
+  comp: VueFlexLayerComponent,
+  registry: Record<string, VueFlexLayerComponent>,
+  seen: WeakMap<object, VueFlexLayerComponent>,
+): VueFlexLayerComponent {
   const cached = seen.get(comp)
   if (cached) return cached
-  const next: VueFvgComponent = { ...comp }
+  const next: VueFlexLayerComponent = { ...comp }
   seen.set(comp, next)
   if (comp.components) {
-    const prepared: Record<string, VueFvgComponent> = {}
+    const prepared: Record<string, VueFlexLayerComponent> = {}
     for (const [name, child] of Object.entries(comp.components)) {
       prepared[name] = prepareComponent(child, { ...registry, ...prepared }, seen)
       registry[name] = prepared[name]
@@ -154,10 +154,10 @@ function prepareComponent(
   return next
 }
 
-function prepareComponents(components: Record<string, VueFvgComponent>): Record<string, VueFvgComponent> {
-  const seen = new WeakMap<object, VueFvgComponent>()
-  const registry: Record<string, VueFvgComponent> = {}
-  const prepared: Record<string, VueFvgComponent> = {}
+function prepareComponents(components: Record<string, VueFlexLayerComponent>): Record<string, VueFlexLayerComponent> {
+  const seen = new WeakMap<object, VueFlexLayerComponent>()
+  const registry: Record<string, VueFlexLayerComponent> = {}
+  const prepared: Record<string, VueFlexLayerComponent> = {}
   for (const [name, comp] of Object.entries(components)) {
     prepared[name] = prepareComponent(comp, registry, seen)
     registry[name] = prepared[name]
@@ -166,11 +166,11 @@ function prepareComponents(components: Record<string, VueFvgComponent>): Record<
 }
 
 /** Vue 模板 → Flex Layer 文本。未注册的标签按原样输出，PascalCase 组件在 components 里注册。 */
-export function renderVueFvg(options: VueFvgOptions): string {
+export function renderVueFlexLayer(options: VueFlexLayerOptions): string {
   const components = prepareComponents(options.components ?? {})
   const componentNames = new Set(Object.keys(components))
   const renderFn = compileRender(options.template, componentNames)
-  const container = Object.assign(createHostElement('container'), { parent: null as FvgHostElement | null })
+  const container = Object.assign(createHostElement('container'), { parent: null as FlexLayerHostElement | null })
   const vnode = createVNode(
     defineComponent({
       components,
@@ -181,7 +181,7 @@ export function renderVueFvg(options: VueFvgOptions): string {
     }),
   )
   render(vnode, container as unknown as RendererElement)
-  const roots = container.children.filter((c): c is FvgHostElement => c.kind === 'el')
+  const roots = container.children.filter((c): c is FlexLayerHostElement => c.kind === 'el')
   if (roots.length !== 1) throw new Error('模板需要一个 <Layer> 根元素')
-  return serializeFvgDocument(roots[0]!)
+  return serializeFlexLayerDocument(roots[0]!)
 }

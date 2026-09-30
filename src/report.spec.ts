@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { checkFvg } from './render.js'
+import { checkFlexLayer } from './render.js'
 import { buildReport } from './report.js'
-import type { FvgDocument, LayerLayoutNode, TextLayoutNode } from './types.js'
+import type { FlexLayerDocument, LayerLayoutNode, TextLayoutNode } from './types.js'
 
-function minimalDoc(overrides: Partial<FvgDocument> = {}): FvgDocument {
+function minimalDoc(overrides: Partial<FlexLayerDocument> = {}): FlexLayerDocument {
   const text: TextLayoutNode = {
     kind: 'text',
     path: 'Layer/h1[0]',
@@ -77,7 +77,7 @@ describe('buildReport', () => {
   })
 
   it('旋转后的 ink 是外接矩形', async () => {
-    const rep = await checkFvg(
+    const rep = await checkFlexLayer(
       `<Layer width="400" height="400" background="#000"><Rect cx="200" cy="200" width="100" height="20" rotate="90" fill="#fff" /></Layer>`,
     )
     const rect = rep.elements.find((e) => e.tag === 'Rect')
@@ -93,7 +93,7 @@ describe('buildReport', () => {
   })
 
   it('完全透明的重叠文字不报 text-overlap', async () => {
-    const rep = await checkFvg(
+    const rep = await checkFlexLayer(
       `<Layer width="400" height="200"><h1 style="opacity:0">勾股</h1><h1 style="opacity:0">勾股</h1></Layer>`,
     )
     expect(rep.issues.some((i) => i.code === 'text-overlap')).toBe(false)
@@ -101,7 +101,7 @@ describe('buildReport', () => {
   })
 
   it('嵌套 Layer 的透明度相乘', async () => {
-    const rep = await checkFvg(
+    const rep = await checkFlexLayer(
       `<Layer width="200" height="200"><Layer cx="100" cy="100" width="100" height="100" opacity="0.5"><Rect cx="50" cy="50" width="20" height="20" opacity="0.4" fill="#fff" /></Layer></Layer>`,
     )
     const rect = rep.elements.find((e) => e.tag === 'Rect')
@@ -109,14 +109,14 @@ describe('buildReport', () => {
   })
 
   it('被 overflow=hidden 裁掉的内容不报 overflow-canvas', async () => {
-    const clipped = await checkFvg(
+    const clipped = await checkFlexLayer(
       `<Layer width="100" height="100"><Layer cx="0" cy="0" anchor="top-left" width="80" height="80" overflow="hidden"><Rect cx="70" cy="10" anchor="top-left" width="50" height="20" fill="#fff" /></Layer></Layer>`,
     )
     expect(clipped.issues.some((i) => i.code === 'overflow-canvas')).toBe(false)
     const rect = clipped.elements.find((e) => e.tag === 'Rect')
     expect(rect!.ink.right).toBeLessThanOrEqual(80 + 1e-6)
 
-    const visible = await checkFvg(
+    const visible = await checkFlexLayer(
       `<Layer width="100" height="100"><Layer cx="0" cy="0" anchor="top-left" width="80" height="80"><Rect cx="70" cy="10" anchor="top-left" width="50" height="20" fill="#fff" /></Layer></Layer>`,
     )
     expect(visible.issues.some((i) => i.code === 'overflow-canvas')).toBe(true)

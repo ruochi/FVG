@@ -2,12 +2,12 @@
  * 十张互不相似的测试海报，全部由 Vue 模板生成。
  * Layer 和图形用属性，文字用 style，排布用 div flex。
  */
-import { renderVueFvg } from './renderVueFvg.js'
+import { renderVueFlexLayer } from './renderVueFlexLayer.js'
 
 export type BatchPoster = { id: string; source: string }
 
 function vue(template: string, bindings: Record<string, unknown> = {}, components: Record<string, unknown> = {}): string {
-  return renderVueFvg({ template, bindings, components: components as never })
+  return renderVueFlexLayer({ template, bindings, components: components as never })
 }
 
 export function renderBatchPosters(): BatchPoster[] {

@@ -1,4 +1,4 @@
-export { renderFvg, checkFvg, renderLayer, checkLayer, type RenderResult } from './render.js'
+export { renderFlexLayer, checkFlexLayer, renderLayer, checkLayer, type RenderResult } from './render.js'
 export { renderComposition, interpolate, spring, sequence } from './frame.js'
 export type {
   Composition,
@@ -8,11 +8,12 @@ export type {
   SpringConfig,
   Extrapolate,
 } from './frame.js'
-export { parseFvg } from './parse.js'
+export { parseFlexLayer } from './parse.js'
 export { h } from './h.js'
 export { buildReport, formatIssueLine } from './report.js'
 export type {
-  FvgReport,
+  FlexLayerReport,
+  FlexLayerDocument,
   RenderOptions,
   Issue,
   ElementReport,
@@ -20,4 +21,4 @@ export type {
   DrawElSnapshot,
   DrawComputedStyle,
 } from './types.js'
-export type { FvgNode, FvgChild } from './parse.js'
+export type { FlexLayerNode, FlexLayerChild } from './parse.js'

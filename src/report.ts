@@ -1,5 +1,5 @@
 import { applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
-import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode } from './types.js'
+import type { Box, ElementReport, FlexLayerDocument, FlexLayerReport, Issue, LayoutNode } from './types.js'
 import { boxToRect, translateBox, unionBoxes } from './types.js'
 
 const VISIBLE_OPACITY = 0.01
@@ -99,7 +99,7 @@ function walk(
   }
 }
 
-export function buildReport(doc: FvgDocument): FvgReport {
+export function buildReport(doc: FlexLayerDocument): FlexLayerReport {
   const elements: ElementReport[] = []
   walk(doc.root, IDENTITY, 1, 0, 0, undefined, elements)
 

@@ -1,13 +1,13 @@
 import type { DrawFn } from './types.js'
 
-export type FvgNode = {
+export type FlexLayerNode = {
   tag: string
   attrs: Record<string, string>
-  children: FvgChild[]
+  children: FlexLayerChild[]
   draw?: DrawFn
 }
 
-export type FvgChild = string | FvgNode
+export type FlexLayerChild = string | FlexLayerNode
 
 const VOID_TAGS = new Set(['br', 'font'])
 
@@ -52,10 +52,10 @@ function parseAttrs(text: string): Record<string, string> {
 }
 
 /** 解析 Flex Layer 标记。标签名保留大小写（`Layer` 与 `layer` 不同）。 */
-export function parseFvg(source: string): FvgNode[] {
+export function parseFlexLayer(source: string): FlexLayerNode[] {
   const src = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[\s\S]*?\?>/g, '')
-  const root: FvgNode = { tag: '#root', attrs: {}, children: [] }
-  const stack: FvgNode[] = [root]
+  const root: FlexLayerNode = { tag: '#root', attrs: {}, children: [] }
+  const stack: FlexLayerNode[] = [root]
   let pos = 0
 
   const pushText = (text: string) => {
@@ -95,21 +95,21 @@ export function parseFvg(source: string): FvgNode[] {
       const closeToken = '</draw>'
       const closeAt = src.indexOf(closeToken, bodyStart)
       const body = closeAt === -1 ? src.slice(bodyStart) : src.slice(bodyStart, closeAt)
-      const node: FvgNode = { tag, attrs, children: body ? [body] : [] }
+      const node: FlexLayerNode = { tag, attrs, children: body ? [body] : [] }
       stack[stack.length - 1].children.push(node)
       pos = closeAt === -1 ? src.length : closeAt + closeToken.length
       continue
     }
-    const node: FvgNode = { tag, attrs, children: [] }
+    const node: FlexLayerNode = { tag, attrs, children: [] }
     stack[stack.length - 1].children.push(node)
     if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
     pos = lt + open[0].length
   }
 
-  return root.children.filter((c): c is FvgNode => typeof c !== 'string')
+  return root.children.filter((c): c is FlexLayerNode => typeof c !== 'string')
 }
 
-function findOpen(stack: FvgNode[], tag: string): number {
+function findOpen(stack: FlexLayerNode[], tag: string): number {
   for (let i = stack.length - 1; i > 0; i--) {
     if (stack[i].tag === tag) return i
   }

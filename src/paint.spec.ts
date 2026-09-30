@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { h } from './h.js'
 import { initFontsForMeasure } from './fonts.js'
-import { renderFvg } from './render.js'
+import { renderFlexLayer } from './render.js'
 
 beforeAll(async () => {
   for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
@@ -31,7 +31,7 @@ describe('paint containers', () => {
         h('div', { style: 'display:flex; flex-direction:column; width:80px' }, h('div', { style: 'width:80px; height:40px; background:#ffffff' }, 'A')),
       ),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     const mid = await pixelAt(png, 100, 100)
     const origin = await pixelAt(png, 10, 10)
     expect(mid[0]).toBeGreaterThan(200)
@@ -44,7 +44,7 @@ describe('paint containers', () => {
       { width: '100', height: '100', background: '#ffffff' },
       h('Polygon', { points: '20,20 80,20 80,80 20,80', fill: '#ff0000', stroke: 'none', 'stroke-width': '12' }),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     const outside = await pixelAt(png, 16, 50)
     const inside = await pixelAt(png, 50, 50)
     expect(outside[0]).toBeGreaterThan(240)
@@ -63,7 +63,7 @@ describe('paint containers', () => {
         h('Rect', { x1: '0', y1: '10', x2: '100', y2: '30', fill: '#ffffff' }),
       ),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     // 层中心 (100,100)，顶边横条顺时针 90° 后落到 x=120..140
     const moved = await pixelAt(png, 130, 100)
     const vacated = await pixelAt(png, 100, 70)
@@ -81,7 +81,7 @@ describe('paint containers', () => {
         h('Rect', { cx: '50', cy: '50', width: '20', height: '20', fill: '#ffffff' }),
       ),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     // 20px 方块绕 (100,100) 放大 2 倍，覆盖到 x=80
     const grown = await pixelAt(png, 85, 100)
     const stillOut = await pixelAt(png, 70, 100)
@@ -99,7 +99,7 @@ describe('paint containers', () => {
         h('Rect', { x1: '0', y1: '40', x2: '10', y2: '80', fill: '#ffffff' }),
       ),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     // 绕层的左上角 (100,20) 顺时针 90° 后，竖条变成 y=20 处的横条
     const moved = await pixelAt(png, 40, 25)
     const vacated = await pixelAt(png, 105, 80)
@@ -117,7 +117,7 @@ describe('paint containers', () => {
         h('Rect', { cx: '90', cy: '50', width: '40', height: '40', fill: '#ffffff' }),
       ),
     )
-    const { png } = await renderFvg(root)
+    const { png } = await renderFlexLayer(root)
     const inside = await pixelAt(png, 95, 50)
     const clipped = await pixelAt(png, 105, 50)
     expect(inside[0]).toBeGreaterThan(200)
@@ -130,7 +130,7 @@ describe('paint containers', () => {
       { width: '200', height: '200', background: '#000000' },
       h('div', { style: 'width:120px; height:20px; background:#ffffff; rotate:90' }, 'A'),
     )
-    const textPng = await renderFvg(text)
+    const textPng = await renderFlexLayer(text)
     expect((await pixelAt(textPng.png, 100, 50))[0]).toBeGreaterThan(200)
     expect((await pixelAt(textPng.png, 50, 100))[0]).toBeLessThan(20)
 
@@ -139,7 +139,7 @@ describe('paint containers', () => {
       { width: '200', height: '200', background: '#000000' },
       h('Line', { x1: '70', y1: '100', x2: '130', y2: '100', stroke: '#ffffff', 'stroke-width': '2', scale: '5' }),
     )
-    const linePng = await renderFvg(line)
+    const linePng = await renderFlexLayer(line)
     expect((await pixelAt(linePng.png, 100, 96))[0]).toBeGreaterThan(200)
   })
 
@@ -149,7 +149,7 @@ describe('paint containers', () => {
       { width: '120', height: '80', background: '#000000' },
       h('Layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('div', { style: 'display:flex; gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
     )
-    const { png, report } = await renderFvg(root)
+    const { png, report } = await renderFlexLayer(root)
     expect(report.issues.some((issue) => issue.code === 'text-overflow')).toBe(false)
     expect((await pixelAt(png, 20, 24))[0]).toBeGreaterThan(200)
   })
@@ -170,7 +170,7 @@ describe('paint containers', () => {
         ),
       ),
     )
-    const { png, report } = await renderFvg(root)
+    const { png, report } = await renderFlexLayer(root)
     expect(report.issues.filter((issue) => issue.level === 'error')).toEqual([])
     expect((await pixelAt(png, 150, 48))[0]).toBeGreaterThan(200)
   })
@@ -179,8 +179,8 @@ describe('paint containers', () => {
     const row = () => h('div', { style: 'display:flex; gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙'))
     const wrapped = h('Layer', { width: '400', height: '120', background: '#000000' }, h('Layer', { cx: '20', cy: '30', anchor: 'top-left' }, row()))
     const bare = h('Layer', { width: '400', height: '120', background: '#000000' }, row())
-    const placed = await renderFvg(wrapped)
-    const centered = await renderFvg(bare)
+    const placed = await renderFlexLayer(wrapped)
+    const centered = await renderFlexLayer(bare)
     const placedBox = placed.report.elements.find((element) => element.tag === 'div')!.box
     const centeredBox = centered.report.elements.find((element) => element.tag === 'div')!.box
     expect(placedBox.left).toBeCloseTo(20, 0)

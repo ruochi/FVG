@@ -1,5 +1,5 @@
 import React from 'react'
-import { renderReactFvg } from './renderReactFvg.js'
+import { renderReactFlexLayer } from './renderReactFlexLayer.js'
 import { Layer, Rect } from './tags.js'
 
 /**
@@ -21,5 +21,5 @@ if (el.w < 200) ctx.fillRect(0, 0, el.w, el.h)`}
 }
 
 export function renderDrawPanelReact(): string {
-  return renderReactFvg(<DrawPanelReact />)
+  return renderReactFlexLayer(<DrawPanelReact />)
 }

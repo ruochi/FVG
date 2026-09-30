@@ -8,8 +8,8 @@ import {
   type Node as YogaNode,
 } from 'yoga-layout/load'
 import { attachDrawTags } from './draw-tag.js'
-import type { FvgNode } from './parse.js'
-import { parseFvg } from './parse.js'
+import type { FlexLayerNode } from './parse.js'
+import { parseFlexLayer } from './parse.js'
 import { ensureBuiltinFonts, registerFontsFromDocument } from './fonts.js'
 import { catmullRomPath } from './curve.js'
 import { isGradient, parseGradient, solidPaint } from './gradient.js'
@@ -46,7 +46,7 @@ import type {
   CustomLayoutNode,
   DrawComputedStyle,
   FlexLayoutNode,
-  FvgDocument,
+  FlexLayerDocument,
   Issue,
   LayerLayoutNode,
   LayoutNode,
@@ -70,7 +70,7 @@ export type LayoutContext = {
   maxContentWidth: number
   issues: Issue[]
   pathPrefix: string
-  symbols: Map<string, FvgNode>
+  symbols: Map<string, FlexLayerNode>
   useStack: string[]
 }
 
@@ -304,7 +304,7 @@ function flexDirectionOf(style: Record<string, string>): 'row' | 'column' {
   return style['flex-direction']?.trim().toLowerCase() === 'column' ? 'column' : 'row'
 }
 
-function directTextContent(node: FvgNode): string {
+function directTextContent(node: FlexLayerNode): string {
   const parts: string[] = []
   for (const c of node.children) {
     if (typeof c === 'string') {
@@ -315,7 +315,7 @@ function directTextContent(node: FvgNode): string {
   return parts.join(' ')
 }
 
-function computeDrawStyle(node: FvgNode, ctx: LayoutContext, style: Record<string, string>): DrawComputedStyle {
+function computeDrawStyle(node: FlexLayerNode, ctx: LayoutContext, style: Record<string, string>): DrawComputedStyle {
   const tag = node.tag.toLowerCase()
   const fontSize =
     parsePx(style['font-size']) ?? (isTextBoxTag(node.tag) ? defaultFontSizeForTag(tag) : 40)
@@ -327,7 +327,7 @@ function computeDrawStyle(node: FvgNode, ctx: LayoutContext, style: Record<strin
   return { color, fontFamily, fontSize, fontWeight, opacity }
 }
 
-function layoutDrawMeta(node: FvgNode, ctx: LayoutContext) {
+function layoutDrawMeta(node: FlexLayerNode, ctx: LayoutContext) {
   const style = parseStyle(node.attrs.style)
   return {
     draw: node.draw,
@@ -338,7 +338,7 @@ function layoutDrawMeta(node: FvgNode, ctx: LayoutContext) {
   }
 }
 
-function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode | null {
+function layoutCustomDraw(node: FlexLayerNode, ctx: LayoutContext): CustomLayoutNode | null {
   if (!node.draw) return null
   let x = 0
   let y = 0
@@ -375,7 +375,7 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
   }
 }
 
-function layoutUnknownOrCustom(node: FvgNode, ctx: LayoutContext): LayoutNode | null {
+function layoutUnknownOrCustom(node: FlexLayerNode, ctx: LayoutContext): LayoutNode | null {
   const custom = layoutCustomDraw(node, ctx)
   if (custom) return custom
   const retired = node.tag === 'Row' || node.tag === 'Column'
@@ -492,7 +492,7 @@ function lineInk(geom: LineGeometry, box: Box, strokeWidth: number, head?: numbe
   return { x: minX - box.x, y: minY - box.y, width: maxX - minX, height: maxY - minY }
 }
 
-function usesOwnCoords(node: FvgNode, kind: LayoutNode['kind']): boolean {
+function usesOwnCoords(node: FlexLayerNode, kind: LayoutNode['kind']): boolean {
   if (kind === 'line') return true
   if (kind !== 'shape' && kind !== 'custom') return false
   if (node.tag === 'Circle') return false
@@ -513,7 +513,7 @@ function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
   return geom
 }
 
-function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: number): TextLayoutNode {
+function layoutTextBox(node: FlexLayerNode, ctx: LayoutContext, contentWidthLimit?: number): TextLayoutNode {
   const style = parseStyle(node.attrs.style)
   const tag = node.tag.toLowerCase()
   const fontSize = parsePx(style['font-size']) ?? defaultFontSizeForTag(tag)
@@ -610,7 +610,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   }
 }
 
-function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
+function layoutShape(node: FlexLayerNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
   const appearance = readAttrAppearance(node.attrs)
   let x = 0
   let y = 0
@@ -673,7 +673,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
   }
 }
 
-function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
+function layoutLineNode(node: FlexLayerNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
   let geom: LineGeometry
   if (node.tag === 'Line' || node.tag === 'Arrow') {
     geom = {
@@ -752,7 +752,7 @@ type FlexMeasure = {
   isText: boolean
 }
 
-async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
+async function measureFlexChild(node: FlexLayerNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
   if (node.tag === 'symbol' || node.tag === 'draw') return null
   ctx.issues.push(...checkChildAttrs(node, 'flex', ctx.pathPrefix))
   if (node.tag === 'use') {
@@ -839,7 +839,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
   return null
 }
 
-async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayoutNode> {
+async function layoutFlex(node: FlexLayerNode, ctx: LayoutContext): Promise<FlexLayoutNode> {
   const style = parseStyle(node.attrs.style)
   const direction = flexDirectionOf(style)
   const appearance = readHtmlAppearance(style)
@@ -850,7 +850,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 
   const fixedW = parsePx(style.width)
   const fixedH = parsePx(style.height)
-  const childNodes = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
+  const childNodes = node.children.filter((c) => typeof c !== 'string') as FlexLayerNode[]
   const measures: FlexMeasure[] = []
   for (let i = 0; i < childNodes.length; i++) {
     const ch = childNodes[i]!
@@ -896,8 +896,8 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   const yogaChildren: YogaNode[] = []
   for (let i = 0; i < measures.length; i++) {
     const m = measures[i]!
-    const childFvg = childNodes[i]!
-    const chParsed = parseStyle(childFvg.attrs.style)
+    const child = childNodes[i]!
+    const chParsed = parseStyle(child.attrs.style)
     const { grow, shrink } = parseFlexGrowShrink(chParsed, m.isText)
     const yn = Yoga.Node.createWithConfig(config)
     yn.setFlexGrow(grow)
@@ -980,7 +980,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   }
 }
 
-async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode | null> {
+async function layoutUse(node: FlexLayerNode, ctx: LayoutContext): Promise<LayerLayoutNode | null> {
   const href = (node.attrs.href || node.attrs['xlink:href'] || '').trim()
   const id = href.startsWith('#') ? href.slice(1) : href
   if (!id) {
@@ -1037,14 +1037,14 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
   }
 }
 
-async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
+async function layoutLayer(node: FlexLayerNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const appearance = readAttrAppearance(node.attrs)
   // 根节点的 background 是画布底色，由 paintDocument 绘制。Layer 自身不填色。
   appearance.background = undefined
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
 
-  const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
+  const childNodes = node.children.filter((c) => typeof c !== 'string') as FlexLayerNode[]
   const placed: Array<{
     child: LayoutNode
     cx?: number
@@ -1054,8 +1054,8 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     coords: boolean
   }> = []
 
-  for (let i = 0; i < childFvg.length; i++) {
-    const ch = childFvg[i]!
+  for (let i = 0; i < childNodes.length; i++) {
+    const ch = childNodes[i]!
     if (ch.tag === 'symbol' || ch.tag === 'draw') continue
     const path = nodePath(ctx.pathPrefix, ch.tag, i)
     ctx.issues.push(...checkChildAttrs(ch, 'layer', path))
@@ -1151,7 +1151,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   }
 }
 
-function collectSymbols(node: FvgNode, symbols: Map<string, FvgNode>, issues: Issue[], path: string) {
+function collectSymbols(node: FlexLayerNode, symbols: Map<string, FlexLayerNode>, issues: Issue[], path: string) {
   if (node.tag === 'symbol') {
     const id = node.attrs.id?.trim()
     if (!id) {
@@ -1177,7 +1177,7 @@ function collectSymbols(node: FvgNode, symbols: Map<string, FvgNode>, issues: Is
   })
 }
 
-function collectFontFamilies(node: FvgNode, out: Set<string>) {
+function collectFontFamilies(node: FlexLayerNode, out: Set<string>) {
   const style = parseStyle(node.attrs.style)
   if (style['font-family']) out.add(style['font-family'])
   if (node.attrs['font-family']) out.add(node.attrs['font-family'])
@@ -1186,10 +1186,10 @@ function collectFontFamilies(node: FvgNode, out: Set<string>) {
   }
 }
 
-export async function layoutSource(source: string | FvgNode, baseDir: string): Promise<FvgDocument> {
-  const nodes = typeof source === 'string' ? parseFvg(source) : [source]
+export async function layoutSource(source: string | FlexLayerNode, baseDir: string): Promise<FlexLayerDocument> {
+  const nodes = typeof source === 'string' ? parseFlexLayer(source) : [source]
   const fontNodes: Array<{ family: string; src: string }> = []
-  let rootNode: FvgNode | null = null
+  let rootNode: FlexLayerNode | null = null
   for (const n of nodes) {
     if (n.tag === FONT_TAG) {
       fontNodes.push({ family: n.attrs.family ?? '', src: n.attrs.src ?? '' })
@@ -1209,7 +1209,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   const maxContentWidth = width - safe.left - safe.right
 
   const issues: Issue[] = []
-  const symbols = new Map<string, FvgNode>()
+  const symbols = new Map<string, FlexLayerNode>()
   collectSymbols(rootNode, symbols, issues, 'Layer')
   const families = new Set<string>([fontFamily])
   collectFontFamilies(rootNode, families)
@@ -1251,4 +1251,4 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   return { width, height, background, color, fontFamily, safe, root, issues }
 }
 
-export type { FvgDocument }
+export type { FlexLayerDocument }

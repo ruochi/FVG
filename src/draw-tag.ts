@@ -1,4 +1,4 @@
-import type { FvgChild, FvgNode } from './parse.js'
+import type { FlexLayerChild, FlexLayerNode } from './parse.js'
 import type { DrawFn, Issue } from './types.js'
 
 export const DRAW_TAG = 'draw'
@@ -9,7 +9,7 @@ export function compileDrawBody(body: string): DrawFn {
   return new Function('ctx', 'el', `"use strict";\n${body}`) as DrawFn
 }
 
-function drawBodyText(node: FvgNode): string {
+function drawBodyText(node: FlexLayerNode): string {
   return node.children.map((c) => (typeof c === 'string' ? c : '')).join('')
 }
 
@@ -17,8 +17,8 @@ function drawBodyText(node: FvgNode): string {
  * 把树上的 `<draw>` 子节点编译进父节点的 `draw`，并从 children 里摘掉。
  * 程序侧已挂的 `draw` 回调优先；多个 `<draw>` 取最后一个并警告。
  */
-export function attachDrawTags(node: FvgNode, issues: Issue[], path: string): void {
-  const kept: FvgChild[] = []
+export function attachDrawTags(node: FlexLayerNode, issues: Issue[], path: string): void {
+  const kept: FlexLayerChild[] = []
   const bodies: Array<{ body: string; path: string }> = []
 
   for (let i = 0; i < node.children.length; i++) {

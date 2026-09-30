@@ -1,21 +1,21 @@
 import type { ReactNode } from 'react'
 
 /** HTML 用 style；Layer 和图形用属性。 */
-type FvgStyle = string | Record<string, string | number | undefined>
+type FlexLayerStyle = string | Record<string, string | number | undefined>
 
-type FvgCommon = {
+type FlexLayerCommon = {
   id?: string
-  style?: FvgStyle
+  style?: FlexLayerStyle
   children?: ReactNode
 }
 
-type FvgPositioned = FvgCommon & {
+type FlexLayerPositioned = FlexLayerCommon & {
   cx?: number | string
   cy?: number | string
   anchor?: string
 }
 
-type FvgEffects = {
+type FlexLayerEffects = {
   shadow?: string
   glow?: string
   'inner-shadow'?: string
@@ -28,8 +28,8 @@ type FvgEffects = {
   blend?: string
 }
 
-type FvgShape = FvgPositioned &
-  FvgEffects & {
+type FlexLayerShape = FlexLayerPositioned &
+  FlexLayerEffects & {
     r?: number | string
     rx?: number | string
     ry?: number | string
@@ -50,8 +50,8 @@ declare global {
        * 根画布与定位容器。
        * `background` 只在根上当画布底色；嵌套 Layer 不填背景，色块用 Rect / HTML / draw。
        */
-      Layer: FvgPositioned &
-        FvgEffects & {
+      Layer: FlexLayerPositioned &
+        FlexLayerEffects & {
           width?: number | string
           height?: number | string
           /** 仅根节点：画布底色。嵌套 Layer 写了会 warn 并忽略 */
@@ -68,20 +68,20 @@ declare global {
           'border-radius'?: string | number
         }
       /** 子标签：正文 JS，可用 ctx、el；不参与布局 */
-      draw: FvgCommon
-      symbol: FvgCommon & { width?: number | string; height?: number | string }
-      use: FvgPositioned & {
+      draw: FlexLayerCommon
+      symbol: FlexLayerCommon & { width?: number | string; height?: number | string }
+      use: FlexLayerPositioned & {
         href?: string
         rotate?: number | string
         scale?: number | string
         /** 忽略；色块用 Rect / HTML / draw */
         background?: string
       }
-      Rect: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
-      Circle: FvgShape
-      Ellipse: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
-      Line: FvgCommon & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string; stroke?: string; strokeWidth?: number | string }
-      Arrow: FvgCommon & {
+      Rect: FlexLayerShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
+      Circle: FlexLayerShape
+      Ellipse: FlexLayerShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
+      Line: FlexLayerCommon & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string; stroke?: string; strokeWidth?: number | string }
+      Arrow: FlexLayerCommon & {
         x1?: number | string
         y1?: number | string
         x2?: number | string
@@ -90,20 +90,20 @@ declare global {
         stroke?: string
         strokeWidth?: number | string
       }
-      Polyline: FvgCommon & { points?: string }
-      Polygon: FvgCommon & { points?: string; fill?: string }
-      Path: FvgCommon & { d?: string; fill?: string }
-      Curve: FvgCommon & { points?: string; closed?: boolean | string; fill?: string; stroke?: string }
-      h1: FvgCommon
-      h2: FvgCommon
-      h3: FvgCommon
-      p: FvgCommon
-      div: FvgCommon
-      span: FvgCommon
-      strong: FvgCommon
-      b: FvgCommon
-      em: FvgCommon
-      br: FvgCommon
+      Polyline: FlexLayerCommon & { points?: string }
+      Polygon: FlexLayerCommon & { points?: string; fill?: string }
+      Path: FlexLayerCommon & { d?: string; fill?: string }
+      Curve: FlexLayerCommon & { points?: string; closed?: boolean | string; fill?: string; stroke?: string }
+      h1: FlexLayerCommon
+      h2: FlexLayerCommon
+      h3: FlexLayerCommon
+      p: FlexLayerCommon
+      div: FlexLayerCommon
+      span: FlexLayerCommon
+      strong: FlexLayerCommon
+      b: FlexLayerCommon
+      em: FlexLayerCommon
+      br: FlexLayerCommon
     }
   }
 }

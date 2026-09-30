@@ -35,9 +35,9 @@ node dist/cli.js render examples/hello.layer -o hello.png
 ## 代码调用
 
 ```ts
-import { renderFvg } from '@dc/flexlayer'
+import { renderFlexLayer } from '@dc/flexlayer'
 
-const { png, report } = await renderFvg(source, { scale: 0.5 })
+const { png, report } = await renderFlexLayer(source, { scale: 0.5 })
 ```
 
 嵌套 `Layer` **不填背景**（只合成子元素）。色块用 `Rect` / HTML，或 `.layer` 里的 `<draw>` / 程序侧 `draw={fn}`：
@@ -53,10 +53,10 @@ const { png, report } = await renderFvg(source, { scale: 0.5 })
 </Layer>
 ```
 
-用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
+用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFlexLayer(root)`：
 
 ```ts
-import { h, renderFvg } from '@dc/flexlayer'
+import { h, renderFlexLayer } from '@dc/flexlayer'
 
 const root = h(
   'Layer',
@@ -75,7 +75,7 @@ const root = h(
   ),
 )
 
-await renderFvg(root)
+await renderFlexLayer(root)
 ```
 
 按帧生成一组 PNG 和一张联系表：

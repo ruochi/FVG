@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { checkFvg } from './render.js'
+import { checkFlexLayer } from './render.js'
 
 async function issues(source: string) {
-  const report = await checkFvg(source)
+  const report = await checkFlexLayer(source)
   return report
 }
 

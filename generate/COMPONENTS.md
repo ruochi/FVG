@@ -23,9 +23,9 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `<name>.ts` | `xxxElement(props)`，返回一棵 `FvgHostElement`。默认值在这里 |
-| `<name>Vue.ts` | 名为组件的 Vue 选项，注册到 `renderVueFvg` 的 `components` |
-| `<name>React.tsx` | 同名函数组件，放进 `renderReactFvg` 的 JSX |
+| `<name>.ts` | `xxxElement(props)`，返回一棵 `FlexLayerHostElement`。默认值在这里 |
+| `<name>Vue.ts` | 名为组件的 Vue 选项，注册到 `renderVueFlexLayer` 的 `components` |
+| `<name>React.tsx` | 同名函数组件，放进 `renderReactFlexLayer` 的 JSX |
 
 `xxxElement` 是规范实现。两层外壳调用它，不再单独算默认值。
 
@@ -61,10 +61,10 @@
 Vue：
 
 ```ts
-import { renderVueFvg } from './generate/vue/renderVueFvg.js'
+import { renderVueFlexLayer } from './generate/vue/renderVueFlexLayer.js'
 import { Arrow as ArrowVue } from './generate/components/arrowVue.js'
 
-const source = renderVueFvg({
+const source = renderVueFlexLayer({
   template: `
     <Layer width="640" height="360">
       <Arrow :x1="280" :y1="200" :x2="420" :y2="200" stroke="#333" :stroke-width="6" />
@@ -77,10 +77,10 @@ const source = renderVueFvg({
 React：
 
 ```tsx
-import { renderReactFvg } from './generate/react/renderReactFvg.js'
+import { renderReactFlexLayer } from './generate/react/renderReactFlexLayer.js'
 import { Arrow } from './generate/components/arrowReact.js'
 
-const source = renderReactFvg(
+const source = renderReactFlexLayer(
   <Layer width="640" height="360">
     <Arrow x1={280} y1={200} x2={420} y2={200} stroke="#333" strokeWidth={6} />
   </Layer>,

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { checkFvg, renderFvg } from './render.js'
+import { checkFlexLayer, renderFlexLayer } from './render.js'
 import { formatIssueLine } from './report.js'
 
 function usage(): never {
@@ -37,7 +37,7 @@ async function main() {
   const baseDir = dirname(abs)
 
   if (cmd === 'check') {
-    const rep = await checkFvg(source, { baseDir })
+    const rep = await checkFlexLayer(source, { baseDir })
     for (const issue of rep.issues) console.log(formatIssueLine(issue))
     if (report) await writeFile(report, JSON.stringify(rep, null, 2))
     const errors = rep.issues.filter((i) => i.level === 'error').length
@@ -47,7 +47,7 @@ async function main() {
 
   if (cmd !== 'render') usage()
 
-  const { png, report: rep } = await renderFvg(source, { baseDir, scale, debug })
+  const { png, report: rep } = await renderFlexLayer(source, { baseDir, scale, debug })
   const outPath = out ?? abs.replace(/\.(layer|fvg)$/i, '.png')
   await writeFile(outPath, png)
   for (const issue of rep.issues) console.log(formatIssueLine(issue))

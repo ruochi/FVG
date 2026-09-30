@@ -1,9 +1,9 @@
 import { h, type VNode } from '@vue/runtime-core'
-import type { VueFvgComponent } from '../vue/renderVueFvg.js'
-import type { FvgHostChild } from '../serialize.js'
+import type { VueFlexLayerComponent } from '../vue/renderVueFlexLayer.js'
+import type { FlexLayerHostChild } from '../serialize.js'
 import { arrowElement, type ArrowProps } from './arrow.js'
 
-function toVNode(node: FvgHostChild): VNode | string {
+function toVNode(node: FlexLayerHostChild): VNode | string {
   if (node.kind === 'text') return node.text
   return h(
     node.tag,
@@ -13,7 +13,7 @@ function toVNode(node: FvgHostChild): VNode | string {
 }
 
 /** 注册为 `components: { Arrow }`。几何来自 `arrowElement`。 */
-export const Arrow: VueFvgComponent = {
+export const Arrow: VueFlexLayerComponent = {
   props: ['x1', 'y1', 'x2', 'y2', 'head', 'stroke', 'strokeWidth', 'stroke-width', 'id'],
   setup(props: ArrowProps) {
     return () => toVNode(arrowElement(props))

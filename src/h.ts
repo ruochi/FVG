@@ -1,24 +1,24 @@
 import type { DrawFn } from './types.js'
-import type { FvgChild, FvgNode } from './parse.js'
+import type { FlexLayerChild, FlexLayerNode } from './parse.js'
 
-export type FvgProps = Record<string, unknown> & {
+export type FlexLayerProps = Record<string, unknown> & {
   draw?: DrawFn
   style?: string
-  children?: FvgChild | FvgChild[]
+  children?: FlexLayerChild | FlexLayerChild[]
 }
 
-function flattenChildren(parts: unknown[]): FvgChild[] {
-  const out: FvgChild[] = []
+function flattenChildren(parts: unknown[]): FlexLayerChild[] {
+  const out: FlexLayerChild[] = []
   for (const part of parts) {
     if (Array.isArray(part)) out.push(...flattenChildren(part))
     else if (typeof part === 'string') out.push(part)
-    else if (part != null && typeof part === 'object' && 'tag' in part) out.push(part as FvgNode)
+    else if (part != null && typeof part === 'object' && 'tag' in part) out.push(part as FlexLayerNode)
   }
   return out
 }
 
 /** 构建 Flex Layer 节点；`draw` 挂在节点上，不进 `attrs`。 */
-export function h(tag: string, props: FvgProps | null, ...children: unknown[]): FvgNode {
+export function h(tag: string, props: FlexLayerProps | null, ...children: unknown[]): FlexLayerNode {
   const attrs: Record<string, string> = {}
   let draw: DrawFn | undefined
   const p = props ?? {}

@@ -1,8 +1,8 @@
 import React, { type ReactElement, type ReactNode } from 'react'
-import type { FvgHostChild } from '../serialize.js'
+import type { FlexLayerHostChild } from '../serialize.js'
 import { arrowElement, type ArrowProps } from './arrow.js'
 
-function toReact(node: FvgHostChild): ReactNode {
+function toReact(node: FlexLayerHostChild): ReactNode {
   if (node.kind === 'text') return node.text
   return React.createElement(node.tag, node.props, ...node.children.map((child) => toReact(child)))
 }

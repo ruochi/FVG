@@ -143,7 +143,7 @@ export type ElementReport = {
   blend?: BlendMode
 }
 
-export type FvgReport = {
+export type FlexLayerReport = {
   /** 格式版本 */
   flexlayer: string
   width: number
@@ -281,7 +281,7 @@ export type LayoutNode =
   | LineLayoutNode
   | CustomLayoutNode
 
-export type FvgDocument = {
+export type FlexLayerDocument = {
   width: number
   height: number
   background: string
