@@ -9,9 +9,9 @@
   <Rect x1="80" y1="200" x2="120" y2="900" fill="#f7931a" opacity="0.45" />
 
   <!-- 毛玻璃卡片 -->
-  <Rect cx="360" cy="620" width="560" height="360" rx="28"
+  <Rect cx="360" cy="600" width="520" height="320" rx="28"
         fill="#ffffff28" backdrop-blur="18" border="1 #ffffff55"
-        shadow="0 18 36 #00000055" />
+        shadow="0 12 20 #00000044" />
 
   <Layer cx="360" cy="560" anchor="center">
     <h1 style="font-size:72px; color:#f7f2e8">寒潮</h1>
