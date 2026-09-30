@@ -1,6 +1,6 @@
 # FVG：生成、验证与 AI 协作
 
-本文说明 FVG 从「写出 markup」到「确认版式正确」的完整链路，以及 AI 应如何高效使用仓库里的工具。标签与属性规则以 [SPEC.md](SPEC.md) 为准；Vue / React 动态生成见 [GENERATE.md](GENERATE.md)；组件见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
+本文说明 FVG 从「写出 markup」到「确认版式正确」的完整链路，以及 AI 应如何高效使用仓库里的工具。标签与属性规则以 [SPEC.md](SPEC.md) 为准；效果视觉总览见 [examples/effects-gallery.png](examples/effects-gallery.png) 与 [docs/EFFECTS.md](docs/EFFECTS.md)；Vue / React 动态生成见 [GENERATE.md](GENERATE.md)；组件见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ## 1. 三层分工
 
@@ -29,10 +29,10 @@ AI 应始终把 **`.fvg` 或生成它的脚本**当作可版本化的产物；PN
 适合海报、单帧、结构不复杂的画面。和 [docs/CHEATSHEET.md](docs/CHEATSHEET.md) 同一条分界：
 
 - **HTML** 用 `style`：字号、颜色、`gap`、`padding`、`background`。排布写 `<div style="display:flex">`。
-- **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`、以及其它效果（见 EFFECTS）。标签首字母大写。
-- 文字要定位时外包 `<Layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。
+- **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、以及效果属性（`shadow` / `glow` / `inner-shadow` / `inner-glow` / `blur` / `backdrop-blur` / `glass` / `noise` / `filter` / `blend`）。标签首字母大写。
+- 文字要定位时外包 `<Layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。文字上的效果写在 `style`（如 `style="shadow:0 8 12 #000"`）。
 
-根节点是 `<fvg width="…" height="…" background="…">`。不要写 `row`、`column`。参考 [examples/](examples/)。
+根节点是 `<fvg width="…" height="…" background="…">`。不要写 `row`、`column`。参考 [examples/](examples/)。效果总览图与源文件：[examples/effects-gallery.fvg](examples/effects-gallery.fvg)。
 
 ### 2.2 Vue 模板
 
@@ -40,6 +40,7 @@ AI 应始终把 **`.fvg` 或生成它的脚本**当作可版本化的产物；PN
 
 - 依赖与 API：[GENERATE.md](GENERATE.md) → [`generate/vue/`](generate/vue/)
 - 可抄模板：[`generate/vue/example.ts`](generate/vue/example.ts)
+- 效果总览模板：[`generate/vue/effects-gallery.ts`](generate/vue/effects-gallery.ts)
 
 ### 2.3 React JSX
 
@@ -47,6 +48,8 @@ AI 应始终把 **`.fvg` 或生成它的脚本**当作可版本化的产物；PN
 
 - 依赖与 API：[GENERATE.md](GENERATE.md) → [`generate/react/`](generate/react/)
 - 可抄模板：[`generate/react/example.tsx`](generate/react/example.tsx)
+- 效果总览模板：[`generate/react/effects-gallery.tsx`](generate/react/effects-gallery.tsx)
+- 效果类型：[`generate/react/jsx.d.ts`](generate/react/jsx.d.ts)（含 `Line` / `Path` 等）+ [`generate/effects.ts`](generate/effects.ts)
 
 生成后写入文件或直接传给渲染 API：
 

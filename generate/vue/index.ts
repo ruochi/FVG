@@ -2,3 +2,5 @@ export { renderVueFvg, type VueFvgOptions, type VueFvgComponent } from './render
 export { Arrow as ArrowVue } from '../components/arrowVue.js'
 export { renderStarsPosterVue, starsExampleBindings } from './example.js'
 export { renderCityJazzPosterVue, cityJazzBindings, type ScheduleItem, type StarDot } from './poster-city-jazz.js'
+export { renderEffectsGalleryVue } from './effects-gallery.js'
+export { FVG_EFFECT_ATTRS, FVG_EFFECT_EXAMPLES, type FvgEffectsProps, type FvgEffectAttr } from '../effects.js'

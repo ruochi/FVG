@@ -278,7 +278,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 `filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上。绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。视觉总览见 [examples/effects-gallery.png](examples/effects-gallery.png)；手册见 [docs/EFFECTS.md](docs/EFFECTS.md)。
 
 ## 8. 布局报告
 

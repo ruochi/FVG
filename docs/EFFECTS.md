@@ -1,21 +1,36 @@
-# FVG 滤镜 / 效果
+# FVG 滤镜 / 效果手册
 
-现行规范见 [SPEC.md §7](../SPEC.md)。本文记录设计取舍与实现备注。
+现行规范见 [SPEC.md §7](../SPEC.md)。一页速查见 [CHEATSHEET.md](CHEATSHEET.md)。
+
+## 视觉总览（以后只改这里）
+
+完整列举见下图。**新增或改动效果时**：
+
+1. 改 [`examples/effects-gallery.fvg`](../examples/effects-gallery.fvg)
+2. 重渲：`npx tsx src/cli.ts render examples/effects-gallery.fvg -o examples/effects-gallery.png`
+3. 同步 [`generate/vue/effects-gallery.ts`](../generate/vue/effects-gallery.ts) 与 [`generate/react/effects-gallery.tsx`](../generate/react/effects-gallery.tsx)
+4. 如有新属性：改 [`generate/effects.ts`](../generate/effects.ts)、[`generate/react/jsx.d.ts`](../generate/react/jsx.d.ts)、SPEC §7、本页表格
+
+![FVG 效果一览](../examples/effects-gallery.png)
+
+源文件：`examples/effects-gallery.fvg` · Vue：`generate/vue/effects-gallery.ts` · React：`generate/react/effects-gallery.tsx` · 属性表：`generate/effects.ts`
 
 ## 已实现
 
-| 属性 | 说明 |
-| --- | --- |
-| `shadow` / `glow` | 外阴影 / 外发光 |
-| `inner-shadow` / `inner-glow` | 内阴影 / 内发光（clip + 离屏挖空） |
-| `blur` | 图层模糊（含 Layer 子树合成后再糊） |
-| `backdrop-blur` | 背景模糊（采样主画布已有像素） |
-| `glass` | iOS Liquid Glass：边缘弧面折射 + 色散 + 朝光高光，`clear` 零模糊 |
-| `noise` | 确定性噪点，`soft-light` 叠加 |
-| `filter` | 色彩滤镜（brightness / contrast / saturate / grayscale / hue-rotate / sepia / invert） |
-| `blend` | 混合模式子集 |
+| 属性 | 语法示例 | 说明 |
+| --- | --- | --- |
+| `shadow` | `0 12 20 #00000088` | 外阴影（`x y [blur] [spread] [color]`） |
+| `glow` | `36 #f4efe4` | 外发光（`blur [spread] [color]`，screen） |
+| `inner-shadow` | `0 10 16 #00000099` | 内阴影，画在本体之后 |
+| `inner-glow` | `28 #7ec8ff` | 内发光，画在本体之后 |
+| `blur` | `6` | 图层模糊（含 Layer 子树） |
+| `backdrop-blur` | `16` | 背景模糊（采样主画布） |
+| `glass` | `clear` / `regular` / `thick` | iOS Liquid Glass：边缘折射；`clear` 零模糊 |
+| `noise` | `0.35 #ffffff` | 确定性噪点 |
+| `filter` | `grayscale(1)` | 色彩滤镜（见下） |
+| `blend` | `multiply` | 混合模式子集 |
 
-归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。
+归属：Layer / 图形 / 线条 → **属性**；文字 / flex HTML → **`style`**（如 `style="shadow:0 8 12 #000"`）。
 
 绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` 或 `filter`，阴影到噪点先画进离屏再贴回。
 
@@ -34,18 +49,7 @@
 
 ## `glass` 透镜
 
-参照 iOS 26 Liquid Glass 与社区复刻（LiquidLens、liquid-glass-js、Outpace 等）的共同做法：玻璃是一块**中心平坦、边缘凸起**的厚片，光线只在边缘弧面发生弯折，中心看到的背景不变形。Liquid Glass 的辨识度来自「边缘透镜」，不是模糊。
-
-实现（`src/paint.ts` `paintGlass`）：
-
-1. **距离场**：对墨迹 alpha 做精确欧氏距离变换（Felzenszwalb EDT），得到每个像素到墨迹边缘的距离 `d`；轻微盒式平滑后取梯度作为向内法线。任何墨迹（圆角矩形、圆、文字）都能用，不依赖形状公式。
-2. **弧面带**：`bezel = min(短边 × 24%, 64px, 内切半径)`。`d ≥ bezel` 的像素原样复制背景；弧面带内按 `t = d / bezel` 查位移表。
-3. **位移曲线**：`shift = S·(1-t)²`，`S = bezel × 0.5 × refraction`。内沿处位移与斜率都归零，和平坦区无缝；`S ≤ bezel/2` 保证 `d + shift` 单调，背景在边缘被连续放大，不会翻折或被拉成一条线。
-   - 试过按 squircle 表面 + Snell 定律（n=1.5）直接算位移：边缘斜率趋于无穷，整条弧面带几乎取同一条等距线，单帧里表现为放射状拉丝；故改用上面的平滑曲线，保留「边缘放大、中心清晰」的观感。
-4. **取样**：沿法线向内偏移后双线性取样。`dispersion` > 0 时 R/G/B 用略不同的位移，边缘出现细微色散。
-5. **高光**：外法线朝左上光源的一侧最亮，对侧有较弱回光；由边缘 1px 亮线 + 弧面内的柔光组成。
-6. **模糊**：只有 `blur > 0` 才先糊背景再折射；`clear` 预设为 0。
-7. **投影**：先取样背景，再画投影，最后贴玻璃，投影不会被玻璃「透」出来。
+参照 iOS 26 Liquid Glass：玻璃是一块**中心平坦、边缘凸起**的厚片，光线只在边缘弧面弯折。辨识度来自「边缘透镜」，不是模糊。
 
 | 预设 | blur | refraction | bezel | dispersion | 默认色调 |
 | --- | --- | --- | --- | --- | --- |
@@ -53,7 +57,37 @@
 | `regular` | 6 | 0.85 | 0.22 | 0.04 | `#ffffff14` |
 | `thick` | 36 | 0.5 | 0.2 | 0 | `#ffffff2a` |
 
-做不到：设备姿态实时高光、多层玻璃互相折射、系统级自适应明暗。
+写法：`clear` / `regular` / `thick`，可加模糊与色调，如 `clear #a8c8ff20`、`regular 8 #ffffff22`、`0`。
+
+实现要点（`src/paint.ts` `paintGlass`）：墨迹距离场 → 边缘弧面带内向内取样（`shift = S·(1-t)²`）→ 可选色散 → 朝光高光；`blur=0` 时背景完全清晰。投影在取样之后画，不会透过玻璃被看到。
+
+专题示例：`examples/glass-clear.fvg`、`glass-compare.fvg`、`glass-ios.fvg`、`glass-refract.fvg`。
+
+## `filter` / `blend`
+
+`filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`。不要写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`）。
+
+`blend`：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
+
+## Vue / React
+
+生成层共用属性表：[`generate/effects.ts`](../generate/effects.ts)。
+
+```ts
+// Vue
+import { renderEffectsGalleryVue, FVG_EFFECT_EXAMPLES } from './generate/vue/index.js'
+const source = renderEffectsGalleryVue()
+// <Rect shadow="0 12 20 #00000088" glass="clear" />
+```
+
+```tsx
+// React（类型在 jsx.d.ts，Line / Path 等也可用效果属性）
+import { renderEffectsGalleryReact, Rect } from './generate/react/index.js'
+const source = renderEffectsGalleryReact()
+// <Rect shadow="0 12 20 #00000088" glass="clear" />
+```
+
+图形写属性；文字写在 `style`：`<h1 style="shadow:12 16 0 #ff5aa5">影</h1>`。
 
 ## 取舍
 
@@ -68,5 +102,5 @@
 - `src/style.ts` — 解析
 - `src/types.ts` / `src/layout.ts` — 字段与 `readEffects`
 - `src/paint.ts` — 绘制
-- `src/rules.ts` / `generate/serialize.ts` / JSX 类型 — 归属
+- `src/rules.ts` / `generate/serialize.ts` / `generate/effects.ts` / JSX 类型 — 归属
 - `src/report.ts` — 报告与 `effect-clipped`
