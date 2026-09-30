@@ -1,13 +1,7 @@
 import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
-import type {
-  FlexLayoutNode,
-  LayerLayoutNode,
-  LayoutNode,
-  LineLayoutNode,
-  ShapeLayoutNode,
-  TextLayoutNode,
-} from './types.js'
+import { originOffset } from './matrix.js'
+import type { LayerLayoutNode, LayoutNode, LineLayoutNode, ShapeLayoutNode, TextLayoutNode } from './types.js'
 import type { DrawElSnapshot } from './types.js'
 
 export type PaintOptions = {
@@ -73,17 +67,12 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
 }
 
 function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
-  const cx = node.x + node.width / 2
-  const cy = node.y + node.height / 2
-  ctx.save()
-  ctx.translate(cx, cy)
-  ctx.rotate((node.rotate * Math.PI) / 180)
-  ctx.scale(node.scale, node.scale)
-  ctx.translate(-node.width / 2, -node.height / 2)
+  const x = node.x
+  const y = node.y
   if (node.shape === 'rect') {
     const r = node.rx ?? 0
     if (r > 0) {
-      roundRectPath(ctx, 0, 0, node.width, node.height, r)
+      roundRectPath(ctx, x, y, node.width, node.height, r)
       if (node.fill !== 'none') {
         ctx.fillStyle = node.fill
         ctx.fill()
@@ -96,17 +85,17 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
     } else {
       if (node.fill !== 'none') {
         ctx.fillStyle = node.fill
-        ctx.fillRect(0, 0, node.width, node.height)
+        ctx.fillRect(x, y, node.width, node.height)
       }
       if (node.stroke !== 'none') {
         ctx.strokeStyle = node.stroke
         ctx.lineWidth = node.strokeWidth
-        ctx.strokeRect(0, 0, node.width, node.height)
+        ctx.strokeRect(x, y, node.width, node.height)
       }
     }
   } else if (node.shape === 'circle') {
     ctx.beginPath()
-    ctx.arc(node.width / 2, node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
+    ctx.arc(x + node.width / 2, y + node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill
       ctx.fill()
@@ -118,7 +107,15 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
     }
   } else {
     ctx.beginPath()
-    ctx.ellipse(node.width / 2, node.height / 2, node.rxEllipse ?? node.width / 2, node.ry ?? node.height / 2, 0, 0, Math.PI * 2)
+    ctx.ellipse(
+      x + node.width / 2,
+      y + node.height / 2,
+      node.rxEllipse ?? node.width / 2,
+      node.ry ?? node.height / 2,
+      0,
+      0,
+      Math.PI * 2,
+    )
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill
       ctx.fill()
@@ -129,7 +126,6 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
       ctx.stroke()
     }
   }
-  ctx.restore()
 }
 
 function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, head: number) {
@@ -145,13 +141,20 @@ function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
 function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
   ctx.save()
   ctx.translate(node.x, node.y)
-  ctx.strokeStyle = node.stroke
-  ctx.fillStyle = node.stroke
-  ctx.lineWidth = node.strokeWidth
+  const stroked = node.stroke !== 'none' && node.strokeWidth > 0
+  if (stroked) {
+    ctx.strokeStyle = node.stroke
+    ctx.fillStyle = node.stroke
+    ctx.lineWidth = node.strokeWidth
+  }
   ctx.lineCap = node.strokeLinecap ?? 'round'
   ctx.lineJoin = node.strokeLinejoin ?? 'round'
   const g = node.geometry
   if (g.kind === 'line' || g.kind === 'arrow') {
+    if (!stroked) {
+      ctx.restore()
+      return
+    }
     ctx.beginPath()
     ctx.moveTo(g.x1, g.y1)
     ctx.lineTo(g.x2, g.y2)
@@ -161,7 +164,7 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
       drawArrowHead(ctx, g.x1, g.y1, g.x2, g.y2, head)
     }
   } else if (g.kind === 'polyline') {
-    if (g.points.length < 2) {
+    if (g.points.length < 2 || !stroked) {
       ctx.restore()
       return
     }
@@ -182,14 +185,14 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
       ctx.fillStyle = node.fill
       ctx.fill()
     }
-    ctx.stroke()
+    if (stroked) ctx.stroke()
   } else if (g.kind === 'path') {
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
       ctx.fillStyle = node.fill
       ctx.fill(p)
     }
-    ctx.stroke(p)
+    if (stroked) ctx.stroke(p)
   } else {
     // 未知线条类型
   }
@@ -224,19 +227,26 @@ function runElementDraw(ctx: CanvasRenderingContext2D, node: LayoutNode, t: numb
   if (!node.draw) return
   ctx.save()
   ctx.translate(node.x, node.y)
-  const cx = node.width / 2
-  const cy = node.height / 2
-  ctx.translate(cx, cy)
-  ctx.rotate((node.rotate * Math.PI) / 180)
-  ctx.scale(node.scale, node.scale)
-  ctx.translate(-cx, -cy)
   node.draw(ctx, buildDrawEl(node, t))
   ctx.restore()
+}
+
+/** 绕 origin 旋转、缩放。支点用当前坐标系里的绝对位置，子绘制仍使用 node.x/node.y。 */
+function applyNodeTransform(ctx: CanvasRenderingContext2D, node: LayoutNode) {
+  if (node.rotate === 0 && node.scale === 1) return
+  const o = originOffset(node.origin, node.width, node.height)
+  const px = node.x + o.x
+  const py = node.y + o.y
+  ctx.translate(px, py)
+  ctx.rotate((node.rotate * Math.PI) / 180)
+  ctx.scale(node.scale, node.scale)
+  ctx.translate(-px, -py)
 }
 
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number) {
   ctx.save()
   ctx.globalAlpha *= node.opacity
+  applyNodeTransform(ctx, node)
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
     drawTextNode(ctx, node)
@@ -248,7 +258,17 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     drawBoxChrome(ctx, node)
   } else if (node.kind === 'flex' || node.kind === 'layer') {
     drawBoxChrome(ctx, node)
+    ctx.save()
+    const inset = node.kind === 'flex' ? node.padding.left + (node.border?.width ?? 0) : 0
+    const insetY = node.kind === 'flex' ? node.padding.top + (node.border?.width ?? 0) : 0
+    ctx.translate(node.x + inset, node.y + insetY)
+    if (node.kind === 'layer' && node.overflow === 'hidden') {
+      ctx.beginPath()
+      ctx.rect(0, 0, node.width, node.height)
+      ctx.clip()
+    }
     for (const ch of node.children) paintNode(ctx, ch, debug, t)
+    ctx.restore()
   }
   runElementDraw(ctx, node, t)
   if (debug) drawDebugOverlay(ctx, node)

@@ -91,7 +91,8 @@ describe('draw(ctx, el)', () => {
         {
           cx: '100',
           cy: '100',
-          style: 'width:80px; height:80px',
+          width: '80',
+          height: '80',
           draw: (ctx, el) => {
             drawCalled = true
             ctx.fillStyle = '#ffffff'
@@ -116,6 +117,52 @@ describe('draw(ctx, el)', () => {
     const cy = Math.round((ring!.box.top + ring!.box.bottom) / 2)
     const [r, g, b] = await pixelAt(png, cx, cy)
     expect(r + g + b).toBeGreaterThan(400)
+  })
+
+  it('线条上的 draw 原点在几何范围的左上角', async () => {
+    let seen: { w: number; h: number } | null = null
+    const root = h(
+      'fvg',
+      { width: '200', height: '80', background: '#000000' },
+      h('Line', {
+        x1: '20',
+        y1: '40',
+        x2: '120',
+        y2: '40',
+        stroke: '#ffffff',
+        'stroke-width': '4',
+        draw: (_ctx, el) => {
+          seen = { w: el.w, h: el.h }
+        },
+      }),
+    )
+    const { png } = await renderFvg(root)
+    expect(seen).toEqual({ w: 100, h: 0 })
+    const doc = await layoutSource(root, process.cwd())
+    const line = doc.root.children[0]!
+    expect(line.x).toBe(20)
+    expect(line.y).toBe(40)
+    expect((await pixelAt(png, 40, 40))[0]).toBeGreaterThan(200)
+  })
+
+  it('形状上的自定义属性出现在 el.attr', async () => {
+    let total = ''
+    const root = h(
+      'fvg',
+      { width: '80', height: '80' },
+      h('Rect', {
+        cx: '40',
+        cy: '40',
+        width: '20',
+        height: '10',
+        'data-total': '33',
+        draw: (_ctx, el) => {
+          total = el.attr['data-total'] ?? ''
+        },
+      }),
+    )
+    await renderFvg(root)
+    expect(total).toBe('33')
   })
 
   it('hello.fvg 无 draw 时结果不变', async () => {

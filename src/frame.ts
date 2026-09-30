@@ -1,7 +1,7 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 import type { FvgNode } from './parse.js'
 import { renderFvg } from './render.js'
-import type { RenderOptions } from './types.js'
+import type { FvgReport, RenderOptions } from './types.js'
 
 export type FrameInput = {
   frame: number
@@ -22,6 +22,7 @@ export type RenderCompositionOptions = Pick<RenderOptions, 'scale' | 'baseDir' |
 
 export type RenderCompositionResult = {
   frames: Buffer[]
+  reports: FvgReport[]
   contactSheet: Buffer
 }
 
@@ -100,8 +101,12 @@ export function sequence<T>(
 }
 
 const CONTACT_CELL_MAX = 480
+const CONTACT_SHEET_MAX_WIDTH = 3840
 
-/** 把各帧 PNG 排成网格。列数约为帧数的平方根，单元格只缩小不放大，空白为白色。 */
+/**
+ * 把各帧 PNG 排成网格。列数约为帧数的平方根，单元格只缩小不放大，空白为白色。
+ * 单元格最长边不超过 480px，整张宽度不超过 3840px。
+ */
 export async function contactSheetFromPngs(frames: Buffer[]): Promise<Buffer> {
   if (frames.length === 0) {
     const canvas = createCanvas(1, 1)
@@ -113,11 +118,11 @@ export async function contactSheetFromPngs(frames: Buffer[]): Promise<Buffer> {
   const images = await Promise.all(frames.map((frame) => loadImage(frame)))
   const srcW = images[0]!.width
   const srcH = images[0]!.height
-  const fit = Math.min(1, CONTACT_CELL_MAX / Math.max(srcW, srcH))
-  const cellW = Math.max(1, Math.round(srcW * fit))
-  const cellH = Math.max(1, Math.round(srcH * fit))
   const columns = Math.ceil(Math.sqrt(frames.length))
   const rows = Math.ceil(frames.length / columns)
+  const fit = Math.min(1, CONTACT_CELL_MAX / Math.max(srcW, srcH), CONTACT_SHEET_MAX_WIDTH / (columns * srcW))
+  const cellW = Math.max(1, Math.round(srcW * fit))
+  const cellH = Math.max(1, Math.round(srcH * fit))
   const canvas = createCanvas(columns * cellW, rows * cellH)
   const ctx = canvas.getContext('2d')
   ctx.fillStyle = '#ffffff'
@@ -139,18 +144,20 @@ export async function renderComposition(
     throw new Error('durationInFrames 至少为 1')
   }
   const frames: Buffer[] = []
+  const reports: FvgReport[] = []
   for (let frame = 0; frame < comp.durationInFrames; frame++) {
     const t = frame / comp.fps
     const input: FrameInput = { frame, fps: comp.fps, t }
     const node = comp.component(input)
-    const { png } = await renderFvg(node, {
+    const { png, report } = await renderFvg(node, {
       t,
       scale: options.scale,
       baseDir: options.baseDir,
       fontsCacheDir: options.fontsCacheDir,
     })
     frames.push(png)
+    reports.push(report)
   }
   const contactSheet = await contactSheetFromPngs(frames)
-  return { frames, contactSheet }
+  return { frames, reports, contactSheet }
 }
