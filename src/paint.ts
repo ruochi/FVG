@@ -1,5 +1,6 @@
 import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { buildFontString } from './fonts.js'
+import { gradientStyle, isGradientPaint, type GradientBox } from './gradient.js'
 import { originOffset } from './matrix.js'
 import type { LayerLayoutNode, LayoutNode, LineLayoutNode, ShapeLayoutNode, TextLayoutNode } from './types.js'
 import type { DrawElSnapshot } from './types.js'
@@ -30,7 +31,7 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 
 function drawBoxChrome(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   if (node.background && node.background !== 'transparent') {
-    ctx.fillStyle = node.background
+    ctx.fillStyle = gradientStyle(ctx, node.background, { x: node.x, y: node.y, width: node.width, height: node.height }, 0)
     if (node.borderRadius && node.borderRadius > 0) {
       roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
       ctx.fill()
@@ -66,29 +67,41 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode) {
   }
 }
 
+function shapeBox(node: ShapeLayoutNode): GradientBox {
+  return { x: node.x, y: node.y, width: node.width, height: node.height }
+}
+
+function shapePad(node: ShapeLayoutNode): number {
+  return node.stroke !== 'none' && node.strokeWidth > 0 ? node.strokeWidth / 2 + 2 : 1
+}
+
 function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
   const x = node.x
   const y = node.y
+  const box = shapeBox(node)
+  const pad = shapePad(node)
+  const fill = node.fill === 'none' ? null : gradientStyle(ctx, node.fill, box, pad)
+  const stroke = node.stroke === 'none' ? null : gradientStyle(ctx, node.stroke, box, pad)
   if (node.shape === 'rect') {
     const r = node.rx ?? 0
     if (r > 0) {
       roundRectPath(ctx, x, y, node.width, node.height, r)
-      if (node.fill !== 'none') {
-        ctx.fillStyle = node.fill
+      if (fill) {
+        ctx.fillStyle = fill
         ctx.fill()
       }
-      if (node.stroke !== 'none') {
-        ctx.strokeStyle = node.stroke
+      if (stroke) {
+        ctx.strokeStyle = stroke
         ctx.lineWidth = node.strokeWidth
         ctx.stroke()
       }
     } else {
-      if (node.fill !== 'none') {
-        ctx.fillStyle = node.fill
+      if (fill) {
+        ctx.fillStyle = fill
         ctx.fillRect(x, y, node.width, node.height)
       }
-      if (node.stroke !== 'none') {
-        ctx.strokeStyle = node.stroke
+      if (stroke) {
+        ctx.strokeStyle = stroke
         ctx.lineWidth = node.strokeWidth
         ctx.strokeRect(x, y, node.width, node.height)
       }
@@ -96,12 +109,12 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
   } else if (node.shape === 'circle') {
     ctx.beginPath()
     ctx.arc(x + node.width / 2, y + node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
+    if (fill) {
+      ctx.fillStyle = fill
       ctx.fill()
     }
-    if (node.stroke !== 'none') {
-      ctx.strokeStyle = node.stroke
+    if (stroke) {
+      ctx.strokeStyle = stroke
       ctx.lineWidth = node.strokeWidth
       ctx.stroke()
     }
@@ -116,12 +129,12 @@ function drawShape(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode) {
       0,
       Math.PI * 2,
     )
-    if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
+    if (fill) {
+      ctx.fillStyle = fill
       ctx.fill()
     }
-    if (node.stroke !== 'none') {
-      ctx.strokeStyle = node.stroke
+    if (stroke) {
+      ctx.strokeStyle = stroke
       ctx.lineWidth = node.strokeWidth
       ctx.stroke()
     }
@@ -138,13 +151,27 @@ function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2
   ctx.fill()
 }
 
+function linePad(node: LineLayoutNode): number {
+  const stroked = node.stroke !== 'none' && node.strokeWidth > 0
+  if (!stroked) return 1
+  let pad = node.strokeWidth / 2 + 2
+  if (node.geometry.kind === 'arrow') {
+    const head = node.geometry.head ?? Math.max(12, node.strokeWidth * 4)
+    pad = Math.max(pad, head + 2)
+  }
+  return pad
+}
+
 function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
   ctx.save()
   ctx.translate(node.x, node.y)
+  const box: GradientBox = { x: 0, y: 0, width: node.width, height: node.height }
+  const pad = linePad(node)
   const stroked = node.stroke !== 'none' && node.strokeWidth > 0
   if (stroked) {
-    ctx.strokeStyle = node.stroke
-    ctx.fillStyle = node.stroke
+    const stroke = gradientStyle(ctx, node.stroke, box, pad)
+    ctx.strokeStyle = stroke
+    ctx.fillStyle = stroke
     ctx.lineWidth = node.strokeWidth
   }
   ctx.lineCap = node.strokeLinecap ?? 'round'
@@ -182,14 +209,14 @@ function drawLine(ctx: CanvasRenderingContext2D, node: LineLayoutNode) {
     for (let i = 1; i < g.points.length; i++) ctx.lineTo(g.points[i]!.x, g.points[i]!.y)
     ctx.closePath()
     if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
+      ctx.fillStyle = gradientStyle(ctx, node.fill, box, pad)
       ctx.fill()
     }
     if (stroked) ctx.stroke()
   } else if (g.kind === 'path') {
     const p = new Path2D(g.d)
     if (node.fill !== 'none') {
-      ctx.fillStyle = node.fill
+      ctx.fillStyle = gradientStyle(ctx, node.fill, box, pad)
       ctx.fill(p)
     }
     if (stroked) ctx.stroke(p)
@@ -283,12 +310,16 @@ export function paintDocument(
   const h = Math.round(opts.height * opts.scale)
   const canvas = createCanvas(w, h)
   const ctx = canvas.getContext('2d')
-  if (opts.background !== 'transparent') {
+  if (opts.background !== 'transparent' && !isGradientPaint(opts.background)) {
     ctx.fillStyle = opts.background
     ctx.fillRect(0, 0, w, h)
   }
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
+  if (isGradientPaint(opts.background)) {
+    ctx.fillStyle = gradientStyle(ctx, opts.background, { x: 0, y: 0, width: opts.width, height: opts.height }, 0)
+    ctx.fillRect(0, 0, opts.width, opts.height)
+  }
   for (const ch of root.children) paintNode(ctx, ch, opts.debug, opts.t)
   if (opts.debug) drawDebugOverlay(ctx, root)
   ctx.restore()

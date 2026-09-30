@@ -46,6 +46,7 @@ import type {
 } from './types.js'
 import { emptyBox, translateBox, unionBoxes } from './types.js'
 import { ensureYoga } from './yoga.js'
+import { isGradientPaint, parseGradient } from './gradient.js'
 
 export type LayoutContext = {
   color: string
@@ -108,12 +109,32 @@ function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
 }
 
-function readHtmlAppearance(style: Record<string, string>) {
+function normalizePaint(
+  raw: string | undefined,
+  fallback: string | undefined,
+  ctx: LayoutContext,
+  attr: string,
+): string | undefined {
+  if (raw == null || raw.trim() === '') return fallback
+  const value = raw.trim()
+  if (!isGradientPaint(value)) return value
+  if (parseGradient(value)) return value
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-attr',
+    path: ctx.pathPrefix,
+    message: `${attr} 的渐变语法无法解析`,
+    hint: '例如 gradient(#112233, #ff8800)，或矩阵 gradient(#f00 #0f0 / #00f #ff0)',
+  })
+  return fallback
+}
+
+function readHtmlAppearance(style: Record<string, string>, ctx: LayoutContext) {
   return {
     padding: parseEdges(style.padding) ?? ZERO_EDGES,
     border: parseBorder(style.border),
     borderRadius: parsePx(style['border-radius']) ?? 0,
-    background: style.background ?? style['background-color'],
+    background: normalizePaint(style.background ?? style['background-color'], undefined, ctx, 'background'),
     opacity: parseNumber(style.opacity) ?? 1,
     rotate: parseNumber(style.rotate) ?? 0,
     scale: parseNumber(style.scale) ?? 1,
@@ -121,12 +142,12 @@ function readHtmlAppearance(style: Record<string, string>) {
   }
 }
 
-function readAttrAppearance(attrs: Record<string, string>) {
+function readAttrAppearance(attrs: Record<string, string>, ctx: LayoutContext) {
   return {
     padding: ZERO_EDGES,
     border: parseBorder(attrs.border),
     borderRadius: parsePx(attrs['border-radius']) ?? 0,
-    background: attrs.background,
+    background: normalizePaint(attrs.background, undefined, ctx, 'background'),
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
@@ -192,7 +213,7 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
     y = parseNumber(node.attrs.y) ?? 0
   }
   if (w == null || h == null) return null
-  const appearance = readAttrAppearance(node.attrs)
+  const appearance = readAttrAppearance(node.attrs, ctx)
   return {
     kind: 'custom',
     path: ctx.pathPrefix,
@@ -367,7 +388,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   const maxW = parsePx(style['max-width']) ?? contentWidthLimit
   const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 ? 1.4 : 1.2)
 
-  const appearance = readHtmlAppearance(style)
+  const appearance = readHtmlAppearance(style, ctx)
   const innerPadX = appearance.padding.left + appearance.padding.right + (appearance.border?.width ?? 0) * 2
   const innerPadY = appearance.padding.top + appearance.padding.bottom + (appearance.border?.width ?? 0) * 2
 
@@ -428,7 +449,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
 }
 
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
-  const appearance = readAttrAppearance(node.attrs)
+  const appearance = readAttrAppearance(node.attrs, ctx)
   let x = 0
   let y = 0
   let w = parseNumber(node.attrs.width) ?? 0
@@ -462,8 +483,8 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
       h = parseNumber(node.attrs.height) ?? h
     }
   }
-  const fill = node.attrs.fill ?? '#000000'
-  const stroke = node.attrs.stroke ?? 'none'
+  const fill = normalizePaint(node.attrs.fill, '#000000', ctx, 'fill') ?? '#000000'
+  const stroke = normalizePaint(node.attrs.stroke, 'none', ctx, 'stroke') ?? 'none'
   const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 1
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
@@ -514,8 +535,8 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
   const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 4
-  const stroke = node.attrs.stroke ?? defaultStroke
-  const fill = node.attrs.fill ?? 'none'
+  const stroke = normalizePaint(node.attrs.stroke, defaultStroke, ctx, 'stroke') ?? defaultStroke
+  const fill = normalizePaint(node.attrs.fill, 'none', ctx, 'fill') ?? 'none'
   const box = lineBounds(geom)
   const ink = lineInk(geom, box, strokeWidth, geom.kind === 'arrow' ? geom.head : undefined)
   const localGeom = normalizeLineGeometry(geom, box)
@@ -628,7 +649,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
 async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayoutNode> {
   const style = parseStyle(node.attrs.style)
   const direction = flexDirectionOf(style)
-  const appearance = readHtmlAppearance(style)
+  const appearance = readHtmlAppearance(style, ctx)
   const gap = parsePx(style.gap) ?? 0
   const justify = mapJustify(style['justify-content'])
   const alignItems = mapAlign(style['align-items'])
@@ -765,7 +786,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
-  const appearance = readAttrAppearance(node.attrs)
+  const appearance = readAttrAppearance(node.attrs, ctx)
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
 
@@ -890,13 +911,17 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   const attrs = rootNode.attrs
   const width = parseNumber(attrs.width) ?? 1080
   const height = parseNumber(attrs.height) ?? 1920
-  const background = attrs.background ?? '#ffffff'
   const color = attrs.color ?? '#111111'
   const fontFamily = attrs['font-family'] ?? 'ChillDuanSans'
   const safe = parseSafe(attrs.safe, width, height)
   const maxContentWidth = width - safe.left - safe.right
 
   const issues: Issue[] = []
+  const paintCtx: LayoutContext = { color, fontFamily, maxContentWidth, issues, pathPrefix: 'fvg' }
+  const hadBackground = attrs.background != null && attrs.background.trim() !== ''
+  const background = hadBackground ? (normalizePaint(attrs.background, '#ffffff', paintCtx, 'background') ?? '#ffffff') : '#ffffff'
+  const rootAttrs = hadBackground ? { ...attrs, background } : attrs
+  const rootForLayout = rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer', attrs: rootAttrs } : { ...rootNode, attrs: rootAttrs }
   if (attrs.style?.trim()) {
     issues.push({
       level: 'warn',
@@ -906,16 +931,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       hint: '把 width、background、opacity 写成属性',
     })
   }
-  const root = await layoutLayer(
-    rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer' } : rootNode,
-    {
-      color,
-      fontFamily,
-      maxContentWidth,
-      issues,
-      pathPrefix: 'fvg',
-    },
-  )
+  const root = await layoutLayer(rootForLayout, paintCtx)
 
   root.width = width
   root.height = height
