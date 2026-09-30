@@ -34,6 +34,7 @@ const HTML_STYLE_ATTRS = [
   'blur',
   'backdrop-blur',
   'noise',
+  'glass',
   'filter',
   'blend',
   'writing-mode',

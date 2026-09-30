@@ -23,6 +23,7 @@ type FvgEffects = {
   blur?: number | string
   'backdrop-blur'?: number | string
   noise?: string
+  glass?: string
   filter?: string
   blend?: string
 }

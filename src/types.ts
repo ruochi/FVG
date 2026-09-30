@@ -99,6 +99,13 @@ export type TextLineReport = {
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
 export type NoiseSpec = { amount: number; color?: string }
+export type GlassSpec = {
+  variant: 'regular' | 'clear' | 'thick'
+  blur: number
+  tint?: string
+  refraction: number
+  specular: number
+}
 export type ColorFilterSpec =
   | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
   | { name: 'hue-rotate'; value: number }
@@ -129,6 +136,7 @@ export type ElementReport = {
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
+  glass?: GlassSpec
   filter?: ColorFilterSpec[]
   blend?: BlendMode
 }
@@ -211,6 +219,7 @@ export type LayoutNodeBase = {
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
+  glass?: GlassSpec
   colorFilter?: ColorFilterSpec[]
   blend?: BlendMode
 }

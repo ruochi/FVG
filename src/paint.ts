@@ -13,6 +13,12 @@ type PaintCtx = CanvasRenderingContext2D & {
   getImageData(sx: number, sy: number, sw: number, sh: number): ImageData
   putImageData(imageData: ImageData, dx: number, dy: number): void
   createImageData(sw: number, sh: number): ImageData
+  createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+  ): { addColorStop(offset: number, color: string): void }
   getTransform(): { a: number; b: number; c: number; d: number; e: number; f: number }
 }
 import { buildFontString } from './fonts.js'
@@ -21,6 +27,7 @@ import { gradientStyle, isGradientPaint, type GradientBox } from './gradientFiel
 import { originOffset } from './matrix.js'
 import { colorFilterToCss } from './style.js'
 import type {
+  GlassSpec,
   GlowSpec,
   LayerLayoutNode,
   LayoutNode,
@@ -534,8 +541,7 @@ function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
   ctx.restore()
 }
 
-function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
-  if (radius <= 0 || node.width <= 0 || node.height <= 0) return
+function nodeDeviceBounds(ctx: PaintCtx, node: LayoutNode, padDevice: number) {
   const matrix = ctx.getTransform()
   const corners = [
     { x: node.x, y: node.y },
@@ -546,12 +552,42 @@ function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
     x: matrix.a * p.x + matrix.c * p.y + matrix.e,
     y: matrix.b * p.x + matrix.d * p.y + matrix.f,
   }))
-  const minX = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))))
-  const minY = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))))
-  const maxX = Math.min(ctx.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))))
-  const maxY = Math.min(ctx.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))))
-  const sw = maxX - minX
-  const sh = maxY - minY
+  const minX = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x)) - padDevice))
+  const minY = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y)) - padDevice))
+  const maxX = Math.min(ctx.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x)) + padDevice))
+  const maxY = Math.min(ctx.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y)) + padDevice))
+  return { matrix, minX, minY, maxX, maxY, sw: maxX - minX, sh: maxY - minY }
+}
+
+function sampleBilinear(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  x: number,
+  y: number,
+): [number, number, number, number] {
+  const x0 = Math.max(0, Math.min(w - 1, Math.floor(x)))
+  const y0 = Math.max(0, Math.min(h - 1, Math.floor(y)))
+  const x1 = Math.min(w - 1, x0 + 1)
+  const y1 = Math.min(h - 1, y0 + 1)
+  const fx = x - Math.floor(x)
+  const fy = y - Math.floor(y)
+  const i00 = (y0 * w + x0) * 4
+  const i10 = (y0 * w + x1) * 4
+  const i01 = (y1 * w + x0) * 4
+  const i11 = (y1 * w + x1) * 4
+  const out: [number, number, number, number] = [0, 0, 0, 0]
+  for (let c = 0; c < 4; c++) {
+    const v0 = data[i00 + c]! * (1 - fx) + data[i10 + c]! * fx
+    const v1 = data[i01 + c]! * (1 - fx) + data[i11 + c]! * fx
+    out[c] = v0 * (1 - fy) + v1 * fy
+  }
+  return out
+}
+
+function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
+  if (radius <= 0 || node.width <= 0 || node.height <= 0) return
+  const { matrix, minX, minY, sw, sh } = nodeDeviceBounds(ctx, node, 0)
   if (sw <= 0 || sh <= 0) return
   const snapshot = ctx.getImageData(minX, minY, sw, sh)
   const src = createCanvas(sw, sh)
@@ -572,6 +608,115 @@ function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
   ctx.save()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.drawImage(blurred, minX, minY)
+  ctx.restore()
+}
+
+/**
+ * 近似 iOS Liquid Glass：背景模糊 + 径向透镜折射（边缘放大）+ 顶部高光。
+ * 不是物理级实时透镜，但对海报/单帧足够像。
+ */
+function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec) {
+  if (node.width <= 0 || node.height <= 0) return
+  const k = transformScale(ctx)
+  const samplePad = Math.ceil((glass.blur * 2 + Math.max(node.width, node.height) * glass.refraction * 2) * k)
+  const { matrix, minX, minY, sw, sh } = nodeDeviceBounds(ctx, node, samplePad)
+  if (sw <= 0 || sh <= 0) return
+
+  const snapshot = ctx.getImageData(minX, minY, sw, sh)
+  const src = createCanvas(sw, sh)
+  const sctx = src.getContext('2d') as PaintCtx
+  sctx.putImageData(snapshot, 0, 0)
+
+  // 先糊再折射，接近「散射 + 透镜」叠层
+  const blurred = createCanvas(sw, sh)
+  const bctx = blurred.getContext('2d') as PaintCtx
+  bctx.filter = `blur(${glass.blur * k}px) saturate(1.15) brightness(1.04)`
+  bctx.drawImage(src, 0, 0)
+  bctx.filter = 'none'
+  const blurData = bctx.getImageData(0, 0, sw, sh).data
+
+  const mask = createCanvas(sw, sh)
+  const mctx = mask.getContext('2d') as PaintCtx
+  mctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e - minX, matrix.f - minY)
+  drawNodeInk(mctx, node, 0, '#ffffff')
+  const maskData = mctx.getImageData(0, 0, sw, sh).data
+
+  const out = createCanvas(sw, sh)
+  const octx = out.getContext('2d') as PaintCtx
+  const outImg = octx.createImageData(sw, sh)
+  const outData = outImg.data
+
+  // 元素中心（设备像素，相对采样区）
+  const cxLogic = node.x + node.width / 2
+  const cyLogic = node.y + node.height / 2
+  const centerX = matrix.a * cxLogic + matrix.c * cyLogic + matrix.e - minX
+  const centerY = matrix.b * cxLogic + matrix.d * cyLogic + matrix.f - minY
+  const radiusLogic = Math.hypot(node.width, node.height) / 2
+  const maxR = Math.max(1, radiusLogic * k)
+  const strength = Math.max(0, glass.refraction)
+
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const mi = (y * sw + x) * 4
+      const a = maskData[mi + 3]!
+      if (a < 1) continue
+      const dx = x - centerX
+      const dy = y - centerY
+      const dist = Math.hypot(dx, dy)
+      const t = Math.min(1, dist / maxR)
+      // 边缘更强：从中心取样 → 视觉上像透镜放大/折射
+      const bend = strength * t * t * (1.15 + glass.specular * 0.35)
+      const sx = centerX + dx * (1 - bend)
+      const sy = centerY + dy * (1 - bend)
+      const [r, g, b, sa] = sampleBilinear(blurData, sw, sh, sx, sy)
+      outData[mi] = r
+      outData[mi + 1] = g
+      outData[mi + 2] = b
+      outData[mi + 3] = (sa * a) / 255
+    }
+  }
+  octx.putImageData(outImg, 0, 0)
+
+  // 色调层（glass tint 或淡白）
+  const tint = glass.tint ?? (glass.variant === 'clear' ? '#ffffff14' : glass.variant === 'thick' ? '#ffffff2a' : '#ffffff1f')
+  octx.save()
+  octx.globalCompositeOperation = 'source-atop'
+  octx.fillStyle = tint
+  octx.fillRect(0, 0, sw, sh)
+  octx.restore()
+
+  // 顶部高光（specular rim）
+  if (glass.specular > 0) {
+    const spec = createCanvas(sw, sh)
+    const sp = spec.getContext('2d') as PaintCtx
+    const grad = sp.createLinearGradient(0, 0, 0, sh * 0.55)
+    const peak = Math.min(0.85, 0.25 + glass.specular * 0.55)
+    grad.addColorStop(0, `rgba(255,255,255,${peak})`)
+    grad.addColorStop(0.35, `rgba(255,255,255,${peak * 0.25})`)
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    sp.fillStyle = grad
+    sp.fillRect(0, 0, sw, sh)
+    // 只留上沿一条细高光带
+    sp.globalCompositeOperation = 'destination-in'
+    const band = sp.createLinearGradient(0, 0, 0, Math.max(8, sh * 0.22))
+    band.addColorStop(0, '#fff')
+    band.addColorStop(1, '#0000')
+    sp.fillStyle = band
+    sp.fillRect(0, 0, sw, sh)
+    octx.save()
+    octx.globalCompositeOperation = 'screen'
+    octx.globalAlpha = 0.65 * glass.specular
+    octx.drawImage(spec, 0, 0)
+    octx.restore()
+  }
+
+  // 墨迹裁切
+  octx.globalCompositeOperation = 'destination-in'
+  octx.drawImage(mask, 0, 0)
+
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(out, minX, minY)
   ctx.restore()
 }
 
@@ -607,11 +752,25 @@ function paintNodeEffectsAndBody(
   debug: boolean,
   t: number,
   state: PaintState,
-  opts: { backdrop: boolean },
+  opts: { sampleBackdrop: boolean },
 ) {
-  if (opts.backdrop && node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
+  // glass / backdrop-blur 采样背后像素，只能在主画布上做一次
+  if (opts.sampleBackdrop) {
+    if (node.glass) paintGlass(ctx, node, node.glass)
+    else if (node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
+  }
+  // glass 未写 shadow 时补一层柔和投影，接近系统控件浮起感
   if (node.shadow) {
     drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeInk(ctx, node, spread))
+  } else if (node.glass) {
+    const depth = node.glass.variant === 'thick' ? 18 : node.glass.variant === 'clear' ? 10 : 14
+    drawEffect(
+      ctx,
+      state,
+      node,
+      { dx: 0, dy: depth * 0.35, blur: depth, spread: 0, color: '#00000033' },
+      (spread) => drawNodeInk(ctx, node, spread),
+    )
   }
   if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeInk(ctx, node, spread))
   paintBody(ctx, node, debug, t, state)
@@ -658,7 +817,7 @@ function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t
   const octx = off.getContext('2d') as PaintCtx
   octx.setTransform(k, 0, 0, k, 0, 0)
   octx.translate(-node.x + effectPad, -node.y + effectPad)
-  paintNodeEffectsAndBody(octx, node, debug, t, state, { backdrop: false })
+  paintNodeEffectsAndBody(octx, node, debug, t, state, { sampleBackdrop: false })
   const parts: string[] = []
   if (blur > 0) parts.push(`blur(${blur}px)`)
   if (filterCss) parts.push(filterCss)
@@ -678,9 +837,14 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     pctx.globalCompositeOperation = node.blend
   }
   const useLayerFilter = (node.blur != null && node.blur > 0) || (node.colorFilter != null && node.colorFilter.length > 0)
-  if (node.backdropBlur) paintBackdropBlur(pctx, node, node.backdropBlur)
-  if (useLayerFilter) paintWithLayerFilter(pctx, node, debug, t, state)
-  else paintNodeEffectsAndBody(pctx, node, debug, t, state, { backdrop: false })
+  if (useLayerFilter) {
+    // 先在主画布采样玻璃/背景模糊，再把本体效果离屏糊上
+    if (node.glass) paintGlass(pctx, node, node.glass)
+    else if (node.backdropBlur) paintBackdropBlur(pctx, node, node.backdropBlur)
+    paintWithLayerFilter(pctx, node, debug, t, state)
+  } else {
+    paintNodeEffectsAndBody(pctx, node, debug, t, state, { sampleBackdrop: true })
+  }
   if (debug) drawDebugOverlay(pctx, node)
   pctx.restore()
 }

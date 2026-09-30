@@ -126,6 +126,31 @@ describe('绘制', () => {
     expect(el?.innerGlow?.blur).toBe(10)
   })
 
+  it('glass 透镜折射会放大边缘背后的内容', async () => {
+    // 左半红右半青，玻璃圆盖在分界上；折射后圆内边缘色带应比无折射时更「外扩」
+    const withGlass = await renderFvg(
+      `<fvg width="160" height="120" background="#000000">
+        <Rect x="0" y="0" width="80" height="120" fill="#ff0000" />
+        <Rect x="80" y="0" width="80" height="120" fill="#00e5ff" />
+        <Circle cx="80" cy="60" r="40" fill="#ffffff22" glass="thick" />
+      </fvg>`,
+    )
+    const plain = await renderFvg(
+      `<fvg width="160" height="120" background="#000000">
+        <Rect x="0" y="0" width="80" height="120" fill="#ff0000" />
+        <Rect x="80" y="0" width="80" height="120" fill="#00e5ff" />
+        <Circle cx="80" cy="60" r="40" fill="#ffffff22" backdrop-blur="34" />
+      </fvg>`,
+    )
+    const g = await pixels(withGlass.png)
+    const p = await pixels(plain.png)
+    // 取圆内偏右一点：折射应从更靠分界/左侧取样，红色分量往往更高
+    const glassPx = g.at(100, 60)
+    const blurPx = p.at(100, 60)
+    expect(glassPx[0]).toBeGreaterThan(blurPx[0] + 8)
+    expect(withGlass.report.elements.some((el) => el.glass?.variant === 'thick')).toBe(true)
+  })
+
   it('文字投影跟随字形墨迹，不是整块盒子', async () => {
     // 「一」只有中间横笔；红影右移 20px。盒子上沿内侧若出现红斑，说明仍按 box 投影。
     const { png, report } = await renderFvg(

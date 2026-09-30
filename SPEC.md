@@ -269,9 +269,12 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `inner-glow` | 同 `glow` | 内发光，画在本体之后，不外扩 |
 | `blur` | 单个非负像素 | 图层模糊：糊本元素（含 Layer 子树）已绘制像素；外扩计入 `effect-clipped` |
 | `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
+| `glass` | 见下 | 近似 iOS Liquid Glass：背景模糊 + **透镜折射** + 顶部高光；与 `backdrop-blur` 同时写时以 `glass` 为准 |
 | `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
 | `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
 | `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
+
+`glass` 写法：`regular` / `clear` / `thick`，或 `24` / `24 #ffffff33` / `thick #a8d8ff40`。折射按墨迹做径向取样位移（边缘放大），不是物理级实时透镜。
 
 `filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
 
@@ -427,4 +430,4 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
-- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`、`glass`。
+- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。
