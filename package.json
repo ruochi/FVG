@@ -1,7 +1,7 @@
 {
   "name": "@dc/flexlayer",
   "version": "0.1.0",
-  "description": "Flex Layer: AI-friendly 2D frame markup with flex layout, HTML text and SVG-style shapes, rendered to PNG",
+  "description": "Code-to-image for AI agents: write .layer markup, render a PNG and a layout report",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

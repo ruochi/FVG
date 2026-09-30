@@ -1,9 +1,9 @@
 # Flex Layer 规范 v0.1
 
-Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
+本文是 AI agent 写画面时要遵守的合同。Flex Layer 用标签描述**一帧画面**，渲染器输出 PNG 和布局报告。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
 动画 = 程序为每个时刻生成一份 Flex Layer（v0.2 起）。
 
-设计原则：
+下面六条让 agent 能改、能查、能复现：
 
 1. **一律实际像素**：所有数字都是像素，可以写 `px` 后缀，不支持百分比、em、rem。
 2. **位置由 Layer 决定**：`Layer` 负责定位，`display:flex` 的 HTML 负责排布。图形用自身坐标画在 Layer 里。

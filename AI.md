@@ -1,6 +1,8 @@
-# Flex Layer：生成、验证与 AI 协作
+# Flex Layer：给 AI agent 的操作说明
 
-本文说明 Flex Layer 从「写出 markup」到「确认版式正确」的完整链路，以及 AI 应如何高效使用仓库里的工具。标签与属性规则以 [SPEC.md](SPEC.md) 为准；Vue / React 动态生成见 [GENERATE.md](GENERATE.md)；组件见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
+Flex Layer 是面向 AI agent 的代码生图工具：写出 `.layer`，渲染成 PNG，并用布局报告把问题指回节点。产品优势见 [README.md](README.md)。本文是 agent 从写出 markup 到确认版式的操作闭环。
+
+标签与属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。Vue / React 动态生成见 [GENERATE.md](GENERATE.md)，组件见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ## 1. 三层分工
 
@@ -156,7 +158,7 @@ flowchart TD
 | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | 一页写法 |
 | [docs/EFFECTS.md](docs/EFFECTS.md) | 滤镜 / 效果说明与实现备注 |
 | [GENERATE.md](GENERATE.md) | Vue / React 生成 Flex Layer 的依赖与模板 |
-| [README.md](README.md) | 安装、常用命令、API 入口 |
+| [README.md](README.md) | 定位、优势、安装与 API |
 | **本文 AI.md** | 生成 + 验证 + AI 协作闭环 |
 
 自动化测试：`npm test`（渲染器）；`npm run test:generate`（生成层 + `layoutSource` 校验）。

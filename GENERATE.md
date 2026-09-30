@@ -1,6 +1,6 @@
 # 用 Vue 或 React 生成 Flex Layer
 
-Flex Layer 的**生成**和**画图**是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
+Agent 用代码生图时，重复结构和数据放在这里生成，输出仍是 `.layer` 文本。生成和画图是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ```text
 Vue 模板 / React JSX  →  .layer 文本  →  renderFlexLayer / flexlayer render  →  PNG
