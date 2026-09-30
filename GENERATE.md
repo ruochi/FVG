@@ -96,7 +96,7 @@ const source = renderVueFvg({
 - 未注册的标签按模板里的大小写输出。`Circle`、`Layer` 不用注册。
 - `Caption` 这种组件名在 `components` 里注册，展开后文件里不留这个名字。
 - 动态坐标用 `:cx="表达式"`。半径写 `:r="s.r"`，不要放进 `style`。
-- 自定义绘制抄 [`generate/vue/draw-example.ts`](generate/vue/draw-example.ts)：嵌套 Layer 里放 `<draw>`，不要给嵌套 Layer 写 `background`。
+- 自定义绘制抄 [`generate/vue/draw-example.ts`](generate/vue/draw-example.ts)：嵌套 Layer 里放 `<draw>`，不要给嵌套 Layer 写 `background`。Vue 模板会压空白，多句 JS 请写在一行并用 `;` 分隔。
 
 ---
 
