@@ -395,17 +395,27 @@ function paintGlow(ctx: CanvasRenderingContext2D, state: PaintState, node: Layou
   drawEffect(ctx, state, node, { ...wide, blur: Math.max(2, glow.blur * 0.35) }, drawSilhouette, 'screen')
 }
 
-function drawNodeSilhouette(
-  ctx: CanvasRenderingContext2D,
-  node: LayoutNode,
-  spread: number,
-  glyphs: boolean,
-  ink = SILHOUETTE,
-) {
-  if (node.kind === 'line') drawLine(ctx, node, true, spread)
-  else if (node.kind === 'shape') drawShapeSilhouette(ctx, node, spread, ink)
-  else if (node.kind === 'text' && glyphs) drawTextNode(ctx, node, ink)
-  else drawBoxSilhouette(ctx, node, spread, ink)
+/**
+ * 效果用的着墨轮廓：跟真实画出来的像素走，不跟布局盒子。
+ * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；Layer/flex = 仅自身背景/边框。
+ */
+function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
+  if (node.kind === 'line') {
+    drawLine(ctx, node, true, spread)
+    return
+  }
+  if (node.kind === 'shape') {
+    drawShapeSilhouette(ctx, node, spread, ink)
+    return
+  }
+  if (node.kind === 'text') {
+    if (node.background && node.background !== 'transparent') drawBoxSilhouette(ctx, node, spread, ink)
+    drawTextNode(ctx, node, ink)
+    return
+  }
+  if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
+    drawBoxSilhouette(ctx, node, spread, ink)
+  }
 }
 
 function transformScale(ctx: CanvasRenderingContext2D): number {
@@ -415,42 +425,11 @@ function transformScale(ctx: CanvasRenderingContext2D): number {
   return Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.b * matrix.c)) || 1
 }
 
-function clipToNode(ctx: CanvasRenderingContext2D, node: LayoutNode) {
-  ctx.beginPath()
-  if (node.kind === 'shape') {
-    if (node.shape === 'circle') {
-      ctx.arc(node.x + node.width / 2, node.y + node.height / 2, node.r ?? node.width / 2, 0, Math.PI * 2)
-    } else if (node.shape === 'ellipse') {
-      ctx.ellipse(
-        node.x + node.width / 2,
-        node.y + node.height / 2,
-        node.rxEllipse ?? node.width / 2,
-        node.ry ?? node.height / 2,
-        0,
-        0,
-        Math.PI * 2,
-      )
-    } else if (node.borderRadius && node.borderRadius > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
-    } else if (node.rx && node.rx > 0) {
-      roundRectPath(ctx, node.x, node.y, node.width, node.height, node.rx)
-    } else {
-      ctx.rect(node.x, node.y, node.width, node.height)
-    }
-  } else if (node.borderRadius && node.borderRadius > 0) {
-    roundRectPath(ctx, node.x, node.y, node.width, node.height, node.borderRadius)
-  } else {
-    ctx.rect(node.x, node.y, node.width, node.height)
-  }
-  ctx.clip()
-}
-
 function paintInnerEffect(
   ctx: PaintCtx,
   node: LayoutNode,
   effect: { x: number; y: number; blur: number; spread: number; color: string },
   blend: 'source-over' | 'screen',
-  glyphs: boolean,
 ) {
   if (node.width <= 0 || node.height <= 0) return
   const k = transformScale(ctx)
@@ -464,13 +443,13 @@ function paintInnerEffect(
   const fctx = fill.getContext('2d') as PaintCtx
   fctx.setTransform(k, 0, 0, k, 0, 0)
   fctx.translate(-node.x + pad, -node.y + pad)
-  drawNodeSilhouette(fctx, node, Math.max(0, effect.spread), glyphs, effect.color)
+  drawNodeInk(fctx, node, Math.max(0, effect.spread), effect.color)
 
   const cut = createCanvas(tw, th)
   const cctx = cut.getContext('2d') as PaintCtx
   cctx.setTransform(k, 0, 0, k, 0, 0)
   cctx.translate(-node.x + pad, -node.y + pad)
-  drawNodeSilhouette(cctx, node, -Math.max(0, effect.spread), glyphs, '#000000')
+  drawNodeInk(cctx, node, -Math.max(0, effect.spread), '#000000')
 
   const cutSoft = createCanvas(tw, th)
   const sctx = cutSoft.getContext('2d') as PaintCtx
@@ -483,8 +462,16 @@ function paintInnerEffect(
   fctx.globalCompositeOperation = 'destination-out'
   fctx.drawImage(cutSoft, 0, 0)
 
+  // 内效果也按墨迹 alpha 裁切，避免文字落成方块阴影
+  const clip = createCanvas(tw, th)
+  const clipCtx = clip.getContext('2d') as PaintCtx
+  clipCtx.setTransform(k, 0, 0, k, 0, 0)
+  clipCtx.translate(-node.x + pad, -node.y + pad)
+  drawNodeInk(clipCtx, node, 0, '#ffffff')
+  fctx.globalCompositeOperation = 'destination-in'
+  fctx.drawImage(clip, 0, 0)
+
   ctx.save()
-  clipToNode(ctx, node)
   ctx.globalCompositeOperation = blend
   ctx.drawImage(fill, node.x - pad, node.y - pad, twLogic, thLogic)
   ctx.restore()
@@ -494,9 +481,12 @@ function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
   const w = Math.max(1, Math.ceil(node.width))
   const h = Math.max(1, Math.ceil(node.height))
   if (node.width <= 0 || node.height <= 0 || noise.amount <= 0) return
-  const off = createCanvas(w, h)
+  const k = transformScale(ctx)
+  const tw = Math.max(1, Math.ceil(w * k))
+  const th = Math.max(1, Math.ceil(h * k))
+  const off = createCanvas(tw, th)
   const octx = off.getContext('2d') as PaintCtx
-  const img = octx.createImageData(w, h)
+  const img = octx.createImageData(tw, th)
   const data = img.data
   let colorR = 255
   let colorG = 255
@@ -530,8 +520,15 @@ function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
     data[i + 3] = Math.round(255 * noise.amount)
   }
   octx.putImageData(img, 0, 0)
+  // 按墨迹 alpha 裁切，文字不会整块铺噪点
+  const clip = createCanvas(tw, th)
+  const clipCtx = clip.getContext('2d') as PaintCtx
+  clipCtx.setTransform(k, 0, 0, k, 0, 0)
+  clipCtx.translate(-node.x, -node.y)
+  drawNodeInk(clipCtx, node, 0, '#ffffff')
+  octx.globalCompositeOperation = 'destination-in'
+  octx.drawImage(clip, 0, 0)
   ctx.save()
-  clipToNode(ctx, node)
   ctx.globalCompositeOperation = 'soft-light'
   ctx.drawImage(off, node.x, node.y, node.width, node.height)
   ctx.restore()
@@ -565,8 +562,14 @@ function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
   bctx.filter = `blur(${radius * k}px)`
   bctx.drawImage(src, 0, 0)
   bctx.filter = 'none'
+  // 按墨迹 alpha 贴回，文字/异形不会整块毛玻璃
+  const mask = createCanvas(sw, sh)
+  const mctx = mask.getContext('2d') as PaintCtx
+  mctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e - minX, matrix.f - minY)
+  drawNodeInk(mctx, node, 0, '#ffffff')
+  bctx.globalCompositeOperation = 'destination-in'
+  bctx.drawImage(mask, 0, 0)
   ctx.save()
-  clipToNode(ctx, node)
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.drawImage(blurred, minX, minY)
   ctx.restore()
@@ -608,12 +611,12 @@ function paintNodeEffectsAndBody(
 ) {
   if (opts.backdrop && node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
   if (node.shadow) {
-    drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeSilhouette(ctx, node, spread, false))
+    drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeInk(ctx, node, spread))
   }
-  if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeSilhouette(ctx, node, spread, true))
+  if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeInk(ctx, node, spread))
   paintBody(ctx, node, debug, t, state)
   if (node.innerShadow) {
-    paintInnerEffect(ctx, node, node.innerShadow, 'source-over', node.kind === 'text')
+    paintInnerEffect(ctx, node, node.innerShadow, 'source-over')
   }
   if (node.innerGlow) {
     paintInnerEffect(
@@ -621,7 +624,6 @@ function paintNodeEffectsAndBody(
       node,
       { x: 0, y: 0, blur: node.innerGlow.blur, spread: node.innerGlow.spread, color: node.innerGlow.color },
       'screen',
-      node.kind === 'text',
     )
     paintInnerEffect(
       ctx,
@@ -634,7 +636,6 @@ function paintNodeEffectsAndBody(
         color: node.innerGlow.color,
       },
       'screen',
-      node.kind === 'text',
     )
   }
   if (node.noise) paintNoise(ctx, node, node.noise)

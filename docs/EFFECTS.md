@@ -18,9 +18,22 @@
 
 绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` 或 `filter`，阴影到噪点先画进离屏再贴回。
 
+## 墨迹原则
+
+所有效果跟**着墨 alpha**，不跟布局 `box`：
+
+| 元素 | 墨迹是什么 |
+| --- | --- |
+| 文字 | 字形（若有 `background` 则加上背景块） |
+| 形状 / 线 | 填充与描边几何 |
+| Layer / flex | 自身的 `background` / `border`（子元素各自算） |
+| `blur` / `filter` / `blend` | 该节点已绘制像素（含子树合成） |
+
+因此文字 `shadow` 是字形投影，不会落成一块矩形雾斑。
+
 ## 取舍
 
-- `backdrop-blur` 在主画布上采样；若同元素还有图层 `blur`，毛玻璃本身不再被二次糊进离屏（半透明本体与图层模糊仍会作用）。
+- `backdrop-blur` 在主画布上采样，贴回时按墨迹 alpha 裁切。
 - `filter` 不含 `blur()` / `drop-shadow()`，避免与 `blur` / `shadow` 双通道。
 - 同时写 `blur` 与 `filter`：模糊以 `blur` 为准，报 `info`。
 - 勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`、`glass`。

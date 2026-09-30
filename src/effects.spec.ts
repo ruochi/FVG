@@ -125,4 +125,33 @@ describe('绘制', () => {
     expect(el?.blend).toBe('multiply')
     expect(el?.innerGlow?.blur).toBe(10)
   })
+
+  it('文字投影跟随字形墨迹，不是整块盒子', async () => {
+    // 「一」只有中间横笔；红影右移 20px。盒子上沿内侧若出现红斑，说明仍按 box 投影。
+    const { png, report } = await renderFvg(
+      `<fvg width="200" height="100" background="#ffffff" color="#0000ff">
+        <Layer cx="100" cy="50">
+          <h1 style="font-size:64px; color:#0000ff; shadow:20 0 0 #ff0000">一</h1>
+        </Layer>
+      </fvg>`,
+    )
+    const { at } = await pixels(png)
+    const h1 = report.elements.find((el) => el.tag === 'h1')!
+    const aboveStrokeX = Math.round(h1.box.left + h1.box.width / 2 + 20)
+    const aboveStrokeY = Math.round(h1.box.top + 6)
+    const above = at(aboveStrokeX, aboveStrokeY)
+    // 横笔上方应仍是白底（字形投影），不能是盒子投下的红块
+    expect(above[0]).toBeGreaterThan(240)
+    expect(above[1]).toBeGreaterThan(240)
+    expect(above[2]).toBeGreaterThan(240)
+    // 墨迹右侧应能采到红色投影
+    let red = 0
+    for (let y = Math.floor(h1.ink.top); y < Math.ceil(h1.ink.bottom); y++) {
+      for (let x = Math.floor(h1.ink.right); x < Math.min(200, Math.ceil(h1.ink.right + 28)); x++) {
+        const p = at(x, y)
+        if (p[0]! > 200 && p[1]! < 80 && p[2]! < 80) red++
+      }
+    }
+    expect(red).toBeGreaterThan(20)
+  })
 })
