@@ -159,6 +159,27 @@ describe('layoutSource', () => {
     expect(circle.shadow).toMatchObject({ y: 4, blur: 8 })
   })
 
+  it('新效果属性写进布局节点', async () => {
+    const doc = await layoutSource(
+      `<fvg width="200" height="200"><Rect cx="40" cy="40" width="40" height="40" fill="#fff" inner-shadow="0 2 4 #00000055" blur="3" backdrop-blur="5" noise="0.1 #fff" filter="brightness(1.1)" blend="screen" /></fvg>`,
+      process.cwd(),
+    )
+    const rect = doc.root.children[0] as {
+      innerShadow?: { y: number }
+      blur?: number
+      backdropBlur?: number
+      noise?: { amount: number }
+      colorFilter?: Array<{ name: string }>
+      blend?: string
+    }
+    expect(rect.innerShadow).toMatchObject({ y: 2 })
+    expect(rect.blur).toBe(3)
+    expect(rect.backdropBlur).toBe(5)
+    expect(rect.noise).toMatchObject({ amount: 0.1 })
+    expect(rect.colorFilter?.[0]?.name).toBe('brightness')
+    expect(rect.blend).toBe('screen')
+  })
+
   it('invalid-child 线条进 flex', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><div style="display:flex"><Line x1="0" y1="0" x2="10" y2="10" /></div></fvg>`,

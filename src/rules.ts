@@ -29,6 +29,13 @@ const HTML_STYLE_ATTRS = [
   'justify-content',
   'shadow',
   'glow',
+  'inner-shadow',
+  'inner-glow',
+  'blur',
+  'backdrop-blur',
+  'noise',
+  'filter',
+  'blend',
   'writing-mode',
 ]
 

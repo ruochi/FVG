@@ -29,7 +29,7 @@ AI 应始终把 **`.fvg` 或生成它的脚本**当作可版本化的产物；PN
 适合海报、单帧、结构不复杂的画面。和 [docs/CHEATSHEET.md](docs/CHEATSHEET.md) 同一条分界：
 
 - **HTML** 用 `style`：字号、颜色、`gap`、`padding`、`background`。排布写 `<div style="display:flex">`。
-- **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`。标签首字母大写。
+- **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`、以及其它效果（见 EFFECTS）。标签首字母大写。
 - 文字要定位时外包 `<Layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。
 
 根节点是 `<fvg width="…" height="…" background="…">`。不要写 `row`、`column`。参考 [examples/](examples/)。
@@ -151,7 +151,7 @@ flowchart TD
 | --- | --- |
 | [SPEC.md](SPEC.md) | 标签、属性、布局、报告字段 |
 | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | 一页写法 |
-| [docs/EFFECTS.md](docs/EFFECTS.md) | 滤镜 / 效果扩展草案（尚未实现） |
+| [docs/EFFECTS.md](docs/EFFECTS.md) | 滤镜 / 效果说明与实现备注 |
 | [GENERATE.md](GENERATE.md) | Vue / React 生成 FVG 的依赖与模板 |
 | [README.md](README.md) | 安装、常用命令、API 入口 |
 | **本文 AI.md** | 生成 + 验证 + AI 协作闭环 |

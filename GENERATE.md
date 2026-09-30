@@ -13,7 +13,7 @@ Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
 | 写什么 | 放哪里 |
 | --- | --- |
 | `fvg` 的 `width`、`height`、`background`、`color`、`safe` | 根元素**属性** |
-| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、`shadow`、`glow` | 标签**属性** |
+| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
 | 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
