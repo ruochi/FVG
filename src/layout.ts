@@ -14,10 +14,14 @@ import { catmullRomPath } from './curve.js'
 import { isGradient, parseGradient, solidPaint } from './gradient.js'
 import { translateSvgPath } from './path.js'
 import {
+  parseBlend,
+  parseBlurRadius,
   parseBorder,
+  parseColorFilter,
   parseEdges,
   parseFontWeight,
   parseGlow,
+  parseNoise,
   parseNumber,
   parsePx,
   parseShadow,
@@ -44,9 +48,12 @@ import type {
   Issue,
   LayerLayoutNode,
   LayoutNode,
+  BlendMode,
+  ColorFilterSpec,
   GlowSpec,
   LineGeometry,
   LineLayoutNode,
+  NoiseSpec,
   ShadowSpec,
   ShapeLayoutNode,
   TextLayoutNode,
@@ -125,37 +132,112 @@ function nodePath(prefix: string, tag: string, index: number): string {
 
 const DEFAULT_SHADOW_COLOR = '#00000066'
 
-function readEffects(
-  shadowRaw: string | undefined,
-  glowRaw: string | undefined,
-  ctx: LayoutContext,
-  glowColor: string,
-): { shadow?: ShadowSpec; glow?: GlowSpec } {
-  let shadow: ShadowSpec | undefined
+type EffectFields = {
+  shadow?: ShadowSpec
+  glow?: GlowSpec
+  innerShadow?: ShadowSpec
+  innerGlow?: GlowSpec
+  blur?: number
+  backdropBlur?: number
+  noise?: NoiseSpec
+  colorFilter?: ColorFilterSpec[]
+  blend?: BlendMode
+}
+
+type EffectSource = Record<string, string | undefined>
+
+function warnInvalid(ctx: LayoutContext, label: string, raw: string, hint: string) {
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-attr',
+    path: ctx.pathPrefix,
+    message: `无法解析 ${label}: ${raw}`,
+    hint,
+  })
+}
+
+function readEffects(src: EffectSource, ctx: LayoutContext, glowColor: string): EffectFields {
+  const out: EffectFields = {}
+  const shadowRaw = src.shadow
   const parsedShadow = parseShadow(shadowRaw)
-  if (parsedShadow) shadow = { ...parsedShadow, color: parsedShadow.color ?? DEFAULT_SHADOW_COLOR }
+  if (parsedShadow) out.shadow = { ...parsedShadow, color: parsedShadow.color ?? DEFAULT_SHADOW_COLOR }
   else if (shadowRaw && shadowRaw.trim() !== 'none') {
-    ctx.issues.push({
-      level: 'warn',
-      code: 'invalid-attr',
-      path: ctx.pathPrefix,
-      message: `无法解析 shadow: ${shadowRaw}`,
-      hint: '写成 0 8 16 #00000055，顺序是 x y blur spread color',
-    })
+    warnInvalid(ctx, 'shadow', shadowRaw, '写成 0 8 16 #00000055，顺序是 x y blur spread color')
   }
-  let glow: GlowSpec | undefined
+
+  const glowRaw = src.glow
   const parsedGlow = parseGlow(glowRaw)
-  if (parsedGlow) glow = { ...parsedGlow, color: parsedGlow.color ?? glowColor }
+  if (parsedGlow) out.glow = { ...parsedGlow, color: parsedGlow.color ?? glowColor }
   else if (glowRaw && glowRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'glow', glowRaw, '写成 48 #f6f1e7，顺序是 blur spread color')
+  }
+
+  const innerShadowRaw = src['inner-shadow']
+  const parsedInnerShadow = parseShadow(innerShadowRaw)
+  if (parsedInnerShadow) {
+    out.innerShadow = { ...parsedInnerShadow, color: parsedInnerShadow.color ?? DEFAULT_SHADOW_COLOR }
+  } else if (innerShadowRaw && innerShadowRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'inner-shadow', innerShadowRaw, '写成 0 8 16 #00000088，顺序是 x y blur spread color')
+  }
+
+  const innerGlowRaw = src['inner-glow']
+  const parsedInnerGlow = parseGlow(innerGlowRaw)
+  if (parsedInnerGlow) out.innerGlow = { ...parsedInnerGlow, color: parsedInnerGlow.color ?? glowColor }
+  else if (innerGlowRaw && innerGlowRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'inner-glow', innerGlowRaw, '写成 24 #f3ead4，顺序是 blur spread color')
+  }
+
+  const blurRaw = src.blur
+  const parsedBlur = parseBlurRadius(blurRaw)
+  if (parsedBlur !== undefined) out.blur = parsedBlur
+  else if (blurRaw && blurRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'blur', blurRaw, '写成单个非负像素，例如 8 或 8px')
+  }
+
+  const backdropRaw = src['backdrop-blur']
+  const parsedBackdrop = parseBlurRadius(backdropRaw)
+  if (parsedBackdrop !== undefined) out.backdropBlur = parsedBackdrop
+  else if (backdropRaw && backdropRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'backdrop-blur', backdropRaw, '写成单个非负像素，例如 16 或 16px')
+  }
+
+  const noiseRaw = src.noise
+  const parsedNoise = parseNoise(noiseRaw)
+  if (parsedNoise) out.noise = parsedNoise
+  else if (noiseRaw && noiseRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'noise', noiseRaw, '写成 0.08 或 0.08 #ffffff，强度 0 到 1')
+  }
+
+  const filterRaw = src.filter
+  const parsedFilter = parseColorFilter(filterRaw)
+  if (parsedFilter) out.colorFilter = parsedFilter
+  else if (filterRaw && filterRaw.trim() !== 'none') {
+    warnInvalid(
+      ctx,
+      'filter',
+      filterRaw,
+      '写成 brightness(1.1) contrast(1.2) saturate(0.8) grayscale(0.2) hue-rotate(15) sepia(0.1) invert(0)，不要写 blur/drop-shadow',
+    )
+  }
+
+  const blendRaw = src.blend
+  const parsedBlend = parseBlend(blendRaw)
+  if (parsedBlend) out.blend = parsedBlend
+  else if (blendRaw && blendRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'blend', blendRaw, '写成 multiply、screen、overlay、soft-light、lighten、darken 或 source-over')
+  }
+
+  if (out.blur != null && out.colorFilter) {
     ctx.issues.push({
-      level: 'warn',
-      code: 'invalid-attr',
+      level: 'info',
+      code: 'non-canonical',
       path: ctx.pathPrefix,
-      message: `无法解析 glow: ${glowRaw}`,
-      hint: '写成 48 #f6f1e7，顺序是 blur spread color',
+      message: '同时写了 blur 与 filter，图层模糊以 blur 为准',
+      hint: '色彩调整继续用 filter；模糊只用 blur 属性',
     })
   }
-  return { shadow, glow }
+
+  return out
 }
 
 function readPaint(raw: string, fallback: string, ctx: LayoutContext, label: string): string {
@@ -267,7 +349,7 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
     height: h,
     ink: { x: 0, y: 0, width: w, height: h },
     ...appearance,
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(appearance.background, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -502,7 +584,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     ...appearance,
     textLayout,
     textAlign,
-    ...readEffects(style.shadow, style.glow, ctx, color),
+    ...readEffects(style, ctx, color),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -565,7 +647,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     r: parseNumber(node.attrs.r),
     rxEllipse: twoPoint ? undefined : parseNumber(node.attrs.rx),
     ry: twoPoint ? undefined : parseNumber(node.attrs.ry),
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(fill !== 'none' ? fill : stroke, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(fill !== 'none' ? fill : stroke, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -635,7 +717,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     stroke,
     strokeWidth,
     fill,
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(fill !== 'none' ? fill : stroke, defaultStroke)),
+    ...readEffects(node.attrs, ctx, solidPaint(fill !== 'none' ? fill : stroke, defaultStroke)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -872,7 +954,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ...appearance,
     direction,
     children: laidChildren,
-    ...readEffects(style.shadow, style.glow, ctx, solidPaint(appearance.background, ctx.color)),
+    ...readEffects(style, ctx, solidPaint(appearance.background, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -927,7 +1009,7 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
     id: node.attrs.id,
     path: ctx.pathPrefix,
     ...appearance,
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(appearance.background, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -1040,7 +1122,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ...appearance,
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background ?? appearance.border?.color, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(appearance.background ?? appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }

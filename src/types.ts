@@ -98,6 +98,18 @@ export type TextLineReport = {
 
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
+export type NoiseSpec = { amount: number; color?: string }
+export type ColorFilterSpec =
+  | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
+  | { name: 'hue-rotate'; value: number }
+export type BlendMode =
+  | 'source-over'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'soft-light'
+  | 'lighten'
+  | 'darken'
 
 export type ElementReport = {
   path: string
@@ -112,6 +124,13 @@ export type ElementReport = {
   lines?: TextLineReport[]
   shadow?: ShadowSpec
   glow?: GlowSpec
+  innerShadow?: ShadowSpec
+  innerGlow?: GlowSpec
+  blur?: number
+  backdropBlur?: number
+  noise?: NoiseSpec
+  filter?: ColorFilterSpec[]
+  blend?: BlendMode
 }
 
 export type FvgReport = {
@@ -187,6 +206,13 @@ export type LayoutNodeBase = {
   text: string
   shadow?: ShadowSpec
   glow?: GlowSpec
+  innerShadow?: ShadowSpec
+  innerGlow?: GlowSpec
+  blur?: number
+  backdropBlur?: number
+  noise?: NoiseSpec
+  colorFilter?: ColorFilterSpec[]
+  blend?: BlendMode
 }
 
 export type LayerLayoutNode = LayoutNodeBase & {
@@ -226,8 +252,8 @@ export type LineLayoutNode = LayoutNodeBase & {
   stroke: string
   strokeWidth: number
   fill: string
-  strokeLinecap?: CanvasLineCap
-  strokeLinejoin?: CanvasLineJoin
+  strokeLinecap?: 'butt' | 'round' | 'square'
+  strokeLinejoin?: 'round' | 'bevel' | 'miter'
   dash?: number[]
 }
 

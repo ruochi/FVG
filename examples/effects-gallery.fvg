@@ -1,0 +1,64 @@
+<fvg width="1080" height="1400" background="#12161c" color="#e8e4dc" font-family="Kai">
+  <Rect x1="0" y1="0" x2="1080" y2="1400" fill="linear-gradient(to bottom, #0e1218, #1a2430 55%, #2a3540)" />
+
+  <Layer cx="80" cy="64" anchor="top-left">
+    <h1 style="font-size:56px; color:#f2ebe0">滤镜示例</h1>
+  </Layer>
+  <Layer cx="80" cy="130" anchor="top-left">
+    <p style="font-size:28px; color:#9aa7b5">shadow · glow · inner · blur · backdrop · noise · filter · blend</p>
+  </Layer>
+
+  <!-- 外阴影 / 外发光 -->
+  <Rect cx="220" cy="360" width="260" height="160" rx="20" fill="#3ecfc4" shadow="0 12 20 #00000088" />
+  <Circle cx="540" cy="360" r="64" fill="#f4efe4" glow="36 #f4efe4" />
+  <Rect cx="860" cy="360" width="260" height="160" rx="20" fill="#1e3a5f" shadow="0 10 16 #00000066" glow="22 #5b8fd4" />
+  <Layer cx="220" cy="460" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">shadow</p>
+  </Layer>
+  <Layer cx="540" cy="460" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">glow</p>
+  </Layer>
+  <Layer cx="860" cy="460" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">shadow + glow</p>
+  </Layer>
+
+  <!-- 内阴影 / 内发光 -->
+  <Rect cx="220" cy="660" width="280" height="180" rx="20" fill="#6aa1ff" inner-shadow="0 10 16 #00000099" />
+  <Rect cx="540" cy="660" width="280" height="180" rx="20" fill="#142033" inner-glow="28 #7ec8ff" />
+  <Rect cx="860" cy="660" width="280" height="180" rx="20" fill="#2a1f18" inner-shadow="0 8 12 #000000aa" inner-glow="22 #f0a060" />
+  <Layer cx="220" cy="780" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">inner-shadow</p>
+  </Layer>
+  <Layer cx="540" cy="780" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">inner-glow</p>
+  </Layer>
+  <Layer cx="860" cy="780" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">inner both</p>
+  </Layer>
+
+  <!-- blur / filter / noise / blend -->
+  <Rect cx="220" cy="980" width="260" height="160" rx="20" fill="#f7931a" blur="5" />
+  <Rect cx="540" cy="980" width="260" height="160" rx="20" fill="#e85d4c" filter="grayscale(1)" />
+  <Rect cx="860" cy="980" width="260" height="160" rx="20" fill="#3ecfc4" noise="0.35 #ffffff" />
+  <Layer cx="220" cy="1100" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">blur</p>
+  </Layer>
+  <Layer cx="540" cy="1100" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">filter grayscale</p>
+  </Layer>
+  <Layer cx="860" cy="1100" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">noise</p>
+  </Layer>
+
+  <!-- blend -->
+  <Circle cx="360" cy="1270" r="56" fill="#ff6b6b" />
+  <Circle cx="420" cy="1270" r="56" fill="#4ecdc4" blend="multiply" />
+  <Circle cx="660" cy="1270" r="56" fill="#ffe66d" />
+  <Circle cx="720" cy="1270" r="56" fill="#ff6b6b" blend="screen" />
+  <Layer cx="390" cy="1345" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">blend multiply</p>
+  </Layer>
+  <Layer cx="690" cy="1345" anchor="top">
+    <p style="font-size:26px; color:#9aa7b5">blend screen</p>
+  </Layer>
+</fvg>

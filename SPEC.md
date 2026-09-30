@@ -253,14 +253,29 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 - `Polygon`、`Path`、`Curve` 的 `fill` 默认 `none`。开口的 `Curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
 - `Curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
-- 图形和 Layer 可以写 `shadow`、`glow`。文字把这两项写在 `style` 里。
+- 图形和 Layer 可以写效果属性。文字把同样的项写在 `style` 里。
 
 ```html
 <Circle cx="520" cy="220" r="70" fill="#f4efe4" glow="56 #f3ead4" />
-<h1 style="shadow:0 8 16 #00000055">寒露</h1>
+<Rect cx="540" cy="960" width="900" height="280" rx="32" fill="#ffffff22" backdrop-blur="20" inner-shadow="0 8 16 #00000055" />
+<h1 style="shadow:0 8 16 #00000055; filter:saturate(1.1)">寒露</h1>
 ```
 
-`shadow` 是 `x y [blur] [spread] [color]`，默认 blur 0、spread 0、颜色 `#00000066`。`glow` 是 `blur [spread] [color]`，没有偏移，默认颜色取本体，按加光绘制。两者只影响绘制，不改变布局盒子。先画阴影，再画光晕，最后画本体。
+| 属性 | 语法 | 说明 |
+| --- | --- | --- |
+| `shadow` | `x y [blur] [spread] [color]` | 外阴影。默认 blur 0、spread 0、颜色 `#00000066` |
+| `glow` | `blur [spread] [color]` | 外发光，无偏移；默认颜色取本体，按加光（screen）绘制 |
+| `inner-shadow` | 同 `shadow` | 内阴影，画在本体之后，不外扩 |
+| `inner-glow` | 同 `glow` | 内发光，画在本体之后，不外扩 |
+| `blur` | 单个非负像素 | 图层模糊：糊本元素（含 Layer 子树）已绘制像素；外扩计入 `effect-clipped` |
+| `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
+| `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
+| `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
+| `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
+
+`filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
+
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
 
 ## 8. 布局报告
 
@@ -313,7 +328,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |
 | `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
 | `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |
-| `effect-clipped` | warn | 本体在画布内，阴影或光晕超出画布 |
+| `effect-clipped` | warn | 本体在画布内，阴影、光晕或图层模糊超出画布 |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 
@@ -412,3 +427,4 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
+- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`、`glass`。

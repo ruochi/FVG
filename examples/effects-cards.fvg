@@ -1,0 +1,37 @@
+<fvg width="900" height="700" background="#f3efe6" color="#1a2430" font-family="Kai">
+  <Rect x1="0" y1="0" x2="900" y2="700" fill="linear-gradient(to bottom, #efe8da, #d9e2ea)" />
+
+  <Layer cx="80" cy="48" anchor="top-left">
+    <h2 style="font-size:44px">卡片与文字效果</h2>
+  </Layer>
+
+  <!-- 凹陷内阴影面板 -->
+  <Rect cx="230" cy="280" width="300" height="220" rx="24" fill="#e7eef5" inner-shadow="0 8 14 #14324a33" />
+  <Layer cx="230" cy="250" anchor="center">
+    <p style="font-size:36px; color:#2a4058">inner-shadow</p>
+  </Layer>
+  <Layer cx="230" cy="310" anchor="center">
+    <p style="font-size:28px; color:#5a7088">凹陷面板</p>
+  </Layer>
+
+  <!-- 浮起外阴影 + 噪点 -->
+  <Rect cx="560" cy="280" width="300" height="220" rx="24" fill="#ffffff" shadow="0 16 28 #14324a28" noise="0.08" />
+  <Layer cx="560" cy="250" anchor="center">
+    <p style="font-size:36px; color:#2a4058">shadow + noise</p>
+  </Layer>
+  <Layer cx="560" cy="310" anchor="center">
+    <p style="font-size:28px; color:#5a7088">纸质颗粒</p>
+  </Layer>
+
+  <!-- 文字阴影与色彩滤镜 -->
+  <Layer cx="230" cy="520" anchor="center">
+    <h1 style="font-size:64px; color:#1a3352; shadow:0 6 12 #14324a44">投影字</h1>
+  </Layer>
+  <Layer cx="560" cy="520" anchor="center">
+    <h1 style="font-size:64px; color:#c45c26; filter:hue-rotate(40) saturate(1.2)">变色字</h1>
+  </Layer>
+
+  <Layer cx="450" cy="620" anchor="center">
+    <p style="font-size:28px; color:#6a7a8a; blur:1.5">轻微虚化说明文字</p>
+  </Layer>
+</fvg>

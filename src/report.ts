@@ -51,6 +51,13 @@ function walk(
   }
   if (node.shadow) entry.shadow = node.shadow
   if (node.glow) entry.glow = node.glow
+  if (node.innerShadow) entry.innerShadow = node.innerShadow
+  if (node.innerGlow) entry.innerGlow = node.innerGlow
+  if (node.blur != null) entry.blur = node.blur
+  if (node.backdropBlur != null) entry.backdropBlur = node.backdropBlur
+  if (node.noise) entry.noise = node.noise
+  if (node.colorFilter) entry.filter = node.colorFilter
+  if (node.blend) entry.blend = node.blend
   if (node.kind === 'text') {
     const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
     const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
@@ -111,6 +118,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
     const effectPad = Math.max(
       el.shadow ? el.shadow.blur * 2 + el.shadow.spread + Math.max(Math.abs(el.shadow.x), Math.abs(el.shadow.y)) : 0,
       el.glow ? el.glow.blur * 2 + el.glow.spread : 0,
+      el.blur != null ? el.blur * 2 : 0,
     )
     if (!inkOutside && effectPad > 0) {
       const outside =
@@ -123,7 +131,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
           level: 'warn',
           code: 'effect-clipped',
           path: el.path,
-          message: '本体在画布内，但阴影或光晕超出画布',
+          message: '本体在画布内，但阴影、光晕或模糊超出画布',
           hint: '把元素往里移，或减小 blur',
         })
       }

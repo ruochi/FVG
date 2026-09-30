@@ -1,9 +1,35 @@
-import { createCanvas, Path2D, type CanvasRenderingContext2D } from '@napi-rs/canvas'
+import {
+  createCanvas,
+  Path2D,
+  type Canvas,
+  type CanvasRenderingContext2D,
+  type ImageData,
+} from '@napi-rs/canvas'
+
+type PaintCtx = CanvasRenderingContext2D & {
+  canvas: Canvas
+  filter: string
+  drawImage(...args: unknown[]): void
+  getImageData(sx: number, sy: number, sw: number, sh: number): ImageData
+  putImageData(imageData: ImageData, dx: number, dy: number): void
+  createImageData(sw: number, sh: number): ImageData
+  getTransform(): { a: number; b: number; c: number; d: number; e: number; f: number }
+}
 import { buildFontString } from './fonts.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { originOffset } from './matrix.js'
-import type { GlowSpec, LayerLayoutNode, LayoutNode, LineLayoutNode, ShadowSpec, ShapeLayoutNode, TextLayoutNode } from './types.js'
+import { colorFilterToCss } from './style.js'
+import type {
+  GlowSpec,
+  LayerLayoutNode,
+  LayoutNode,
+  LineLayoutNode,
+  NoiseSpec,
+  ShadowSpec,
+  ShapeLayoutNode,
+  TextLayoutNode,
+} from './types.js'
 import type { DrawElSnapshot } from './types.js'
 
 export type PaintOptions = {
@@ -287,24 +313,33 @@ function applyNodeTransform(ctx: CanvasRenderingContext2D, node: LayoutNode) {
   ctx.translate(-px, -py)
 }
 
-function drawBoxSilhouette(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number) {
+function drawBoxSilhouette(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
   const x = node.x - spread
   const y = node.y - spread
   const w = node.width + spread * 2
   const h = node.height + spread * 2
   if (w <= 0 || h <= 0) return
   const radius = Math.max(0, (node.borderRadius ?? 0) + spread)
-  ctx.fillStyle = SILHOUETTE
+  ctx.fillStyle = ink
   if (radius > 0) {
     roundRectPath(ctx, x, y, w, h, radius)
     ctx.fill()
   } else ctx.fillRect(x, y, w, h)
 }
 
-function drawShapeSilhouette(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode, spread: number) {
-  ctx.fillStyle = SILHOUETTE
+function drawShapeSilhouette(ctx: CanvasRenderingContext2D, node: ShapeLayoutNode, spread: number, ink = SILHOUETTE) {
+  ctx.fillStyle = ink
   if (node.shape === 'rect') {
-    drawBoxSilhouette(ctx, node, spread)
+    const x = node.x - spread
+    const y = node.y - spread
+    const w = node.width + spread * 2
+    const h = node.height + spread * 2
+    if (w <= 0 || h <= 0) return
+    const radius = Math.max(0, (node.rx ?? node.borderRadius ?? 0) + spread)
+    if (radius > 0) {
+      roundRectPath(ctx, x, y, w, h, radius)
+      ctx.fill()
+    } else ctx.fillRect(x, y, w, h)
     return
   }
   if (node.shape === 'circle') {
@@ -360,19 +395,187 @@ function paintGlow(ctx: CanvasRenderingContext2D, state: PaintState, node: Layou
   drawEffect(ctx, state, node, { ...wide, blur: Math.max(2, glow.blur * 0.35) }, drawSilhouette, 'screen')
 }
 
-function drawNodeSilhouette(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, glyphs: boolean) {
-  if (node.kind === 'line') drawLine(ctx, node, true, spread)
-  else if (node.kind === 'shape') drawShapeSilhouette(ctx, node, spread)
-  else if (node.kind === 'text' && glyphs) drawTextNode(ctx, node, SILHOUETTE)
-  else drawBoxSilhouette(ctx, node, spread)
+/**
+ * 效果用的着墨轮廓：跟真实画出来的像素走，不跟布局盒子。
+ * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；Layer/flex = 仅自身背景/边框。
+ */
+function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
+  if (node.kind === 'line') {
+    drawLine(ctx, node, true, spread)
+    return
+  }
+  if (node.kind === 'shape') {
+    drawShapeSilhouette(ctx, node, spread, ink)
+    return
+  }
+  if (node.kind === 'text') {
+    if (node.background && node.background !== 'transparent') drawBoxSilhouette(ctx, node, spread, ink)
+    drawTextNode(ctx, node, ink)
+    return
+  }
+  if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
+    drawBoxSilhouette(ctx, node, spread, ink)
+  }
 }
 
-function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
+function transformScale(ctx: CanvasRenderingContext2D): number {
+  const matrix = (
+    ctx as CanvasRenderingContext2D & { getTransform(): { a: number; b: number; c: number; d: number } }
+  ).getTransform()
+  return Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.b * matrix.c)) || 1
+}
+
+function paintInnerEffect(
+  ctx: PaintCtx,
+  node: LayoutNode,
+  effect: { x: number; y: number; blur: number; spread: number; color: string },
+  blend: 'source-over' | 'screen',
+) {
+  if (node.width <= 0 || node.height <= 0) return
+  const k = transformScale(ctx)
+  const pad = Math.ceil(effect.blur * 2 + Math.abs(effect.spread) + Math.abs(effect.x) + Math.abs(effect.y) + 4)
+  const twLogic = Math.max(1, Math.ceil(node.width + pad * 2))
+  const thLogic = Math.max(1, Math.ceil(node.height + pad * 2))
+  const tw = Math.max(1, Math.ceil(twLogic * k))
+  const th = Math.max(1, Math.ceil(thLogic * k))
+
+  const fill = createCanvas(tw, th)
+  const fctx = fill.getContext('2d') as PaintCtx
+  fctx.setTransform(k, 0, 0, k, 0, 0)
+  fctx.translate(-node.x + pad, -node.y + pad)
+  drawNodeInk(fctx, node, Math.max(0, effect.spread), effect.color)
+
+  const cut = createCanvas(tw, th)
+  const cctx = cut.getContext('2d') as PaintCtx
+  cctx.setTransform(k, 0, 0, k, 0, 0)
+  cctx.translate(-node.x + pad, -node.y + pad)
+  drawNodeInk(cctx, node, -Math.max(0, effect.spread), '#000000')
+
+  const cutSoft = createCanvas(tw, th)
+  const sctx = cutSoft.getContext('2d') as PaintCtx
+  if (effect.blur > 0) sctx.filter = `blur(${effect.blur * k}px)`
+  // 反向偏移：正 y 的内阴影落在底部内侧
+  sctx.drawImage(cut, -effect.x * k, -effect.y * k)
+  sctx.filter = 'none'
+
+  fctx.setTransform(1, 0, 0, 1, 0, 0)
+  fctx.globalCompositeOperation = 'destination-out'
+  fctx.drawImage(cutSoft, 0, 0)
+
+  // 内效果也按墨迹 alpha 裁切，避免文字落成方块阴影
+  const clip = createCanvas(tw, th)
+  const clipCtx = clip.getContext('2d') as PaintCtx
+  clipCtx.setTransform(k, 0, 0, k, 0, 0)
+  clipCtx.translate(-node.x + pad, -node.y + pad)
+  drawNodeInk(clipCtx, node, 0, '#ffffff')
+  fctx.globalCompositeOperation = 'destination-in'
+  fctx.drawImage(clip, 0, 0)
+
   ctx.save()
-  ctx.globalAlpha *= node.opacity
-  applyNodeTransform(ctx, node)
-  if (node.shadow) drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeSilhouette(ctx, node, spread, false))
-  if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeSilhouette(ctx, node, spread, true))
+  ctx.globalCompositeOperation = blend
+  ctx.drawImage(fill, node.x - pad, node.y - pad, twLogic, thLogic)
+  ctx.restore()
+}
+
+function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
+  const w = Math.max(1, Math.ceil(node.width))
+  const h = Math.max(1, Math.ceil(node.height))
+  if (node.width <= 0 || node.height <= 0 || noise.amount <= 0) return
+  const k = transformScale(ctx)
+  const tw = Math.max(1, Math.ceil(w * k))
+  const th = Math.max(1, Math.ceil(h * k))
+  const off = createCanvas(tw, th)
+  const octx = off.getContext('2d') as PaintCtx
+  const img = octx.createImageData(tw, th)
+  const data = img.data
+  let colorR = 255
+  let colorG = 255
+  let colorB = 255
+  if (noise.color) {
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(noise.color.trim())
+    if (m) {
+      const hex = m[1]!
+      if (hex.length === 3) {
+        colorR = Number.parseInt(hex[0]! + hex[0]!, 16)
+        colorG = Number.parseInt(hex[1]! + hex[1]!, 16)
+        colorB = Number.parseInt(hex[2]! + hex[2]!, 16)
+      } else {
+        colorR = Number.parseInt(hex.slice(0, 2), 16)
+        colorG = Number.parseInt(hex.slice(2, 4), 16)
+        colorB = Number.parseInt(hex.slice(4, 6), 16)
+      }
+    }
+  }
+  // 确定性噪点：同一输入同一纹理
+  let seed = (Math.floor(node.x) * 73856093) ^ (Math.floor(node.y) * 19349663) ^ (w * 83492791) ^ (h * 39916801)
+  const next = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    return seed / 0xffffffff
+  }
+  for (let i = 0; i < data.length; i += 4) {
+    const n = next()
+    data[i] = Math.round(colorR * n)
+    data[i + 1] = Math.round(colorG * n)
+    data[i + 2] = Math.round(colorB * n)
+    data[i + 3] = Math.round(255 * noise.amount)
+  }
+  octx.putImageData(img, 0, 0)
+  // 按墨迹 alpha 裁切，文字不会整块铺噪点
+  const clip = createCanvas(tw, th)
+  const clipCtx = clip.getContext('2d') as PaintCtx
+  clipCtx.setTransform(k, 0, 0, k, 0, 0)
+  clipCtx.translate(-node.x, -node.y)
+  drawNodeInk(clipCtx, node, 0, '#ffffff')
+  octx.globalCompositeOperation = 'destination-in'
+  octx.drawImage(clip, 0, 0)
+  ctx.save()
+  ctx.globalCompositeOperation = 'soft-light'
+  ctx.drawImage(off, node.x, node.y, node.width, node.height)
+  ctx.restore()
+}
+
+function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
+  if (radius <= 0 || node.width <= 0 || node.height <= 0) return
+  const matrix = ctx.getTransform()
+  const corners = [
+    { x: node.x, y: node.y },
+    { x: node.x + node.width, y: node.y },
+    { x: node.x, y: node.y + node.height },
+    { x: node.x + node.width, y: node.y + node.height },
+  ].map((p) => ({
+    x: matrix.a * p.x + matrix.c * p.y + matrix.e,
+    y: matrix.b * p.x + matrix.d * p.y + matrix.f,
+  }))
+  const minX = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))))
+  const minY = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))))
+  const maxX = Math.min(ctx.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))))
+  const maxY = Math.min(ctx.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))))
+  const sw = maxX - minX
+  const sh = maxY - minY
+  if (sw <= 0 || sh <= 0) return
+  const snapshot = ctx.getImageData(minX, minY, sw, sh)
+  const src = createCanvas(sw, sh)
+  ;(src.getContext('2d') as PaintCtx).putImageData(snapshot, 0, 0)
+  const blurred = createCanvas(sw, sh)
+  const bctx = blurred.getContext('2d') as PaintCtx
+  const k = Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.b * matrix.c)) || 1
+  bctx.filter = `blur(${radius * k}px)`
+  bctx.drawImage(src, 0, 0)
+  bctx.filter = 'none'
+  // 按墨迹 alpha 贴回，文字/异形不会整块毛玻璃
+  const mask = createCanvas(sw, sh)
+  const mctx = mask.getContext('2d') as PaintCtx
+  mctx.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e - minX, matrix.f - minY)
+  drawNodeInk(mctx, node, 0, '#ffffff')
+  bctx.globalCompositeOperation = 'destination-in'
+  bctx.drawImage(mask, 0, 0)
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(blurred, minX, minY)
+  ctx.restore()
+}
+
+function paintBody(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
     drawTextNode(ctx, node)
@@ -396,9 +599,90 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
     for (const ch of node.children) paintNode(ctx, ch, debug, t, state)
     ctx.restore()
   }
+}
+
+function paintNodeEffectsAndBody(
+  ctx: PaintCtx,
+  node: LayoutNode,
+  debug: boolean,
+  t: number,
+  state: PaintState,
+  opts: { backdrop: boolean },
+) {
+  if (opts.backdrop && node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
+  if (node.shadow) {
+    drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeInk(ctx, node, spread))
+  }
+  if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeInk(ctx, node, spread))
+  paintBody(ctx, node, debug, t, state)
+  if (node.innerShadow) {
+    paintInnerEffect(ctx, node, node.innerShadow, 'source-over')
+  }
+  if (node.innerGlow) {
+    paintInnerEffect(
+      ctx,
+      node,
+      { x: 0, y: 0, blur: node.innerGlow.blur, spread: node.innerGlow.spread, color: node.innerGlow.color },
+      'screen',
+    )
+    paintInnerEffect(
+      ctx,
+      node,
+      {
+        x: 0,
+        y: 0,
+        blur: Math.max(2, node.innerGlow.blur * 0.35),
+        spread: node.innerGlow.spread,
+        color: node.innerGlow.color,
+      },
+      'screen',
+    )
+  }
+  if (node.noise) paintNoise(ctx, node, node.noise)
   runElementDraw(ctx, node, t)
-  if (debug) drawDebugOverlay(ctx, node)
+}
+
+function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
+  const blur = node.blur ?? 0
+  const filterCss = node.colorFilter?.length ? colorFilterToCss(node.colorFilter) : ''
+  const pad = Math.ceil(blur * 2 + 4)
+  const shadowPad = node.shadow
+    ? node.shadow.blur * 2 + node.shadow.spread + Math.max(Math.abs(node.shadow.x), Math.abs(node.shadow.y))
+    : 0
+  const glowPad = node.glow ? node.glow.blur * 2 + node.glow.spread : 0
+  const effectPad = Math.max(pad, Math.ceil(shadowPad), Math.ceil(glowPad))
+  const tw = Math.max(1, Math.ceil(node.width + effectPad * 2))
+  const th = Math.max(1, Math.ceil(node.height + effectPad * 2))
+  const k = transformScale(ctx)
+  const off = createCanvas(Math.max(1, Math.ceil(tw * k)), Math.max(1, Math.ceil(th * k)))
+  const octx = off.getContext('2d') as PaintCtx
+  octx.setTransform(k, 0, 0, k, 0, 0)
+  octx.translate(-node.x + effectPad, -node.y + effectPad)
+  paintNodeEffectsAndBody(octx, node, debug, t, state, { backdrop: false })
+  const parts: string[] = []
+  if (blur > 0) parts.push(`blur(${blur}px)`)
+  if (filterCss) parts.push(filterCss)
+  ctx.save()
+  ctx.filter = parts.join(' ') || 'none'
+  ctx.drawImage(off, node.x - effectPad, node.y - effectPad, tw, th)
+  ctx.filter = 'none'
   ctx.restore()
+}
+
+function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
+  const pctx = ctx as PaintCtx
+  pctx.save()
+  pctx.globalAlpha *= node.opacity
+  applyNodeTransform(pctx, node)
+  if (node.blend && node.blend !== 'source-over') {
+    pctx.globalCompositeOperation = node.blend
+  }
+  const useLayerFilter = (node.blur != null && node.blur > 0) || (node.colorFilter != null && node.colorFilter.length > 0)
+  if (node.backdropBlur) paintBackdropBlur(pctx, node, node.backdropBlur)
+  if (useLayerFilter) paintWithLayerFilter(pctx, node, debug, t, state)
+  else paintNodeEffectsAndBody(pctx, node, debug, t, state, { backdrop: false })
+  if (debug) drawDebugOverlay(pctx, node)
+  pctx.restore()
 }
 
 export function paintDocument(

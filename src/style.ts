@@ -73,6 +73,21 @@ function splitCssTokens(value: string): string[] {
 
 export type ShadowValue = { x: number; y: number; blur: number; spread: number; color?: string }
 export type GlowValue = { blur: number; spread: number; color?: string }
+export type NoiseValue = { amount: number; color?: string }
+export type ColorFilterFn =
+  | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
+  | { name: 'hue-rotate'; value: number }
+
+export const BLEND_MODES = [
+  'source-over',
+  'multiply',
+  'screen',
+  'overlay',
+  'soft-light',
+  'lighten',
+  'darken',
+] as const
+export type BlendMode = (typeof BLEND_MODES)[number]
 
 function splitLengthsAndColor(value: string): { lengths: number[]; color?: string } | undefined {
   const lengths: number[] = []
@@ -106,6 +121,85 @@ export function parseGlow(value: string | undefined): GlowValue | undefined {
   const [blur, spread = 0] = parts.lengths as [number, number?]
   if (blur < 0) return undefined
   return { blur, spread, color: parts.color }
+}
+
+/** 单个非负长度，如 `12` / `12px`。 */
+export function parseBlurRadius(value: string | undefined): number | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const n = parsePx(value)
+  if (n === undefined || n < 0) return undefined
+  return n
+}
+
+/** `0.08` 或 `0.08 #ffffff`，强度 0 到 1。 */
+export function parseNoise(value: string | undefined): NoiseValue | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const tokens = splitCssTokens(value)
+  if (tokens.length < 1 || tokens.length > 2) return undefined
+  const amount = Number(tokens[0])
+  if (!Number.isFinite(amount) || amount < 0 || amount > 1) return undefined
+  const color = tokens[1]
+  if (color !== undefined && parsePx(color) !== undefined) return undefined
+  return { amount, color }
+}
+
+const COLOR_FILTER_NAMES = new Set([
+  'brightness',
+  'contrast',
+  'saturate',
+  'grayscale',
+  'sepia',
+  'invert',
+  'hue-rotate',
+])
+
+function parseFilterArg(raw: string, kind: 'ratio' | 'angle'): number | undefined {
+  const t = raw.trim()
+  if (kind === 'angle') {
+    const m = /^(-?\d*\.?\d+)\s*(deg)?$/i.exec(t)
+    return m ? Number.parseFloat(m[1]!) : undefined
+  }
+  const pct = /^(-?\d*\.?\d+)\s*%$/.exec(t)
+  if (pct) return Number.parseFloat(pct[1]!) / 100
+  const n = Number(t)
+  return Number.isFinite(n) ? n : undefined
+}
+
+/** 色彩滤镜：`brightness(1.1) contrast(1.2) …`，不含 blur / drop-shadow。 */
+export function parseColorFilter(value: string | undefined): ColorFilterFn[] | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const out: ColorFilterFn[] = []
+  const re = /([a-z-]+)\(\s*([^)]*?)\s*\)/gi
+  let m: RegExpExecArray | null
+  let consumed = 0
+  while ((m = re.exec(value))) {
+    const name = m[1]!.toLowerCase()
+    if (!COLOR_FILTER_NAMES.has(name)) return undefined
+    if (name === 'blur' || name === 'drop-shadow') return undefined
+    const arg = parseFilterArg(m[2]!, name === 'hue-rotate' ? 'angle' : 'ratio')
+    if (arg === undefined) return undefined
+    out.push({ name: name as ColorFilterFn['name'], value: arg })
+    consumed = m.index + m[0].length
+  }
+  if (out.length === 0) return undefined
+  if (value.slice(consumed).trim() !== '') return undefined
+  // 拒绝整串里夹了未匹配的标识
+  const stripped = value.replace(/[a-z-]+\(\s*[^)]*?\)/gi, '').trim()
+  if (stripped !== '') return undefined
+  return out
+}
+
+/** 转成 canvas `filter` 字符串。 */
+export function colorFilterToCss(fns: ColorFilterFn[]): string {
+  return fns
+    .map((fn) => (fn.name === 'hue-rotate' ? `hue-rotate(${fn.value}deg)` : `${fn.name}(${fn.value})`))
+    .join(' ')
+}
+
+export function parseBlend(value: string | undefined): BlendMode | undefined {
+  if (!value || value.trim() === 'none') return undefined
+  const v = value.trim().toLowerCase()
+  return (BLEND_MODES as readonly string[]).includes(v) ? (v as BlendMode) : undefined
 }
 
 export function parseFontWeight(value: string | undefined): number | undefined {

@@ -15,20 +15,31 @@ type FvgPositioned = FvgCommon & {
   anchor?: string
 }
 
-type FvgShape = FvgPositioned & {
-  r?: number | string
-  rx?: number | string
-  ry?: number | string
-  width?: number | string
-  height?: number | string
-  fill?: string
-  stroke?: string
-  strokeWidth?: number | string
-  'stroke-width'?: number | string
-  opacity?: number | string
+type FvgEffects = {
   shadow?: string
   glow?: string
+  'inner-shadow'?: string
+  'inner-glow'?: string
+  blur?: number | string
+  'backdrop-blur'?: number | string
+  noise?: string
+  filter?: string
+  blend?: string
 }
+
+type FvgShape = FvgPositioned &
+  FvgEffects & {
+    r?: number | string
+    rx?: number | string
+    ry?: number | string
+    width?: number | string
+    height?: number | string
+    fill?: string
+    stroke?: string
+    strokeWidth?: number | string
+    'stroke-width'?: number | string
+    opacity?: number | string
+  }
 
 declare global {
   namespace JSX {
@@ -41,16 +52,17 @@ declare global {
         safe?: number | string
       }
       font: { family?: string; src?: string }
-      Layer: FvgPositioned & {
-        width?: number | string
-        height?: number | string
-        background?: string
-        opacity?: number | string
-        rotate?: number | string
-        scale?: number | string
-        origin?: string
-        overflow?: string
-      }
+      Layer: FvgPositioned &
+        FvgEffects & {
+          width?: number | string
+          height?: number | string
+          background?: string
+          opacity?: number | string
+          rotate?: number | string
+          scale?: number | string
+          origin?: string
+          overflow?: string
+        }
       symbol: FvgCommon & { width?: number | string; height?: number | string }
       use: FvgPositioned & { href?: string; rotate?: number | string; scale?: number | string }
       Rect: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
