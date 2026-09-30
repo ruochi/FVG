@@ -13,7 +13,7 @@ npm install
 npm run build
 ```
 
-默认字体是寒蝉端黑体。第一次渲染时会下载到 `~/.cache/fvg/fonts`。
+默认字体是寒蝉端黑体。`Song`（宋体）、`Kai`（楷体）、`Brush`（书法）也是内置的，第一次用到时下载到 `~/.cache/fvg/fonts`。
 
 ## 命令
 

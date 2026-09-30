@@ -80,16 +80,116 @@ export async function registerFontsFromDocument(
   }
 }
 
-/** 仅 ChillDuanSans 使用元素字重，其它字体一律 normal（400） */
-export function effectiveFontWeight(family: string, weight: number): number {
+type FontFace = { file: string; weight: number; url: string; registeredAs: string }
+
+type BuiltinFont = { cssFamily: string; faces: FontFace[] }
+
+const SONG: BuiltinFont = {
+  cssFamily: 'Song',
+  faces: [
+    {
+      file: 'NotoSerifSC-400.woff',
+      weight: 400,
+      registeredAs: 'Song',
+      url: 'https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.8/files/noto-serif-sc-chinese-simplified-400-normal.woff',
+    },
+    {
+      file: 'NotoSerifSC-700.woff',
+      weight: 700,
+      registeredAs: 'SongBold',
+      url: 'https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.8/files/noto-serif-sc-chinese-simplified-700-normal.woff',
+    },
+  ],
+}
+
+const KAI: BuiltinFont = {
+  cssFamily: 'Kai',
+  faces: [
+    {
+      file: 'LXGWWenKai-Regular.ttf',
+      weight: 400,
+      registeredAs: 'Kai',
+      url: 'https://github.com/lxgw/LxgwWenKai/releases/download/v1.330/LXGWWenKai-Regular.ttf',
+    },
+    {
+      file: 'LXGWWenKai-Bold.ttf',
+      weight: 700,
+      registeredAs: 'KaiBold',
+      url: 'https://github.com/lxgw/LxgwWenKai/releases/download/v1.330/LXGWWenKai-Bold.ttf',
+    },
+  ],
+}
+
+const BRUSH: BuiltinFont = {
+  cssFamily: 'Brush',
+  faces: [
+    {
+      file: 'MaShanZheng-Regular.woff',
+      weight: 400,
+      registeredAs: 'Brush',
+      url: 'https://cdn.jsdelivr.net/npm/@fontsource/ma-shan-zheng@5.2.8/files/ma-shan-zheng-chinese-simplified-400-normal.woff',
+    },
+  ],
+}
+
+const BUILTIN_FONTS = [SONG, KAI, BRUSH]
+
+const FONT_ALIASES: Record<string, BuiltinFont> = {}
+for (const font of BUILTIN_FONTS) {
+  FONT_ALIASES[font.cssFamily.toLowerCase()] = font
+}
+for (const name of ['sourcehanserif', 'notoserifsc', 'noto serif sc', '宋体', '思源宋体']) FONT_ALIASES[name] = SONG
+for (const name of ['lxgwwenkai', 'wenkai', '楷体', '霞鹜文楷']) FONT_ALIASES[name] = KAI
+for (const name of ['mashanzheng', '书法', '毛笔']) FONT_ALIASES[name] = BRUSH
+
+export function builtinFont(family: string): BuiltinFont | undefined {
+  return FONT_ALIASES[family.trim().toLowerCase()]
+}
+
+function isVariableFamily(family: string): boolean {
   const norm = family.trim().toLowerCase()
-  if (norm === 'chillduansans' || norm.includes('chillduan')) return weight
+  return norm === 'chillduansans' || norm.includes('chillduan')
+}
+
+function nearestFace(font: BuiltinFont, weight: number): FontFace {
+  return font.faces.reduce((best, face) => (Math.abs(face.weight - weight) < Math.abs(best.weight - weight) ? face : best))
+}
+
+/** 可变字体保留字重。内置宋体、楷体按最近的字重文件选，书法只有一档。其它静态字体按 400。 */
+export function effectiveFontWeight(family: string, weight: number): number {
+  if (isVariableFamily(family)) return weight
+  const builtin = builtinFont(family)
+  if (builtin) return nearestFace(builtin, weight).weight
   return 400
 }
 
 export function buildFontString(family: string, weight: number, sizePx: number): string {
+  const builtin = builtinFont(family)
+  if (builtin) {
+    const face = nearestFace(builtin, weight)
+    return `400 ${sizePx}px ${face.registeredAs}, ${DEFAULT_FONT_FAMILY}, sans-serif`
+  }
   const w = effectiveFontWeight(family, weight)
   return `${w} ${sizePx}px ${family}, ${DEFAULT_FONT_FAMILY}, sans-serif`
+}
+
+async function ensureFace(face: FontFace): Promise<void> {
+  if (registered.has(face.registeredAs)) return
+  const dest = join(getFontsCacheDir(), face.file)
+  if (!(await fileExists(dest))) await download(face.url, dest)
+  registerFontPath(face.registeredAs, dest)
+}
+
+/** 按字体名下载并注册内置宋体、楷体、书法。已经注册过的名字跳过。 */
+export async function ensureBuiltinFonts(families: Iterable<string>): Promise<void> {
+  const seen = new Set<string>()
+  for (const family of families) {
+    const font = builtinFont(family)
+    if (!font || seen.has(font.cssFamily) || registered.has(font.cssFamily)) continue
+    seen.add(font.cssFamily)
+    for (const face of font.faces) await ensureFace(face)
+    registered.add(font.cssFamily)
+  }
 }
 
 /** 测量用：若默认字体未注册则尝试读缓存路径（测试可预先放入字体） */

@@ -1,6 +1,6 @@
 export const ROOT_TAGS = new Set(['fvg', 'FVG', 'Layer'])
 export const SHAPE_TAGS = new Set(['Rect', 'Circle', 'Ellipse'])
-export const LINE_TAGS = new Set(['Line', 'Arrow', 'Polyline', 'Polygon', 'Path'])
+export const LINE_TAGS = new Set(['Line', 'Arrow', 'Polyline', 'Polygon', 'Path', 'Curve'])
 export const FONT_TAG = 'font'
 
 export function isLineTag(tag: string): boolean {

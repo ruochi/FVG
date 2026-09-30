@@ -96,6 +96,9 @@ export type TextLineReport = {
   box: Rect
 }
 
+export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
+export type GlowSpec = { blur: number; spread: number; color: string }
+
 export type ElementReport = {
   path: string
   id?: string
@@ -107,6 +110,8 @@ export type ElementReport = {
   opacity: number
   fontSize?: number
   lines?: TextLineReport[]
+  shadow?: ShadowSpec
+  glow?: GlowSpec
 }
 
 export type FvgReport = {
@@ -180,6 +185,8 @@ export type LayoutNodeBase = {
   style: StyleMap
   computed: DrawComputedStyle
   text: string
+  shadow?: ShadowSpec
+  glow?: GlowSpec
 }
 
 export type LayerLayoutNode = LayoutNodeBase & {

@@ -27,6 +27,9 @@ const HTML_STYLE_ATTRS = [
   'max-width',
   'align-items',
   'justify-content',
+  'shadow',
+  'glow',
+  'writing-mode',
 ]
 
 function flagged(level: IssueLevel, code: string, path: string, message: string, hint: string): Issue {
@@ -56,7 +59,14 @@ function hasStyle(attrs: Record<string, string>): boolean {
 }
 
 function usesAttributes(node: FvgNode): boolean {
-  return node.tag === 'Layer' || isShapeTag(node.tag) || isLineTag(node.tag) || Boolean(node.draw)
+  return (
+    node.tag === 'Layer' ||
+    node.tag === 'symbol' ||
+    node.tag === 'use' ||
+    isShapeTag(node.tag) ||
+    isLineTag(node.tag) ||
+    Boolean(node.draw)
+  )
 }
 
 /** 只检查归属表里的已知属性。不认识的属性留给 draw 使用，不报错。 */

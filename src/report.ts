@@ -49,6 +49,8 @@ function walk(
     ink: boxToRect(ink),
     opacity,
   }
+  if (node.shadow) entry.shadow = node.shadow
+  if (node.glow) entry.glow = node.glow
   if (node.kind === 'text') {
     const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
     const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
@@ -97,13 +99,34 @@ export function buildReport(doc: FvgDocument): FvgReport {
   const visible = elements.filter((el) => el.opacity >= VISIBLE_OPACITY && hasArea(el.ink))
 
   for (const el of visible) {
-    if (el.ink.right > doc.width + 1e-3 || el.ink.bottom > doc.height + 1e-3 || el.ink.left < -1e-3 || el.ink.top < -1e-3) {
+    const inkOutside = el.ink.right > doc.width + 1e-3 || el.ink.bottom > doc.height + 1e-3 || el.ink.left < -1e-3 || el.ink.top < -1e-3
+    if (inkOutside) {
       issues.push({
         level: 'error',
         code: 'overflow-canvas',
         path: el.path,
         message: '着墨超出画布',
       })
+    }
+    const effectPad = Math.max(
+      el.shadow ? el.shadow.blur * 2 + el.shadow.spread + Math.max(Math.abs(el.shadow.x), Math.abs(el.shadow.y)) : 0,
+      el.glow ? el.glow.blur * 2 + el.glow.spread : 0,
+    )
+    if (!inkOutside && effectPad > 0) {
+      const outside =
+        el.ink.left - effectPad < -1e-3 ||
+        el.ink.top - effectPad < -1e-3 ||
+        el.ink.right + effectPad > doc.width + 1e-3 ||
+        el.ink.bottom + effectPad > doc.height + 1e-3
+      if (outside) {
+        issues.push({
+          level: 'warn',
+          code: 'effect-clipped',
+          path: el.path,
+          message: '本体在画布内，但阴影或光晕超出画布',
+          hint: '把元素往里移，或减小 blur',
+        })
+      }
     }
     if (el.lines != null && (el.tag === 'h1' || el.tag === 'h2' || el.tag === 'h3' || el.tag === 'p' || el.tag === 'div' || el.tag === 'span')) {
       if (el.ink.left < doc.safe.left - 1e-3 || el.ink.right > doc.width - doc.safe.right + 1e-3) {

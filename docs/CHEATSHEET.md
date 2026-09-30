@@ -19,9 +19,14 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 | `Rect` | `cx cy width height`，或 `x1 y1 x2 y2`（对角，可反着写） | 不规范。包一层有宽高的 Layer，或改用 div |
 | `Ellipse` | `cx cy rx ry`，或两点写法表示外接矩形 | 同上 |
 | `Circle` | `cx cy r`（圆心） | 同上 |
-| `Line` `Arrow` `Polyline` `Polygon` `Path` | `x1 y1 x2 y2` / `points` / `d`，就是局部坐标 | 不渲染。包一层 `<Layer>` |
+| `Line` `Arrow` `Polyline` `Polygon` `Path` `Curve` | `x1 y1 x2 y2` / `points` / `d`，就是局部坐标。`Curve` 用 `points`，闭合加 `closed` | 不渲染。包一层 `<Layer>` |
+| `symbol` / `use` | `symbol` 不画。`use href="#id"` 用 `cx cy` 摆放，可加 `rotate` `scale` | `use` 按它的宽高排进去 |
 
 形状和自定义元素不用 `anchor`，也不写 `style`。色块、圆点、分隔线用 div：`<div style="width:28px; height:28px; border-radius:14px; background:#3ecfc4">`，分隔线用 `flex:1; height:4px`。
+
+`fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)` 或 `radial-gradient(at 40% 35%, #fff, #fff0)`。月晕用 `glow="56 #f3ead4"`，投影用 `shadow="0 8 16 #00000055"`。文字的光写在 `style` 里。
+
+竖排：`style="writing-mode:vertical-rl"`。字体名 `Song`、`Kai`、`Brush` 不用自带字体文件。
 
 ## 属性归属
 

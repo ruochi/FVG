@@ -33,10 +33,10 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | `width`、`height` | 必填 | 画布尺寸 |
 | `background` | `#ffffff` | 画布背景色，写 `transparent` 输出透明 PNG |
 | `color` | `#111111` | 全局文字色、线条默认色 |
-| `font-family` | `ChillDuanSans` | 全局字体（寒蝉端黑体） |
+| `font-family` | `ChillDuanSans` | 全局字体。也可以写 `Song`（宋体）、`Kai`（楷体）、`Brush`（书法），第一次用到时自动下载 |
 | `safe` | 画布短边的 4% | 安全区边距，`上 右 下 左` 或一个数字，只用于检查 |
 
-`<font family="名字" src="路径或网址" />` 注册额外字体，只能写在根元素下。
+`<font family="名字" src="路径或网址" />` 注册额外字体，只能写在根元素下。不想自己找字体文件时，直接写内置名字：`Song` / `宋体`（思源宋体）、`Kai` / `楷体`（霞鹜文楷）、`Brush` / `书法`（马善政毛笔楷书）。宋体和楷体有 regular 与 bold 两档，书法只有一档。
 
 ## 2. 元素一览
 
@@ -45,7 +45,8 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | 容器 | `Layer`。横排竖排用带 `display:flex` 的 `div` |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
-| 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path` |
+| 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path`、`Curve` |
+| 复用 | `symbol`、`use` |
 
 - `Layer` 和图形首字母大写，文字标签全部小写（和 HTML 一样）。HTML 只写 `style`，`Layer` 和图形只写属性。
 - 后写的元素画在上面。
@@ -100,6 +101,18 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 一组 HTML 要放到画面上，包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。
 
+`symbol` 定义一块可复用的图，本身不画出来。`use` 按 Layer 的方式摆放它：`cx`、`cy`、`anchor`、`rotate`、`scale`、`opacity` 都写在 `use` 上。`symbol` 里的坐标是它自己的局部坐标。
+
+```html
+<symbol id="dew" width="28" height="28">
+  <Circle cx="14" cy="14" r="12" fill="radial-gradient(#ffffff, #ffffff00)" />
+</symbol>
+<use href="#dew" cx="180" cy="640" />
+<use href="#dew" cx="240" cy="700" scale="0.8" />
+```
+
+没写 `width`、`height` 时，`symbol` 的盒子包住内容。`href` 写成 `#id`。
+
 ```html
 <Layer cx="120" cy="64" anchor="top-left">
   <div style="display:flex; gap:40px; align-items:center">
@@ -151,7 +164,8 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | 属性 | 说明 |
 | --- | --- |
 | `font-size`、`font-weight`、`font-family`、`color`、`letter-spacing` | 同 CSS，行内标签也可以写 |
-| （字重规则） | 仅 `ChillDuanSans`（寒蝉端黑体）使用元素指定的 `font-weight`；其它 `font-family` 在测量与绘制时一律按 `normal`（400） |
+| （字重规则） | `ChillDuanSans` 按可变字重。`Song`、`Kai` 在 400 和 700 两档里取最近的一档。`Brush` 和其它只注册了一个文件的字体按 400 |
+| `writing-mode` | `horizontal-tb`（默认）或 `vertical-rl`。竖排时字从上到下，列从右到左，`letter-spacing` 是字与字之间的额外间距 |
 | `line-height` | 倍数，单行默认 1.2，多行默认 1.4 |
 | `text-align` | `left`（默认）、`center`、`right` |
 | `width`、`height` | 外框尺寸（含 padding 和 border） |
@@ -183,6 +197,15 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
+`fill`、`stroke` 和 Layer、文字的 `background` 可以写渐变。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。
+
+```html
+<Rect x="0" y="0" width="720" height="960" fill="linear-gradient(to bottom, #0c1424, #1a3352 55%, #6e7c72)" />
+<Circle cx="520" cy="220" r="70" fill="radial-gradient(at 40% 35%, #fff, #f4efe4 40%, #d9d0c0)" />
+```
+
+`linear-gradient` 默认从上到下，可以写 `to top`、`to right` 或 `180deg`。`radial-gradient` 默认从中心散开，`at 40% 35%` 把高光挪到左上。
+
 带 `draw` 且写了尺寸的自定义元素，定位和形状相同。
 
 ## 7. 线条
@@ -193,12 +216,22 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | `Arrow` | `x1`、`y1`、`x2`、`y2`、`head`（箭头长度，默认 `stroke-width` 的 4 倍，最小 12） |
 | `Polyline`、`Polygon` | `points="x,y x,y …"` |
 | `Path` | `d`（SVG 路径语法） |
+| `Curve` | `points="x,y x,y …"`，可选 `closed` |
 
 - 线条只能放在 Layer 里，坐标是 **Layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
 - 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
 - `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
-- `Polygon`、`Path` 的 `fill` 默认 `none`。
+- `Polygon`、`Path`、`Curve` 的 `fill` 默认 `none`。开口的 `Curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
+- `Curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
+- 图形和 Layer 可以写 `shadow`、`glow`。文字把这两项写在 `style` 里。
+
+```html
+<Circle cx="520" cy="220" r="70" fill="#f4efe4" glow="56 #f3ead4" />
+<h1 style="shadow:0 8 16 #00000055">寒露</h1>
+```
+
+`shadow` 是 `x y [blur] [spread] [color]`，默认 blur 0、spread 0、颜色 `#00000066`。`glow` 是 `blur [spread] [color]`，没有偏移，默认颜色取本体，按加光绘制。两者只影响绘制，不改变布局盒子。先画阴影，再画光晕，最后画本体。
 
 ## 8. 布局报告
 
@@ -248,6 +281,10 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | `unknown-tag` | warn | 不认识的标签 |
 | `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
 | `invalid-child` | warn | 非法子元素：线条放进 flex 容器，或文字盒子里放了 `h1`–`h3`、`p`、`div` |
+| `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |
+| `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
+| `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |
+| `effect-clipped` | warn | 本体在画布内，阴影或光晕超出画布 |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 

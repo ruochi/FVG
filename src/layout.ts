@@ -9,13 +9,18 @@ import {
 } from 'yoga-layout/load'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
-import { registerFontsFromDocument } from './fonts.js'
+import { ensureBuiltinFonts, registerFontsFromDocument } from './fonts.js'
+import { catmullRomPath } from './curve.js'
+import { isGradient, parseGradient, solidPaint } from './gradient.js'
+import { translateSvgPath } from './path.js'
 import {
   parseBorder,
   parseEdges,
   parseFontWeight,
+  parseGlow,
   parseNumber,
   parsePx,
+  parseShadow,
   parseStyle,
   ZERO_EDGES,
   type Edges,
@@ -39,8 +44,10 @@ import type {
   Issue,
   LayerLayoutNode,
   LayoutNode,
+  GlowSpec,
   LineGeometry,
   LineLayoutNode,
+  ShadowSpec,
   ShapeLayoutNode,
   TextLayoutNode,
 } from './types.js'
@@ -53,6 +60,14 @@ export type LayoutContext = {
   maxContentWidth: number
   issues: Issue[]
   pathPrefix: string
+  symbols: Map<string, FvgNode>
+  useStack: string[]
+}
+
+function isClosedFlag(raw: string | undefined): boolean {
+  if (raw == null) return false
+  const text = raw.trim().toLowerCase()
+  return text !== 'false' && text !== '0' && text !== 'no'
 }
 
 function parseAnchor(raw: string | undefined): Anchor {
@@ -106,6 +121,54 @@ function parseSafe(raw: string | undefined, w: number, h: number): Edges {
 
 function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
+}
+
+const DEFAULT_SHADOW_COLOR = '#00000066'
+
+function readEffects(
+  shadowRaw: string | undefined,
+  glowRaw: string | undefined,
+  ctx: LayoutContext,
+  glowColor: string,
+): { shadow?: ShadowSpec; glow?: GlowSpec } {
+  let shadow: ShadowSpec | undefined
+  const parsedShadow = parseShadow(shadowRaw)
+  if (parsedShadow) shadow = { ...parsedShadow, color: parsedShadow.color ?? DEFAULT_SHADOW_COLOR }
+  else if (shadowRaw && shadowRaw.trim() !== 'none') {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `无法解析 shadow: ${shadowRaw}`,
+      hint: '写成 0 8 16 #00000055，顺序是 x y blur spread color',
+    })
+  }
+  let glow: GlowSpec | undefined
+  const parsedGlow = parseGlow(glowRaw)
+  if (parsedGlow) glow = { ...parsedGlow, color: parsedGlow.color ?? glowColor }
+  else if (glowRaw && glowRaw.trim() !== 'none') {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `无法解析 glow: ${glowRaw}`,
+      hint: '写成 48 #f6f1e7，顺序是 blur spread color',
+    })
+  }
+  return { shadow, glow }
+}
+
+function readPaint(raw: string, fallback: string, ctx: LayoutContext, label: string): string {
+  if (!isGradient(raw)) return raw
+  if (parseGradient(raw)) return raw
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-attr',
+    path: ctx.pathPrefix,
+    message: `无法解析 ${label}: ${raw}`,
+    hint: '例如 linear-gradient(to bottom, #0b1026, #d5ddd4) 或 radial-gradient(at 35% 30%, #fff, #fff0)',
+  })
+  return fallback
 }
 
 function readHtmlAppearance(style: Record<string, string>) {
@@ -204,6 +267,7 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
     height: h,
     ink: { x: 0, y: 0, width: w, height: h },
     ...appearance,
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -342,6 +406,7 @@ function normalizeLineGeometry(geom: LineGeometry, box: Box): LineGeometry {
   if (geom.kind === 'polyline' || geom.kind === 'polygon') {
     return { ...geom, points: geom.points.map((p) => ({ x: p.x - ox, y: p.y - oy })) }
   }
+  if (geom.kind === 'path') return { ...geom, d: translateSvgPath(geom.d, -ox, -oy) }
   return geom
 }
 
@@ -365,7 +430,19 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   const fixedW = parsePx(style.width)
   const fixedH = parsePx(style.height)
   const maxW = parsePx(style['max-width']) ?? contentWidthLimit
-  const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 ? 1.4 : 1.2)
+  const maxH = parsePx(style['max-height'])
+  const writingMode = style['writing-mode']?.trim().toLowerCase()
+  const vertical = writingMode === 'vertical-rl'
+  if (writingMode && writingMode !== 'horizontal-tb' && writingMode !== 'vertical-rl') {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: `不支持的 writing-mode: ${writingMode}`,
+      hint: '竖排用 writing-mode:vertical-rl',
+    })
+  }
+  const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 && !vertical ? 1.4 : 1.2)
 
   const appearance = readHtmlAppearance(style)
   const innerPadX = appearance.padding.left + appearance.padding.right + (appearance.border?.width ?? 0) * 2
@@ -375,11 +452,13 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     segments,
     fixedWidth: fixedW != null ? Math.max(0, fixedW - innerPadX) : undefined,
     fixedHeight: fixedH != null ? Math.max(0, fixedH - innerPadY) : undefined,
-    maxWidth: maxW,
-    nowrap,
+    maxWidth: vertical ? undefined : maxW,
+    maxHeight: maxH,
+    nowrap: vertical ? false : nowrap,
     textWrap,
     lineHeightRatio,
     fontSize,
+    writingMode: vertical ? 'vertical-rl' : 'horizontal-tb',
   })
 
   let contentW = textLayout.contentWidth
@@ -423,6 +502,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
     ...appearance,
     textLayout,
     textAlign,
+    ...readEffects(style.shadow, style.glow, ctx, color),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -462,8 +542,8 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
       h = parseNumber(node.attrs.height) ?? h
     }
   }
-  const fill = node.attrs.fill ?? '#000000'
-  const stroke = node.attrs.stroke ?? 'none'
+  const fill = readPaint(node.attrs.fill ?? '#000000', '#000000', ctx, 'fill')
+  const stroke = readPaint(node.attrs.stroke ?? 'none', 'none', ctx, 'stroke')
   const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 1
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
@@ -485,6 +565,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     r: parseNumber(node.attrs.r),
     rxEllipse: twoPoint ? undefined : parseNumber(node.attrs.rx),
     ry: twoPoint ? undefined : parseNumber(node.attrs.ry),
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(fill !== 'none' ? fill : stroke, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -500,7 +581,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
       y2: parseNumber(node.attrs.y2) ?? 0,
       head: parseNumber(node.attrs.head),
     }
-  } else if (node.tag === 'Polyline' || node.tag === 'Polygon') {
+  } else if (node.tag === 'Polyline' || node.tag === 'Polygon' || node.tag === 'Curve') {
     const pts = (node.attrs.points ?? '')
       .trim()
       .split(/\s+/)
@@ -509,13 +590,29 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
         return { x: Number(xs), y: Number(ys) }
       })
       .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    geom = { kind: node.tag === 'Polygon' ? 'polygon' : 'polyline', points: pts }
+    if (node.tag === 'Curve') {
+      const closed = isClosedFlag(node.attrs.closed)
+      geom = { kind: 'path', d: catmullRomPath(pts, closed) }
+    } else {
+      geom = { kind: node.tag === 'Polygon' ? 'polygon' : 'polyline', points: pts }
+    }
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
   }
   const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 4
-  const stroke = node.attrs.stroke ?? defaultStroke
-  const fill = node.attrs.fill ?? 'none'
+  const stroke = readPaint(node.attrs.stroke ?? defaultStroke, defaultStroke, ctx, 'stroke')
+  let fill = readPaint(node.attrs.fill ?? 'none', 'none', ctx, 'fill')
+  const curveClosed = node.tag === 'Curve' && isClosedFlag(node.attrs.closed)
+  if (node.tag === 'Curve' && !curveClosed && fill !== 'none') {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'open-curve-fill',
+      path: ctx.pathPrefix,
+      message: '开口的 Curve 不填充，避免首尾被连成一块色',
+      hint: '要色块就加 closed，只要线条就去掉 fill',
+    })
+    fill = 'none'
+  }
   const box = lineBounds(geom)
   const ink = lineInk(geom, box, strokeWidth, geom.kind === 'arrow' ? geom.head : undefined)
   const localGeom = normalizeLineGeometry(geom, box)
@@ -538,6 +635,7 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
     stroke,
     strokeWidth,
     fill,
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(fill !== 'none' ? fill : stroke, defaultStroke)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -552,7 +650,20 @@ type FlexMeasure = {
 }
 
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
+  if (node.tag === 'symbol') return null
   ctx.issues.push(...checkChildAttrs(node, 'flex', ctx.pathPrefix))
+  if (node.tag === 'use') {
+    const used = await layoutUse(node, ctx)
+    if (!used) return null
+    return {
+      node: used,
+      minMain: direction === 'row' ? used.width : used.height,
+      minCross: direction === 'row' ? used.height : used.width,
+      preferredMain: direction === 'row' ? used.width : used.height,
+      preferredCross: direction === 'row' ? used.height : used.width,
+      isText: false,
+    }
+  }
   if (isLineTag(node.tag)) {
     ctx.issues.push({
       level: 'warn',
@@ -629,6 +740,7 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
   const style = parseStyle(node.attrs.style)
   const direction = flexDirectionOf(style)
   const appearance = readHtmlAppearance(style)
+  if (appearance.background) appearance.background = readPaint(appearance.background, 'transparent', ctx, 'background')
   const gap = parsePx(style.gap) ?? 0
   const justify = mapJustify(style['justify-content'])
   const alignItems = mapAlign(style['align-items'])
@@ -760,12 +872,69 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
     ...appearance,
     direction,
     children: laidChildren,
+    ...readEffects(style.shadow, style.glow, ctx, solidPaint(appearance.background, ctx.color)),
+    ...layoutDrawMeta(node, ctx),
+  }
+}
+
+async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode | null> {
+  const href = (node.attrs.href || node.attrs['xlink:href'] || '').trim()
+  const id = href.startsWith('#') ? href.slice(1) : href
+  if (!id) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: 'use 缺少 href',
+      hint: '写成 <use href="#petal" cx="120" cy="80" />',
+    })
+    return null
+  }
+  const symbol = ctx.symbols.get(id)
+  if (!symbol) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'missing-symbol',
+      path: ctx.pathPrefix,
+      message: `找不到 symbol #${id}`,
+      hint: `在 <fvg> 下写 <symbol id="${id}">…</symbol>`,
+    })
+    return null
+  }
+  if (ctx.useStack.includes(id)) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'symbol-cycle',
+      path: ctx.pathPrefix,
+      message: `symbol #${id} 引用了自己`,
+      hint: '去掉循环的 use',
+    })
+    return null
+  }
+  const width = parseNumber(node.attrs.width) ?? parseNumber(symbol.attrs.width)
+  const height = parseNumber(node.attrs.height) ?? parseNumber(symbol.attrs.height)
+  const attrs: Record<string, string> = {}
+  if (width != null) attrs.width = String(width)
+  if (height != null) attrs.height = String(height)
+  const laid = await layoutLayer(
+    { tag: 'Layer', attrs, children: symbol.children },
+    { ...ctx, useStack: [...ctx.useStack, id] },
+  )
+  const appearance = readAttrAppearance(node.attrs)
+  return {
+    ...laid,
+    tag: 'use',
+    id: node.attrs.id,
+    path: ctx.pathPrefix,
+    ...appearance,
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const appearance = readAttrAppearance(node.attrs)
+  if (appearance.background) appearance.background = readPaint(appearance.background, 'transparent', ctx, 'background')
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
 
@@ -781,19 +950,21 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
 
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
+    if (ch.tag === 'symbol') continue
     const path = nodePath(ctx.pathPrefix, ch.tag, i)
     ctx.issues.push(...checkChildAttrs(ch, 'layer', path))
     const subCtx = { ...ctx, pathPrefix: path }
     let laid: LayoutNode | null = null
-    if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
+    if (ch.tag === 'use') laid = await layoutUse(ch, subCtx)
+    else if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
     else if (isDisplayFlex(ch.attrs.style) && isTextBoxTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
       laid = layoutUnknownOrCustom(ch, subCtx)
-      if (!laid) continue
     }
+    if (!laid) continue
     const html = isTextBoxTag(ch.tag)
     const cx = html ? undefined : parseNumber(ch.attrs.cx)
     const cy = html ? undefined : parseNumber(ch.attrs.cy)
@@ -869,7 +1040,43 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ...appearance,
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background ?? appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
+  }
+}
+
+function collectSymbols(node: FvgNode, symbols: Map<string, FvgNode>, issues: Issue[], path: string) {
+  if (node.tag === 'symbol') {
+    const id = node.attrs.id?.trim()
+    if (!id) {
+      issues.push({
+        level: 'warn',
+        code: 'invalid-attr',
+        path,
+        message: 'symbol 缺少 id',
+        hint: '写成 <symbol id="petal">…</symbol>',
+      })
+    } else if (symbols.has(id)) {
+      issues.push({
+        level: 'warn',
+        code: 'invalid-attr',
+        path,
+        message: `symbol id 重复: ${id}`,
+        hint: '每个 id 只定义一次',
+      })
+    } else symbols.set(id, node)
+  }
+  node.children.forEach((child, index) => {
+    if (typeof child !== 'string') collectSymbols(child, symbols, issues, `${path}/${child.tag}[${index}]`)
+  })
+}
+
+function collectFontFamilies(node: FvgNode, out: Set<string>) {
+  const style = parseStyle(node.attrs.style)
+  if (style['font-family']) out.add(style['font-family'])
+  if (node.attrs['font-family']) out.add(node.attrs['font-family'])
+  for (const child of node.children) {
+    if (typeof child !== 'string') collectFontFamilies(child, out)
   }
 }
 
@@ -897,6 +1104,11 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   const maxContentWidth = width - safe.left - safe.right
 
   const issues: Issue[] = []
+  const symbols = new Map<string, FvgNode>()
+  collectSymbols(rootNode, symbols, issues, 'fvg')
+  const families = new Set<string>([fontFamily])
+  collectFontFamilies(rootNode, families)
+  await ensureBuiltinFonts(families)
   if (attrs.style?.trim()) {
     issues.push({
       level: 'warn',
@@ -914,6 +1126,8 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       maxContentWidth,
       issues,
       pathPrefix: 'fvg',
+      symbols,
+      useStack: [],
     },
   )
 

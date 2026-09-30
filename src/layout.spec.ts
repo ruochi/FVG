@@ -96,6 +96,69 @@ describe('layoutSource', () => {
     expect(second?.y).toBe(30)
   })
 
+  it('Path 几何减去盒子原点，和折线同一套局部坐标', async () => {
+    const doc = await layoutSource(
+      `<fvg width="200" height="200"><Path d="M 80 90 L 140 90" /><Path d="M 80 90 l 40 0" /></fvg>`,
+      process.cwd(),
+    )
+    const [absolute, relative] = doc.root.children as Array<{ x: number; y: number; geometry: { kind: string; d: string } }>
+    expect(absolute.x).toBe(80)
+    expect(absolute.y).toBe(90)
+    expect(absolute.geometry.d).toBe('M 0 0 L 60 0')
+    expect(relative.geometry.d).toBe('M 0 0 l 40 0')
+  })
+
+  it('Curve 穿过点，开口不填充', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="300"><Curve points="30,100 100,40 170,100" fill="#ff0000" /><Curve points="40,40 160,40 100,140" closed fill="#00ff00" /></fvg>`,
+      process.cwd(),
+    )
+    const [open, closed] = doc.root.children as Array<{ tag: string; fill: string; geometry: { kind: string; d: string } }>
+    expect(open.tag).toBe('Curve')
+    expect(open.fill).toBe('none')
+    expect(open.geometry.kind).toBe('path')
+    expect(open.geometry.d).toContain(' C ')
+    expect(closed.fill).toBe('#00ff00')
+    expect(closed.geometry.d.endsWith('Z')).toBe(true)
+    expect(doc.issues.some((issue) => issue.code === 'open-curve-fill')).toBe(true)
+  })
+
+  it('symbol 不占位，use 按 cx cy 各放一份', async () => {
+    const doc = await layoutSource(
+      `<fvg width="200" height="120"><symbol id="dot" width="20" height="20"><Circle cx="10" cy="10" r="8" fill="#ff0000" /></symbol><use href="#dot" cx="40" cy="30" /><use href="#dot" cx="80" cy="30" /></fvg>`,
+      process.cwd(),
+    )
+    expect(doc.root.children.map((child) => child.tag)).toEqual(['use', 'use'])
+    expect(doc.root.children.map((child) => child.x)).toEqual([30, 70])
+    expect(doc.issues.filter((issue) => issue.code === 'missing-symbol')).toEqual([])
+  })
+
+  it('竖排寒露高过宽，字从上到下', async () => {
+    const doc = await layoutSource(
+      `<fvg width="400" height="400"><h1 style="writing-mode:vertical-rl; font-size:40px; letter-spacing:8px">寒露</h1></fvg>`,
+      process.cwd(),
+    )
+    const title = doc.root.children[0] as {
+      width: number
+      height: number
+      textLayout: { lines: Array<{ segments: Array<{ text: string }>; baselineY: number }> }
+    }
+    expect(title.height).toBeGreaterThan(title.width)
+    expect(title.textLayout.lines.map((line) => line.segments[0]?.text)).toEqual(['寒', '露'])
+    expect(title.textLayout.lines[1]!.baselineY).toBeGreaterThan(title.textLayout.lines[0]!.baselineY)
+  })
+
+  it('渐变、阴影和光晕写进图形', async () => {
+    const doc = await layoutSource(
+      `<fvg width="200" height="200"><Circle cx="40" cy="40" r="20" fill="radial-gradient(#fff, #fff0)" glow="12 #fff" shadow="0 4 8 #00000055" /></fvg>`,
+      process.cwd(),
+    )
+    const circle = doc.root.children[0] as { fill: string; glow?: { blur: number; color: string }; shadow?: { y: number; blur: number } }
+    expect(circle.fill).toBe('radial-gradient(#fff, #fff0)')
+    expect(circle.glow).toMatchObject({ blur: 12, color: '#fff' })
+    expect(circle.shadow).toMatchObject({ y: 4, blur: 8 })
+  })
+
   it('invalid-child 线条进 flex', async () => {
     const doc = await layoutSource(
       `<fvg width="200" height="200"><div style="display:flex"><Line x1="0" y1="0" x2="10" y2="10" /></div></fvg>`,

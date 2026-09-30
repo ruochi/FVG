@@ -355,27 +355,125 @@ function balanceWrap(units: Unit[], maxWidth: number): Unit[][] {
 export type LayoutTextOptions = {
   segments: TextSegment[]
   maxWidth?: number
+  maxHeight?: number
   fixedWidth?: number
   fixedHeight?: number
   nowrap?: boolean
   textWrap?: 'balance' | 'wrap'
   lineHeightRatio: number
   fontSize: number
+  writingMode?: 'horizontal-tb' | 'vertical-rl'
+}
+
+function emptyTextLayout(fontSize: number): TextLayoutResult {
+  return {
+    lines: [],
+    contentWidth: 0,
+    contentHeight: 0,
+    minWidth: 0,
+    ink: { x: 0, y: 0, width: 0, height: 0 },
+    fontSize,
+    autoWrap: false,
+    overflowFixed: false,
+  }
+}
+
+/** 竖排：字从上到下，列从右到左。字距加在字与字之间。 */
+function layoutVertical(opts: LayoutTextOptions): TextLayoutResult {
+  type Glyph = {
+    text: string
+    drawStyle: TextRunStyle
+    letterSpacing: number
+    width: number
+    ascent: number
+    descent: number
+    breakBefore: boolean
+  }
+  const glyphs: Glyph[] = []
+  for (const segment of opts.segments) {
+    const chars = Array.from(segment.text)
+    chars.forEach((ch, index) => {
+      const drawStyle = { ...segment.style, letterSpacing: 0 }
+      const measured = measureInk(ch, drawStyle)
+      glyphs.push({
+        text: ch,
+        drawStyle,
+        letterSpacing: segment.style.letterSpacing,
+        width: measured.width,
+        ascent: measured.ascent,
+        descent: measured.descent,
+        breakBefore: index === 0 && Boolean(segment.hardBreakBefore),
+      })
+    })
+  }
+  if (glyphs.length === 0) return emptyTextLayout(opts.fontSize)
+
+  const lineH = opts.lineHeightRatio * opts.fontSize
+  const columnGap = opts.fontSize
+  const limit = opts.fixedHeight ?? opts.maxHeight ?? Number.POSITIVE_INFINITY
+  const columns: Glyph[][] = []
+  let column: Glyph[] = []
+  let columnHeight = 0
+  const flush = () => {
+    if (column.length === 0) return
+    columns.push(column)
+    column = []
+    columnHeight = 0
+  }
+  for (const glyph of glyphs) {
+    if (glyph.breakBefore) flush()
+    const gap = column.length === 0 ? 0 : glyph.letterSpacing
+    const nextHeight = columnHeight + gap + lineH
+    if (column.length > 0 && nextHeight > limit + 1e-3) flush()
+    column.push(glyph)
+    columnHeight += (column.length === 1 ? 0 : glyph.letterSpacing) + lineH
+  }
+  flush()
+
+  const columnWidth = Math.max(1, ...glyphs.map((glyph) => glyph.width))
+  const contentWidth = columns.length * columnWidth + Math.max(0, columns.length - 1) * columnGap
+  let contentHeight = 0
+  const laidLines: TextLayoutResult['lines'] = []
+  let ink = emptyBox()
+  columns.forEach((glyphsInColumn, index) => {
+    const x0 = contentWidth - columnWidth - index * (columnWidth + columnGap)
+    let y = 0
+    glyphsInColumn.forEach((glyph, glyphIndex) => {
+      if (glyphIndex > 0) y += glyph.letterSpacing
+      const baselineY = y + glyph.ascent + (lineH - (glyph.ascent + glyph.descent)) / 2
+      const glyphX = x0 + (columnWidth - glyph.width) / 2
+      const lineInk = { x: glyphX, y: baselineY - glyph.ascent, width: glyph.width, height: glyph.ascent + glyph.descent }
+      ink = unionBoxes(ink, lineInk)
+      laidLines.push({
+        segments: [{ text: glyph.text, style: glyph.drawStyle, x: glyphX, width: glyph.width }],
+        width: contentWidth,
+        height: lineH,
+        baselineY,
+        ink: lineInk,
+      })
+      y += lineH
+    })
+    contentHeight = Math.max(contentHeight, y)
+  })
+
+  let overflowFixed = false
+  if (opts.fixedWidth != null && contentWidth > opts.fixedWidth + 1e-3) overflowFixed = true
+  if (opts.fixedHeight != null && contentHeight > opts.fixedHeight + 1e-3) overflowFixed = true
+  return {
+    lines: laidLines,
+    contentWidth,
+    contentHeight,
+    minWidth: columnWidth,
+    ink,
+    fontSize: opts.fontSize,
+    autoWrap: opts.fixedHeight == null && opts.maxHeight != null && columns.length > 1,
+    overflowFixed,
+  }
 }
 
 export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
-  if (!opts.segments.some((segment) => segment.text.trim().length > 0)) {
-    return {
-      lines: [],
-      contentWidth: 0,
-      contentHeight: 0,
-      minWidth: 0,
-      ink: { x: 0, y: 0, width: 0, height: 0 },
-      fontSize: opts.fontSize,
-      autoWrap: false,
-      overflowFixed: false,
-    }
-  }
+  if (!opts.segments.some((segment) => segment.text.trim().length > 0)) return emptyTextLayout(opts.fontSize)
+  if (opts.writingMode === 'vertical-rl') return layoutVertical(opts)
   const unitsRaw = segmentsToUnits(opts.segments)
   const paragraphGroups = bindLineBreakUnits(unitsRaw)
   const allLines: Unit[][] = []
