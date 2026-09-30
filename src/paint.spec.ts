@@ -26,9 +26,9 @@ describe('paint containers', () => {
       'fvg',
       { width: '200', height: '200', background: '#000000' },
       h(
-        'Column',
-        { cx: '100', cy: '100', anchor: 'center', style: 'width:80px' },
-        h('div', { style: 'width:80px; height:40px; background:#ffffff' }, 'A'),
+        'Layer',
+        { cx: '100', cy: '100' },
+        h('div', { style: 'display:flex; flex-direction:column; width:80px' }, h('div', { style: 'width:80px; height:40px; background:#ffffff' }, 'A')),
       ),
     )
     const { png } = await renderFvg(root)
@@ -128,7 +128,7 @@ describe('paint containers', () => {
     const text = h(
       'fvg',
       { width: '200', height: '200', background: '#000000' },
-      h('div', { cx: '100', cy: '100', rotate: '90', style: 'width:120px; height:20px; background:#ffffff' }, 'A'),
+      h('div', { style: 'width:120px; height:20px; background:#ffffff; rotate:90' }, 'A'),
     )
     const textPng = await renderFvg(text)
     expect((await pixelAt(textPng.png, 100, 50))[0]).toBeGreaterThan(200)
@@ -147,7 +147,7 @@ describe('paint containers', () => {
     const root = h(
       'fvg',
       { width: '120', height: '80', background: '#000000' },
-      h('Layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('Row', { style: 'gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
+      h('Layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('div', { style: 'display:flex; gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
     )
     const { png, report } = await renderFvg(root)
     expect(report.issues.some((issue) => issue.code === 'text-overflow')).toBe(false)
@@ -162,8 +162,8 @@ describe('paint containers', () => {
         'Layer',
         { cx: '10', cy: '30', anchor: 'top-left' },
         h(
-          'Row',
-          { style: 'width:280px; gap:8px; align-items:center' },
+          'div',
+          { style: 'display:flex; width:280px; gap:8px; align-items:center' },
           h('p', { style: 'font-size:32px; color:#ffffff' }, '左'),
           h('div', { style: 'flex:1; height:4px; background:#ffffff' }),
           h('p', { style: 'font-size:32px; color:#ffffff' }, '右'),
@@ -175,14 +175,16 @@ describe('paint containers', () => {
     expect((await pixelAt(png, 150, 48))[0]).toBeGreaterThan(200)
   })
 
-  it('直接定位的 Row 和包一层 Layer 画出来一样', async () => {
-    const row = h('Row', { style: 'gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙'))
-    const direct = h('fvg', { width: '400', height: '120', background: '#000000' }, h('Row', { cx: '20', cy: '30', anchor: 'top-left', style: 'gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙')))
-    const wrapped = h('fvg', { width: '400', height: '120', background: '#000000' }, h('Layer', { cx: '20', cy: '30', anchor: 'top-left' }, row))
-    const a = await renderFvg(direct)
-    const b = await renderFvg(wrapped)
-    const pa = await pixelAt(a.png, 30, 40)
-    const pb = await pixelAt(b.png, 30, 40)
-    expect(Array.from(pa)).toEqual(Array.from(pb))
+  it('flex 放进 Layer 后位置由 Layer 决定', async () => {
+    const row = () => h('div', { style: 'display:flex; gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙'))
+    const wrapped = h('fvg', { width: '400', height: '120', background: '#000000' }, h('Layer', { cx: '20', cy: '30', anchor: 'top-left' }, row()))
+    const bare = h('fvg', { width: '400', height: '120', background: '#000000' }, row())
+    const placed = await renderFvg(wrapped)
+    const centered = await renderFvg(bare)
+    const placedBox = placed.report.elements.find((element) => element.tag === 'div')!.box
+    const centeredBox = centered.report.elements.find((element) => element.tag === 'div')!.box
+    expect(placedBox.left).toBeCloseTo(20, 0)
+    expect(placedBox.top).toBeCloseTo(30, 0)
+    expect(centeredBox.left).toBeGreaterThan(placedBox.left + 20)
   })
 })

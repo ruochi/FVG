@@ -51,7 +51,7 @@ function parseAttrs(text: string): Record<string, string> {
   return attrs
 }
 
-/** 解析 FVG 标记。标签名保留大小写（`Row` 与 `row` 不同）。 */
+/** 解析 FVG 标记。标签名保留大小写（`Layer` 与 `layer` 不同）。 */
 export function parseFvg(source: string): FvgNode[] {
   const src = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[\s\S]*?\?>/g, '')
   const root: FvgNode = { tag: '#root', attrs: {}, children: [] }

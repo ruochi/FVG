@@ -1,12 +1,12 @@
 # FVG 规范 v0.1（Flex Vector Graphics）
 
-FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：结构标签只有 `Layer`、`Row`、`Column`，文字叶子用 HTML 写法，图形叶子用 SVG 写法。
+FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
 动画 = 程序为每个时刻生成一份 FVG（v0.2 起）。
 
 设计原则：
 
 1. **一律实际像素**：所有数字都是像素，可以写 `px` 后缀，不支持百分比、em、rem。
-2. **位置由父级决定**：`Layer` 负责定位，`Row`/`Column` 负责排布。叶子怎么定位，看它由什么定义（见第 3 节）。
+2. **位置由 Layer 决定**：`Layer` 负责定位，`display:flex` 的 HTML 负责排布。图形用自身坐标画在 Layer 里。
 3. **y 轴向下**：和 Canvas、HTML 一致，`cy="400"` 表示距离父级顶部 400 像素。
 4. **显式写了就照做**：写了尺寸、位置就严格使用，不会被悄悄改掉；有问题只在报告里指出。
 5. **没写的由渲染器决定，并写进报告**：比如自动换行。
@@ -18,10 +18,10 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 <fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
   <font family="DeYiHei" src="https://example.com/deyihei.otf" />
   <Layer cx="540" cy="700">
-    <Column style="gap:32px; align-items:center">
+    <div style="display:flex; flex-direction:column; gap:32px; align-items:center">
       <h1>比特币减半</h1>
       <p style="color:#f7931a">每四年一次</p>
-    </Column>
+    </div>
   </Layer>
 </fvg>
 ```
@@ -42,12 +42,12 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 
 | 类别 | 标签 |
 | --- | --- |
-| 容器 | `Layer`、`Row`、`Column` |
+| 容器 | `Layer`。横排竖排用带 `display:flex` 的 `div` |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 形状 | `Rect`、`Circle`、`Ellipse` |
 | 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path` |
 
-- 容器和形状首字母大写，文字标签全部小写（和 HTML 一样）。
+- `Layer` 和图形首字母大写，文字标签全部小写（和 HTML 一样）。HTML 只写 `style`，`Layer` 和图形只写属性。
 - 后写的元素画在上面。
 - 不认识的标签会被忽略，并在报告里给出警告。
 
@@ -56,7 +56,7 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 | 属性 | 说明 |
 | --- | --- |
 | `id` | 报告里用来指认元素 |
-| `cx`、`cy` | 在 `Layer` 里的定位点，默认是元素中心（见 `anchor`）；在 `Row`/`Column` 里无效 |
+| `cx`、`cy` | 只写在 `Layer` 上，默认是该层中心（见 `anchor`） |
 | `anchor` | 定位点在元素上的哪个位置，九宫格：`center`（默认）、`top`、`bottom`、`left`、`right`、`top-left`、`top-right`、`bottom-left`、`bottom-right` |
 | `opacity` | 0 到 1。嵌套时逐层相乘 |
 | `rotate` | 绕 `origin` 旋转，单位度，顺时针为正。对文字、线条、形状和 Layer 都生效；Layer 上的旋转作用到整棵子树 |
@@ -69,49 +69,48 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 
 | 属性 | 写在哪 |
 | --- | --- |
-| `cx`、`cy`、`anchor` | 只对 `Layer` 的子元素有效。`Row`/`Column` 的子元素写了报 `warn` |
-| `flex`、`flex-grow`、`flex-shrink` | 只对 `Row`/`Column` 的子元素有效。`Layer` 的子元素写了报 `warn` |
-| `opacity`、`rotate`、`scale`、`origin` | 所有元素 |
-| `x1`、`y1`、`x2`、`y2`、`points`、`d` | 所在 `Layer` 的局部坐标 |
+| `cx`、`cy`、`anchor`、`width`、`height`、`opacity`、`rotate`、`scale`、`origin` | `Layer` 的属性。HTML 上写了报 `warn` |
+| `flex`、`gap`、`align-items`、字号、颜色、背景 | HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn` |
+| `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `Layer` 的局部坐标 |
 
 叶子的定位：
 
 | 叶子 | 怎么定位 |
 | --- | --- |
-| 文字，以及没写宽高的 `Layer` | `cx`、`cy` + `anchor`。尺寸要排完才知道，所以需要 `anchor` |
+| 文字，以及没写宽高的一组 HTML | 外包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上 |
 | 形状、带 `draw` 和尺寸的自定义元素 | 中心写法（`cx`、`cy` 永远是中心）或两点写法 `x1 y1 x2 y2`。尺寸是自己写的，不用 `anchor` |
 | 线条 | 端点、`points`、`d` 本身就是坐标，不写 `cx`、`cy` |
 
 没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
 
-`anchor` 示例：`<h1 cx="60" cy="120" anchor="top-left">` 表示标题左上角在 (60, 120)，也就是左对齐排版。
+`anchor` 示例：`<Layer cx="60" cy="120" anchor="top-left"><h1>标题</h1></Layer>` 表示这一层的左上角在 (60, 120)。
 
 ## 4. 容器
 
 ### 4.1 Layer：自由摆放，也可以当分组
 
-子元素用 `cx`、`cy` 在 Layer 的局部坐标里定位，原点是 Layer 的左上角。Layer 可以嵌套。外层的 `opacity`、`rotate`、`scale` 会作用到里面的全部子元素，所以一组要一起移动、旋转或缩放时，包一层 Layer 即可。
+原点是 Layer 的左上角。图形和嵌套 Layer 用 `cx`、`cy` 或自身坐标定位；HTML 不写 `cx`，要单独摆放就再包一层 Layer。Layer 可以嵌套。外层的 `opacity`、`rotate`、`scale` 会作用到里面的全部子元素，所以一组要一起移动、旋转或缩放时，包一层 Layer 即可。
 
 - 写了 `width`、`height`：Layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
 - 没写：宽高等于从原点到内容右下角的距离，没写 `cx`、`cy` 的子元素放在这个盒子的中心。坐标在负方向的子元素会画到盒子外面，但不会把其他子元素一起平移。
 
 `overflow="hidden"` 按 Layer 的盒子裁剪子元素。默认 `visible`。
 
-`style` 支持 `background`、`border`、`border-radius`、`overflow`。
+`background`、`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。
 
-`Row`、`Column` 的规范定位是包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。直接写在 `Row`/`Column` 上也能渲染，报告记一条 `info`。
+一组 HTML 要放到画面上，包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。
 
 ```html
 <Layer cx="120" cy="64" anchor="top-left">
-  <Row style="gap:40px; align-items:center">
+  <div style="display:flex; gap:40px; align-items:center">
     <h2 style="font-size:56px">勾股定理</h2>
-  </Row>
+  </div>
 </Layer>
 ```
 
-### 4.2 Row、Column：flex 排列
+### 4.2 flex：HTML 排布
 
-`Row` 横向排列，`Column` 纵向排列。子元素只能是文字、`Row`、`Column`、`Layer`。
+`display:flex` 把 `div`（以及其他文字标签）变成排布容器，不再当文字盒子。默认横向。竖排写 `flex-direction:column`。子元素是文字、flex 容器或 `Layer`。
 
 图形要放进 flex，包一层写了宽高的 `Layer`，或者改用 `div` 盒子（`width`、`height`、`background`、`border-radius`）。形状直接放进来会照尺寸渲染并报 `info`；线条直接放进来不渲染，报 `warn`。两点坐标写在 flex 里的形状上不渲染，报 `warn`。
 
@@ -131,12 +130,12 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 - 文字默认 `flex-shrink:1`，空间不够时会换行变窄，但不会窄过最长的一个不可断开的词。
 - 形状默认 `flex-shrink:0`，不会被压扁。
 
-**可用宽度**：放在 Layer 里、没写 `width` 的 Row/Column，最宽只能到 Layer 的宽度（根 Layer 要减去左右安全区）。
+**可用宽度**：放在 Layer 里、没写 `width` 的 flex 容器，最宽只能到 Layer 的宽度（根 Layer 要减去左右安全区）。
 
 ## 5. 文字
 
 最外层的文字标签是一个**文字盒子**，里面只能放文字和行内标签（`span`、`strong`、`b`、`em`、`br`）。
-要排列多段文字，请用 `Row`/`Column`，不要在文字盒子里嵌套 `div`、`p`。
+要排列多段文字，请用 `<div style="display:flex; flex-direction:column">`，不要在普通文字盒子里嵌套 `div`、`p`。
 
 ### 5.1 默认样式
 
@@ -212,7 +211,7 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
   "height": 1920,
   "elements": [
     {
-      "path": "fvg/Column[0]/h1[0]",
+      "path": "fvg/Layer[0]/div[0]/h1[0]",
       "id": "title",
       "tag": "h1",
       "box": { "x": 330, "y": 600, "width": 420, "height": 106, "left": 330, "top": 600, "right": 750, "bottom": 706, "centerX": 540, "centerY": 653 },
@@ -223,7 +222,7 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
     }
   ],
   "issues": [
-    { "level": "warn", "code": "invalid-child", "path": "fvg/Row[0]/Line[0]", "message": "线条不能放在 Row/Column 内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
+    { "level": "warn", "code": "invalid-child", "path": "fvg/div[0]/Line[0]", "message": "线条不能放在 flex 容器内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
   ]
 }
 ```
@@ -241,14 +240,14 @@ FVG 用标签描述**一帧画面**。标签是 FVG 的，属性是 CSS 的：�
 | `overflow-canvas` | error | 着墨超出画布 |
 | `outside-safe` | warn | 文字超出安全区 |
 | `text-overflow` | error | 文字超出了写死的宽度或高度 |
-| `flex-overflow` | warn | 子元素超出了写死尺寸的 Row/Column |
+| `flex-overflow` | warn | 子元素超出了写死尺寸的 flex 容器 |
 | `text-overlap` | warn | 两段文字的着墨区域重叠 |
 | `min-font-size` | warn | 字号小于 `画布宽度 / 1080 × 24` |
 | `auto-wrap` | info | 文字超出可用宽度，被自动换行 |
 | `non-canonical` | info | 含义明确，但不是规范写法。照常渲染，`hint` 里是规范写法 |
 | `unknown-tag` | warn | 不认识的标签 |
 | `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
-| `invalid-child` | warn | 非法子元素：线条放进 `Row`/`Column`，或文字盒子里放了 `h1`–`h3`、`p`、`div` |
+| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，或文字盒子里放了 `h1`–`h3`、`p`、`div` |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 

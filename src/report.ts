@@ -105,7 +105,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
         message: '着墨超出画布',
       })
     }
-    if (el.tag === 'h1' || el.tag === 'h2' || el.tag === 'h3' || el.tag === 'p' || el.tag === 'div' || el.tag === 'span') {
+    if (el.lines != null && (el.tag === 'h1' || el.tag === 'h2' || el.tag === 'h3' || el.tag === 'p' || el.tag === 'div' || el.tag === 'span')) {
       if (el.ink.left < doc.safe.left - 1e-3 || el.ink.right > doc.width - doc.safe.right + 1e-3) {
         issues.push({
           level: 'warn',

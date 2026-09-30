@@ -46,8 +46,8 @@ function chip(content: string, color: string, size: number) {
 
 function equation(parts: EquationPart[], size: number, gap: number, opacity = 1) {
   return h(
-    'Row',
-    { opacity: n(opacity), style: `gap:${gap}px; align-items:center` },
+    'div',
+    { style: `display:flex; gap:${gap}px; align-items:center; opacity:${n(opacity)}` },
     ...parts.map((part) =>
       typeof part === 'string'
         ? h('p', { style: `font-size:${size}px; color:${INK}` }, part)
@@ -58,9 +58,9 @@ function equation(parts: EquationPart[], size: number, gap: number, opacity = 1)
 
 function label(content: string, color: string, at: Pt, anchor: string, opacity: number, size = 48) {
   return h(
-    'p',
-    { cx: n(at[0]), cy: n(at[1]), anchor, opacity: n(opacity), style: `font-size:${size}px; color:${color}` },
-    content,
+    'Layer',
+    { cx: n(at[0]), cy: n(at[1]), anchor, opacity: n(opacity) },
+    h('p', { style: `font-size:${size}px; color:${color}` }, content),
   )
 }
 
@@ -104,10 +104,10 @@ function intro(frame: number) {
     'Layer',
     { cx: '960', cy: n(540 + (1 - rise) * 40), anchor: 'center', opacity: n(opacity) },
     h(
-    'Column',
-    { style: 'gap:36px; align-items:center' },
-    h('h1', { opacity: n(ramp(frame, 0, 18)), style: `font-size:150px; color:${INK}` }, '勾股定理'),
-    h('p', { opacity: n(ramp(frame, 14, 32)), style: `font-size:52px; color:${MUTED}` }, '直角三角形三条边之间的关系'),
+    'div',
+    { style: 'display:flex; flex-direction:column; gap:36px; align-items:center' },
+    h('h1', { style: `font-size:150px; color:${INK}; opacity:${n(ramp(frame, 0, 18))}` }, '勾股定理'),
+    h('p', { style: `font-size:52px; color:${MUTED}; opacity:${n(ramp(frame, 14, 32))}` }, '直角三角形三条边之间的关系'),
     equation([['a²', A], '+', ['b²', B], '=', ['c²', C]], 72, 20, ramp(frame, 28, 46)),
     ),
   )
@@ -129,12 +129,12 @@ function header(frame: number) {
     'Layer',
     { cx: '120', cy: '64', anchor: 'top-left', opacity: n(opacity) },
     h(
-    'Row',
-    { style: 'gap:40px; align-items:center' },
+    'div',
+    { style: 'display:flex; gap:40px; align-items:center' },
     h('h2', { style: `font-size:56px; color:${INK}` }, '勾股定理'),
     h(
-      'Row',
-      { style: 'gap:14px; align-items:center' },
+      'div',
+      { style: 'display:flex; gap:14px; align-items:center' },
       ...STEPS.map((step, i) =>
         h(
           'div',
@@ -173,12 +173,12 @@ function caption(frame: number) {
     'Layer',
     { cx: '120', cy: '260', anchor: 'top-left', opacity: n(opacity) },
     h(
-    'Column',
-    { style: 'gap:28px; align-items:start' },
+    'div',
+    { style: 'display:flex; flex-direction:column; gap:28px; align-items:start' },
     h('p', { style: `font-size:44px; color:${C}` }, c.step),
     h(
-      'Column',
-      { style: 'gap:12px; align-items:start' },
+      'div',
+      { style: 'display:flex; flex-direction:column; gap:12px; align-items:start' },
       ...c.body.map((line) => h('p', { style: `font-size:56px; color:${INK}; white-space:nowrap` }, line)),
     ),
     c.equation ? equation(c.equation, 56, 16) : null,
@@ -251,15 +251,18 @@ function dot(at: Pt, scale: number) {
 function areaTag(content: string, color: string, at: Pt, frame: number, from: number) {
   const opacity = ramp(frame, from, from + 15)
   return h(
-    'div',
+    'Layer',
     {
       cx: n(at[0]),
       cy: n(at[1] + (1 - opacity) * 18),
       anchor: 'center',
       opacity: n(opacity),
-      style: `padding:2px 12px; border-radius:12px; background:rgba(14,18,25,0.85); color:${color}; font-size:44px`,
     },
-    content,
+    h(
+      'div',
+      { style: `padding:2px 12px; border-radius:12px; background:rgba(14,18,25,0.85); color:${color}; font-size:44px` },
+      content,
+    ),
   )
 }
 
@@ -450,8 +453,8 @@ function outro(frame: number) {
     'Layer',
     { cx: '960', cy: n(580 + (1 - opacity) * 30), anchor: 'center', opacity: n(opacity) },
     h(
-    'Column',
-    { style: 'gap:44px; align-items:center' },
+    'div',
+    { style: 'display:flex; flex-direction:column; gap:44px; align-items:center' },
     h('p', { style: `font-size:56px; color:${MUTED}` }, '空出的面积相等，所以'),
     equation([['a²', A], '+', ['b²', B], '=', ['c²', C]], 110, 28),
     h('p', { style: `font-size:52px; color:${INK}` }, '3² + 4² = 5²，也就是 9 + 16 = 25'),
@@ -469,13 +472,13 @@ export const pythagoras: Composition = {
     h(
       'fvg',
       { width: String(W), height: String(H), background: BG, color: INK },
-      h('Dots', { cx: String(W / 2), cy: String(H / 2), style: `width:${W}px; height:${H}px`, draw: drawDots }),
+      h('Dots', { cx: String(W / 2), cy: String(H / 2), width: String(W), height: String(H), draw: drawDots }),
       intro(frame),
       header(frame),
       caption(frame),
       h('Layer', { cx: '1360', cy: '600', width: '1000', height: '800' }, figure(frame), proof(frame)),
       outro(frame),
-      h('Progress', { cx: String(W / 2), cy: '1036', style: 'width:1680px; height:6px', draw: drawProgress }),
+      h('Progress', { cx: String(W / 2), cy: '1036', width: '1680', height: '6', draw: drawProgress }),
     ),
 }
 
