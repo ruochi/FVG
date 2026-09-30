@@ -19,6 +19,7 @@ npm run build
 
 ```bash
 npx tsx src/cli.ts render examples/hello.layer -o hello.png --report hello.json
+npx tsx src/cli.ts render examples/draw-layer.layer -o draw-layer.png   # Layer + <draw>
 npx tsx src/cli.ts render examples/hello.layer --debug --scale 0.5
 npx tsx src/cli.ts check examples/hello.layer
 ```
@@ -39,7 +40,20 @@ import { renderFvg } from '@dc/flexlayer'
 const { png, report } = await renderFvg(source, { scale: 0.5 })
 ```
 
-用 `h()` 或 JSX 构建节点时，可给任意元素挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
+嵌套 `Layer` **不填背景**（只合成子元素）。色块用 `Rect` / HTML，或 `.layer` 里的 `<draw>` / 程序侧 `draw={fn}`：
+
+```html
+<Layer width="400" height="300" background="#0f1115">
+  <Layer width="160" height="80" cx="200" cy="150">
+    <draw>
+      ctx.fillStyle = '#3ecfc4'
+      ctx.fillRect(0, 0, el.w, el.h)
+    </draw>
+  </Layer>
+</Layer>
+```
+
+用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
 
 ```ts
 import { h, renderFvg } from '@dc/flexlayer'

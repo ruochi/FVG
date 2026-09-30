@@ -12,14 +12,15 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  �
 
 | 写什么 | 放哪里 |
 | --- | --- |
-| 根 `<Layer>` 的 `width`、`height`、`background`、`color`、`safe` | 根元素**属性** |
+| 根 `<Layer>` 的 `width`、`height`、`background`（画布底色）、`color`、`safe` | 根元素**属性** |
 | `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
+| 嵌套 Layer 的色块 | `<Rect fill>`、HTML `background`，或子标签 **`<draw>`**（正文 JS：`ctx`、`el`） |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
 | 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
 | 可复用块 | **PascalCase 组件名**，展开后只剩 Flex Layer 标签 |
 
-根与定位容器都是大写 `<Layer>`；图形首字母大写。文字和 `div`、`symbol`、`use` 小写。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
+根与定位容器都是大写 `<Layer>`；图形首字母大写。文字和 `div`、`symbol`、`use`、`draw` 小写。**嵌套 `Layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
 
 生成完成后交给现有渲染器：
 
@@ -95,6 +96,7 @@ const source = renderVueFvg({
 - 未注册的标签按模板里的大小写输出。`Circle`、`Layer` 不用注册。
 - `Caption` 这种组件名在 `components` 里注册，展开后文件里不留这个名字。
 - 动态坐标用 `:cx="表达式"`。半径写 `:r="s.r"`，不要放进 `style`。
+- 自定义绘制抄 [`generate/vue/draw-example.ts`](generate/vue/draw-example.ts)：嵌套 Layer 里放 `<draw>`，不要给嵌套 Layer 写 `background`。
 
 ---
 
@@ -150,9 +152,10 @@ const source = renderReactFvg(
 
 要点：
 
-- `div`、`h1` 小写，不用 import。根与定位都用 `Layer`；`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
+- `div`、`h1`、`draw` 小写，不用 import。根与定位都用 `Layer`；`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
 - 循环用 `array.map`；条件用 `{show && <Circle ... />}`。
 - 大写函数组件会展开，并且必须返回**单个** Flex Layer 元素。
+- 自定义绘制抄 [`generate/react/draw-example.tsx`](generate/react/draw-example.tsx)：`<draw>{code}</draw>`，正文里的 `<` 会原样写进 `.layer`。
 
 实现说明：当前用 **React 元素树递归展开**（依赖 `react`）。若要用 `react-reconciler` 挂完整宿主，输出格式与这里相同。
 

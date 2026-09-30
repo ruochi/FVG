@@ -7,6 +7,7 @@ import {
   Justify,
   type Node as YogaNode,
 } from 'yoga-layout/load'
+import { attachDrawTags } from './draw-tag.js'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
 import { ensureBuiltinFonts, registerFontsFromDocument } from './fonts.js'
@@ -291,7 +292,7 @@ function readAttrAppearance(attrs: Record<string, string>) {
     padding: ZERO_EDGES,
     border: parseBorder(attrs.border),
     borderRadius: parsePx(attrs['border-radius']) ?? 0,
-    background: attrs.background,
+    background: attrs.background as string | undefined,
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
@@ -752,7 +753,7 @@ type FlexMeasure = {
 }
 
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
-  if (node.tag === 'symbol') return null
+  if (node.tag === 'symbol' || node.tag === 'draw') return null
   ctx.issues.push(...checkChildAttrs(node, 'flex', ctx.pathPrefix))
   if (node.tag === 'use') {
     const used = await layoutUse(node, ctx)
@@ -1023,20 +1024,23 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
     { ...ctx, useStack: [...ctx.useStack, id] },
   )
   const appearance = readAttrAppearance(node.attrs)
+  // use 与 Layer 一样不填背景；色块用 Rect / HTML / <draw>
+  appearance.background = undefined
   return {
     ...laid,
     tag: 'use',
     id: node.attrs.id,
     path: ctx.pathPrefix,
     ...appearance,
-    ...readEffects(node.attrs, ctx, solidPaint(appearance.background, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const appearance = readAttrAppearance(node.attrs)
-  if (appearance.background) appearance.background = readPaint(appearance.background, 'transparent', ctx, 'background')
+  // 根节点的 background 是画布底色，由 paintDocument 绘制。Layer 自身不填色。
+  appearance.background = undefined
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
 
@@ -1052,7 +1056,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
 
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
-    if (ch.tag === 'symbol') continue
+    if (ch.tag === 'symbol' || ch.tag === 'draw') continue
     const path = nodePath(ctx.pathPrefix, ch.tag, i)
     ctx.issues.push(...checkChildAttrs(ch, 'layer', path))
     const subCtx = { ...ctx, pathPrefix: path }
@@ -1142,7 +1146,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ...appearance,
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
-    ...readEffects(node.attrs, ctx, solidPaint(appearance.background ?? appearance.border?.color, ctx.color)),
+    ...readEffects(node.attrs, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -1216,9 +1220,18 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       code: 'invalid-attr',
       path: 'Layer',
       message: 'Layer 和图形不使用 style',
-      hint: '把 width、background、opacity 写成属性',
+      hint: '把 width、opacity 写成属性。色块用 Rect / HTML / <draw>',
     })
   }
+  // 根必须是 Layer；旧写法 <fvg> 归一成 Layer
+  const rootForLayout = {
+    ...rootNode,
+    tag: rootNode.tag.toLowerCase() === 'fvg' ? 'Layer' : rootNode.tag,
+  }
+  if (rootForLayout.tag !== 'Layer') {
+    throw new Error(`Flex Layer 根元素必须是 <Layer>，收到 <${rootNode.tag}>`)
+  }
+  attachDrawTags(rootForLayout, issues, 'Layer')
   const paintCtx: LayoutContext = {
     color,
     fontFamily,
@@ -1230,16 +1243,6 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   }
   const hadBackground = attrs.background != null && attrs.background.trim() !== ''
   const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'
-  const rootAttrs = hadBackground ? { ...attrs, background } : attrs
-  // 根必须是 Layer；旧写法 <fvg> 归一成 Layer
-  const rootForLayout = {
-    ...rootNode,
-    tag: rootNode.tag.toLowerCase() === 'fvg' ? 'Layer' : rootNode.tag,
-    attrs: rootAttrs,
-  }
-  if (rootForLayout.tag !== 'Layer') {
-    throw new Error(`Flex Layer 根元素必须是 <Layer>，收到 <${rootNode.tag}>`)
-  }
   const root = await layoutLayer(rootForLayout, paintCtx)
 
   root.width = width

@@ -158,6 +158,20 @@ function serializeElement(el: FvgHostElement, indent: number): string {
   const pad = '  '.repeat(indent)
   const tag = el.tag
   const attrs = formatAttrs(el)
+  // <draw> 正文是 JS，必须原样写出（含 <），不能做 HTML 转义
+  if (tag === 'draw') {
+    const body = el.children
+      .map((child) => (child.kind === 'text' ? child.text : ''))
+      .join('')
+    if (!body.trim()) return `${pad}<draw${attrs} />`
+    const indented = body
+      .replace(/^\n/, '')
+      .replace(/\n$/, '')
+      .split('\n')
+      .map((line) => (line.trim() ? `${pad}  ${line.replace(/^\s+/, '')}` : ''))
+      .join('\n')
+    return `${pad}<draw${attrs}>\n${indented}\n${pad}</draw>`
+  }
   const meaningful = el.children.filter((child) => child.kind !== 'text' || child.text.trim() !== '')
   const elements = meaningful.filter((child): child is FvgHostElement => child.kind === 'el')
   if (elements.length === 0) {

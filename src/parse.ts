@@ -87,9 +87,22 @@ export function parseFvg(source: string): FvgNode[] {
       pos = lt + 1
       continue
     }
-    const node: FvgNode = { tag: open[1], attrs: parseAttrs(open[2] ?? ''), children: [] }
+    const tag = open[1]
+    const attrs = parseAttrs(open[2] ?? '')
+    // <draw> 正文是原始 JS，里面的 < 不要当标签解析
+    if (tag === 'draw' && !open[3]) {
+      const bodyStart = lt + open[0].length
+      const closeToken = '</draw>'
+      const closeAt = src.indexOf(closeToken, bodyStart)
+      const body = closeAt === -1 ? src.slice(bodyStart) : src.slice(bodyStart, closeAt)
+      const node: FvgNode = { tag, attrs, children: body ? [body] : [] }
+      stack[stack.length - 1].children.push(node)
+      pos = closeAt === -1 ? src.length : closeAt + closeToken.length
+      continue
+    }
+    const node: FvgNode = { tag, attrs, children: [] }
     stack[stack.length - 1].children.push(node)
-    if (!open[3] && !VOID_TAGS.has(open[1])) stack.push(node)
+    if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
     pos = lt + open[0].length
   }
 
