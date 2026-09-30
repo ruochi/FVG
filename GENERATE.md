@@ -15,6 +15,7 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  �
 | 根 `<Layer>` 的 `width`、`height`、`background`（画布底色）、`color`、`safe` | 根元素**属性** |
 | `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
+| 图片 | `<img src="…" alt="…">`，宽高和 `object-fit` 写 **`style`**。`image` 同样可用 |
 | 嵌套 Layer 的色块 | `<Rect fill>`、HTML `background`，或子标签 **`<draw>`**（正文 JS：`ctx`、`el`） |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
 | 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |

@@ -4,6 +4,13 @@ export const SHAPE_TAGS = new Set(['Rect', 'Circle', 'Ellipse'])
 export const LINE_TAGS = new Set(['Line', 'Arrow', 'Polyline', 'Polygon', 'Path', 'Curve'])
 export const FONT_TAG = 'font'
 
+/** HTML 图片。`image` 与 `img` 是同一个标签。 */
+const IMAGE_TAGS = new Set(['img', 'image'])
+
+export function isImageTag(tag: string): boolean {
+  return IMAGE_TAGS.has(tag.toLowerCase())
+}
+
 export function isRootTag(tag: string): boolean {
   return ROOT_TAGS.has(tag)
 }

@@ -2,7 +2,7 @@ import type { FvgNode } from './parse.js'
 import { parseStyle } from './style.js'
 import { isTextBoxTag } from './text.js'
 import type { Issue, IssueLevel } from './types.js'
-import { isLineTag, isShapeTag } from './tags.js'
+import { isImageTag, isLineTag, isShapeTag } from './tags.js'
 
 const BLOCK_IN_TEXT = new Set(['h1', 'h2', 'h3', 'p', 'div'])
 
@@ -38,6 +38,8 @@ const HTML_STYLE_ATTRS = [
   'filter',
   'blend',
   'writing-mode',
+  'object-fit',
+  'object-position',
 ]
 
 function flagged(level: IssueLevel, code: string, path: string, message: string, hint: string): Issue {
@@ -66,6 +68,11 @@ function hasStyle(attrs: Record<string, string>): boolean {
   return present(attrs, 'style') && attrs.style.trim() !== ''
 }
 
+/** 文字和图片都按 HTML：视觉属性进 style，不写 cx。 */
+export function isHtmlTag(tag: string): boolean {
+  return isTextBoxTag(tag) || isImageTag(tag)
+}
+
 function usesAttributes(node: FvgNode): boolean {
   return (
     node.tag === 'Layer' ||
@@ -82,7 +89,7 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
   const out: Issue[] = []
   const attrs = node.attrs
   const positioned = present(attrs, 'cx') || present(attrs, 'cy') || present(attrs, 'anchor')
-  const html = isTextBoxTag(node.tag)
+  const html = isHtmlTag(node.tag)
 
   if (html) {
     if (positioned) {
@@ -284,6 +291,18 @@ export function checkTextBoxChildren(node: FvgNode, path: string): Issue[] {
   for (const child of node.children) {
     if (typeof child === 'string') continue
     const tag = child.tag.toLowerCase()
+    if (isImageTag(tag)) {
+      out.push(
+        flagged(
+          'warn',
+          'invalid-child',
+          path,
+          '文字盒子里不能放图片',
+          '改成 <div style="display:flex">，把 <img src="…"> 放进去',
+        ),
+      )
+      continue
+    }
     if (!BLOCK_IN_TEXT.has(tag)) continue
     out.push(
       flagged(

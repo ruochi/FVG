@@ -1,6 +1,8 @@
 /** HTML 用 style，Layer 和图形用属性。标签大小写原样保留。 */
 
-const HTML_TAGS = new Set(['div', 'h1', 'h2', 'h3', 'p', 'span', 'strong', 'b', 'em', 'br'])
+const HTML_TAGS = new Set(['div', 'h1', 'h2', 'h3', 'p', 'span', 'strong', 'b', 'em', 'br', 'img', 'image'])
+/** 图片仍是 HTML，但 src / alt 不是 CSS，留在属性上。 */
+const IMAGE_ATTRS = new Set(['src', 'alt'])
 
 const ATTR_ORDER = [
   'id',
@@ -73,6 +75,11 @@ function isHtmlTag(tag: string): boolean {
   return HTML_TAGS.has(tag.toLowerCase())
 }
 
+function isImageTag(tag: string): boolean {
+  const name = tag.toLowerCase()
+  return name === 'img' || name === 'image'
+}
+
 function parseStyleText(text: string): Record<string, string> {
   const out: Record<string, string> = {}
   for (const decl of text.split(';')) {
@@ -134,7 +141,7 @@ function formatAttrs(el: FvgHostElement): string {
       continue
     }
     const key = kebab(rawKey)
-    if (html && key !== 'id') style[key] = String(value)
+    if (html && key !== 'id' && !(isImageTag(el.tag) && IMAGE_ATTRS.has(key))) style[key] = String(value)
     else putAttr(key, String(value))
   }
   const parts: string[] = []
