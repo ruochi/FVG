@@ -18,4 +18,20 @@ describe('parseFvg', () => {
   it('decodeEntities', () => {
     expect(decodeEntities('&times;')).toBe('×')
   })
+
+  it('<draw> 正文按原文保留，含 < 比较符', () => {
+    const nodes = parseFvg(`<Layer width="10" height="10">
+      <draw>
+        if (el.w < 100) ctx.fillRect(0, 0, el.w, el.h)
+      </draw>
+    </Layer>`)
+    const layer = nodes[0]!
+    const draw = layer.children.find((c) => typeof c !== 'string' && c.tag === 'draw') as {
+      tag: string
+      children: string[]
+    }
+    expect(draw?.tag).toBe('draw')
+    expect(draw.children.join('')).toContain('el.w < 100')
+    expect(draw.children.join('')).not.toContain('<100')
+  })
 })

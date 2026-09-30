@@ -27,7 +27,8 @@
 | --- | --- |
 | 文字 | 字形（若有 `background` 则加上背景块） |
 | 形状 / 线 | 填充与描边几何 |
-| Layer / flex | 自身的 `background` / `border`（子元素各自算） |
+| Layer | 自身 `border` / `<draw>` 着墨（**无** `background`；子元素各自算） |
+| flex | 自身的 `background` / `border`（子元素各自算） |
 | `blur` / `filter` / `blend` | 该节点已绘制像素（含子树合成） |
 
 因此文字 `shadow` 是字形投影，不会落成一块矩形雾斑。

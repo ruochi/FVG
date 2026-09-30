@@ -6,7 +6,8 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 | 标签 | 做什么 |
 | --- | --- |
-| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background` `color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套 |
+| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景** |
+| `draw` | 子标签。正文是 JS（`ctx`、`el`），画在父元素内容之后。程序侧也可用 `draw={fn}` |
 | `div` 写 `display:flex` | 排布。默认横向；竖排加 `flex-direction:column`。`gap` `align-items` `justify-content` `padding` `flex` 都在 `style` 里 |
 
 要定位一组 HTML，包一层 `Layer`，把 `cx` `cy` `anchor` 写在 `Layer` 上。
@@ -30,7 +31,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 ## 属性归属
 
-HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。`Layer` 和图形把这些写成属性。不认识的属性会保留给 `draw`。
+HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。图形的填充写成 `fill`。`Layer` 不填背景：色块用 `Rect`、`div`，或 `<draw>`。不认识的属性会保留给 `draw`。
 
 ## 报告
 

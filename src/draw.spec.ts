@@ -207,4 +207,51 @@ describe('draw(ctx, el)', () => {
     expect(report.height).toBe(1920)
     expect(report.elements.length).toBeGreaterThan(0)
   })
+
+  it('.layer 里的 <draw> 在子元素之后着色', async () => {
+    const { png, report } = await renderFvg(
+      `<Layer width="80" height="40" background="#000000">
+        <Rect width="10" height="10" cx="70" cy="20" fill="#00ff00" />
+        <draw>
+          ctx.fillStyle = '#ff0000'
+          ctx.fillRect(0, 0, 4, 4)
+        </draw>
+      </Layer>`,
+    )
+    expect(report.issues.some((i) => i.code === 'invalid-draw')).toBe(false)
+    const corner = await pixelAt(png, 1, 1)
+    expect(corner[0]).toBeGreaterThan(200)
+    expect(corner[1]).toBeLessThan(40)
+    const child = await pixelAt(png, 70, 20)
+    expect(child[1]).toBeGreaterThan(200)
+  })
+
+  it('嵌套 Layer 用 <draw> 填色，不用 background', async () => {
+    const { png, report } = await renderFvg(
+      `<Layer width="60" height="40" background="#0000ff">
+        <Layer width="30" height="30" cx="15" cy="20">
+          <draw>
+            ctx.fillStyle = '#ff0000'
+            ctx.fillRect(0, 0, el.w, el.h)
+          </draw>
+        </Layer>
+      </Layer>`,
+    )
+    expect(report.issues.some((i) => i.message.includes('background'))).toBe(false)
+    const red = await pixelAt(png, 15, 20)
+    expect(red[0]).toBeGreaterThan(200)
+    expect(red[2]).toBeLessThan(40)
+    const blue = await pixelAt(png, 50, 20)
+    expect(blue[2]).toBeGreaterThan(200)
+    expect(blue[0]).toBeLessThan(40)
+  })
+
+  it('<draw> 语法错误报 invalid-draw', async () => {
+    const { report } = await renderFvg(
+      `<Layer width="40" height="40" background="#000">
+        <draw>ctx.fillStyle = </draw>
+      </Layer>`,
+    )
+    expect(report.issues.some((i) => i.code === 'invalid-draw' && i.level === 'error')).toBe(true)
+  })
 })

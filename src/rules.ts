@@ -225,6 +225,18 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
     }
   }
 
+  if ((node.tag === 'Layer' || node.tag === 'use') && present(attrs, 'background')) {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        'Layer 不使用 background',
+        '色块用 <Rect fill="...">、HTML 的 style="background:..."，或 <draw> 自己画。画布底色只写在根 <Layer background>',
+      ),
+    )
+  }
+
   if (usesAttributes(node) && hasStyle(attrs)) {
     out.push(
       flagged(
@@ -232,7 +244,7 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         'invalid-attr',
         path,
         'Layer 和图形不使用 style',
-        '把 width、background、opacity 写成属性',
+        '把 width、opacity 写成属性。色块用 Rect / HTML / <draw>',
       ),
     )
   }
