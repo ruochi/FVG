@@ -2,14 +2,14 @@ import React, { Fragment, isValidElement, type ReactElement, type ReactNode } fr
 import {
   createHostElement,
   createHostText,
-  serializeFvgDocument,
-  type FvgHostChild,
-  type FvgHostElement,
+  serializeFlexLayerDocument,
+  type FlexLayerHostChild,
+  type FlexLayerHostElement,
 } from '../serialize.js'
 
 const SKIP = new Set(['key', 'ref', 'children'])
 
-function applyProps(el: FvgHostElement, props: Record<string, unknown>): void {
+function applyProps(el: FlexLayerHostElement, props: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(props)) {
     if (SKIP.has(key) || key.startsWith('on')) continue
     if (value == null || value === false) continue
@@ -17,7 +17,7 @@ function applyProps(el: FvgHostElement, props: Record<string, unknown>): void {
   }
 }
 
-function renderChildren(children: ReactNode): FvgHostChild[] {
+function renderChildren(children: ReactNode): FlexLayerHostChild[] {
   if (children == null || children === false) return []
   if (typeof children === 'string' || typeof children === 'number') return [createHostText(String(children))]
   if (Array.isArray(children)) return children.flatMap((child) => renderChildren(child))
@@ -26,7 +26,7 @@ function renderChildren(children: ReactNode): FvgHostChild[] {
   return [node]
 }
 
-function renderElement(el: ReactElement): FvgHostElement {
+function renderElement(el: ReactElement): FlexLayerHostElement {
   const { type, props } = el
   if (type === Fragment) {
     const kids = renderChildren(props.children)
@@ -52,9 +52,9 @@ function renderElement(el: ReactElement): FvgHostElement {
  * React JSX → Flex Layer 文本。
  * 小写标签为 Flex Layer 元素；大写函数组件会展开。内部用 React 元素树展开（与 reconciler 宿主输出相同结构）。
  */
-export function renderReactFvg(element: ReactElement): string {
+export function renderReactFlexLayer(element: ReactElement): string {
   const root = renderElement(element)
-  return serializeFvgDocument(root)
+  return serializeFlexLayerDocument(root)
 }
 
 export { Fragment, isValidElement, type ReactElement, type ReactNode }

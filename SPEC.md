@@ -1,9 +1,9 @@
 # Flex Layer 规范 v0.1
 
-Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
+本文是 AI agent 写画面时要遵守的合同。Flex Layer 用标签描述**一帧画面**，渲染器输出 PNG 和布局报告。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
 动画 = 程序为每个时刻生成一份 Flex Layer（v0.2 起）。
 
-设计原则：
+下面六条让 agent 能改、能查、能复现：
 
 1. **一律实际像素**：所有数字都是像素，可以写 `px` 后缀，不支持百分比、em、rem。
 2. **位置由 Layer 决定**：`Layer` 负责定位，`display:flex` 的 HTML 负责排布。图形用自身坐标画在 Layer 里。
@@ -381,7 +381,7 @@ flexlayer check scene.layer                                      # 只输出检�
 未知标签若同时带有 `draw` 以及 `width` 与 `height`（属性或 `style`），会当作自定义盒子参与布局，不再报 `unknown-tag`；缺少尺寸时仍警告并跳过。
 
 ```ts
-import { h, renderFvg } from '@dc/flexlayer'
+import { h, renderFlexLayer } from '@dc/flexlayer'
 
 const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
   h('h1', {
@@ -398,14 +398,14 @@ const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', 
   }, '比特币减半'),
 )
 
-await renderFvg(root)
+await renderFlexLayer(root)
 ```
 
 JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-runtime`。
 
 ## 11. 帧序列
 
-动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFvg` 不传 `t` 时，`el.t` 为 `0`。
+动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFlexLayer` 不传 `t` 时，`el.t` 为 `0`。
 
 ```ts
 import { h, renderComposition, type Composition } from '@dc/flexlayer'
@@ -425,7 +425,7 @@ const scene: Composition = {
 const { frames, contactSheet } = await renderComposition(scene)
 ```
 
-`renderComposition` 对 `frame = 0 .. durationInFrames - 1` 调用 `component({ frame, fps, t: frame / fps })`，再 `renderFvg(node, { t })`。`fps` 必须大于 0，`durationInFrames` 为不小于 1 的整数。返回每一帧的 PNG 和布局报告（`frames`、`reports`），以及一张白色底的联系表：列数约为帧数的平方根，单元格按比例缩小、不放大，最长边不超过 480px，整张宽度不超过 3840px。
+`renderComposition` 对 `frame = 0 .. durationInFrames - 1` 调用 `component({ frame, fps, t: frame / fps })`，再 `renderFlexLayer(node, { t })`。`fps` 必须大于 0，`durationInFrames` 为不小于 1 的整数。返回每一帧的 PNG 和布局报告（`frames`、`reports`），以及一张白色底的联系表：列数约为帧数的平方根，单元格按比例缩小、不放大，最长边不超过 480px，整张宽度不超过 3840px。
 
 随时间变化的位置、尺寸和文字写在 `component` 里，布局每一帧重新计算。`draw` 里用 `el.t` 读取同一个秒数。
 

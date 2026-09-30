@@ -1,5 +1,5 @@
-/** 文档根与定位容器都是 Layer；仍接受旧根标签 fvg / FVG。 */
-export const ROOT_TAGS = new Set(['Layer', 'fvg', 'FVG'])
+/** 文档根与定位容器都是 Layer。 */
+export const ROOT_TAGS = new Set(['Layer'])
 export const SHAPE_TAGS = new Set(['Rect', 'Circle', 'Ellipse'])
 export const LINE_TAGS = new Set(['Line', 'Arrow', 'Polyline', 'Polygon', 'Path', 'Curve'])
 export const FONT_TAG = 'font'
@@ -14,9 +14,4 @@ export function isLineTag(tag: string): boolean {
 
 export function isShapeTag(tag: string): boolean {
   return SHAPE_TAGS.has(tag)
-}
-
-/** 旧根标签 fvg 归一成 Layer */
-export function normalizeRootTag(tag: string): string {
-  return tag.toLowerCase() === 'fvg' ? 'Layer' : tag
 }

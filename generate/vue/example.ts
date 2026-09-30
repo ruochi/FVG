@@ -8,7 +8,7 @@
  * - PascalCase 组件名在 components 里注册，展开后不留组件名
  * - 自定义绘制见 generate/vue/draw-example.ts
  */
-import { renderVueFvg } from './renderVueFvg.js'
+import { renderVueFlexLayer } from './renderVueFlexLayer.js'
 
 export const starsExampleBindings = {
   title: '霜降',
@@ -19,7 +19,7 @@ export const starsExampleBindings = {
 }
 
 export function renderStarsPosterVue(): string {
-  return renderVueFvg({
+  return renderVueFlexLayer({
     template: `
 <Layer width="320" height="200" background="#1a1220">
   <Circle

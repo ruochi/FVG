@@ -1,4 +1,4 @@
-import type { FvgChild, FvgNode } from './parse.js'
+import type { FlexLayerChild, FlexLayerNode } from './parse.js'
 import { buildFontString } from './fonts.js'
 import { getMeasureCtx } from './measureCtx.js'
 import { parseFontWeight, parsePx } from './style.js'
@@ -84,7 +84,7 @@ function collapseWhitespace(text: string): string {
 }
 
 function walkInline(
-  nodes: FvgChild[],
+  nodes: FlexLayerChild[],
   style: TextRunStyle,
   out: TextSegment[],
   hardBreakNext: boolean,
@@ -112,7 +112,7 @@ function walkInline(
   }
 }
 
-export function extractTextSegments(node: FvgNode, defaults: TextBoxDefaults): TextSegment[] {
+export function extractTextSegments(node: FlexLayerNode, defaults: TextBoxDefaults): TextSegment[] {
   const base: TextRunStyle = {
     fontFamily: defaults.fontFamily,
     fontSize: defaults.fontSize,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { renderReactFvg } from './renderReactFvg.js'
+import { renderReactFlexLayer } from './renderReactFlexLayer.js'
 import { Circle, Layer } from './tags.js'
 
 /**
@@ -42,5 +42,5 @@ export function StarsPosterReact(props: typeof starsExample) {
 }
 
 export function renderStarsPosterReact(): string {
-  return renderReactFvg(<StarsPosterReact {...starsExample} />)
+  return renderReactFlexLayer(<StarsPosterReact {...starsExample} />)
 }

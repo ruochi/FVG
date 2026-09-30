@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { h } from './h.js'
 import { initFontsForMeasure } from './fonts.js'
 import { interpolate, renderComposition, sequence, spring, type Composition } from './frame.js'
-import { renderFvg } from './render.js'
+import { renderFlexLayer } from './render.js'
 
 beforeAll(async () => {
   for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
@@ -53,8 +53,8 @@ describe('el.t', () => {
         },
       }),
     )
-    await renderFvg(root)
-    await renderFvg(root, { t: 1.5 })
+    await renderFlexLayer(root)
+    await renderFlexLayer(root, { t: 1.5 })
     expect(seen).toEqual([0, 1.5])
   })
 })

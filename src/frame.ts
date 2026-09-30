@@ -1,7 +1,7 @@
 import { createCanvas, loadImage } from '@napi-rs/canvas'
-import type { FvgNode } from './parse.js'
-import { renderFvg } from './render.js'
-import type { FvgReport, RenderOptions } from './types.js'
+import type { FlexLayerNode } from './parse.js'
+import { renderFlexLayer } from './render.js'
+import type { FlexLayerReport, RenderOptions } from './types.js'
 
 export type FrameInput = {
   frame: number
@@ -15,14 +15,14 @@ export type Composition = {
   height: number
   fps: number
   durationInFrames: number
-  component: (input: FrameInput) => FvgNode
+  component: (input: FrameInput) => FlexLayerNode
 }
 
 export type RenderCompositionOptions = Pick<RenderOptions, 'scale' | 'baseDir' | 'fontsCacheDir'>
 
 export type RenderCompositionResult = {
   frames: Buffer[]
-  reports: FvgReport[]
+  reports: FlexLayerReport[]
   contactSheet: Buffer
 }
 
@@ -144,12 +144,12 @@ export async function renderComposition(
     throw new Error('durationInFrames 至少为 1')
   }
   const frames: Buffer[] = []
-  const reports: FvgReport[] = []
+  const reports: FlexLayerReport[] = []
   for (let frame = 0; frame < comp.durationInFrames; frame++) {
     const t = frame / comp.fps
     const input: FrameInput = { frame, fps: comp.fps, t }
     const node = comp.component(input)
-    const { png, report } = await renderFvg(node, {
+    const { png, report } = await renderFlexLayer(node, {
       t,
       scale: options.scale,
       baseDir: options.baseDir,

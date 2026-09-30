@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { initFontsForMeasure } from './fonts.js'
-import { renderFvg } from './render.js'
+import { renderFlexLayer } from './render.js'
 
 const pkgDir = join(fileURLToPath(import.meta.url), '..', '..')
 const helloPath = join(pkgDir, 'examples', 'hello.layer')
@@ -18,7 +18,7 @@ beforeAll(async () => {
 describe('render hello.layer', () => {
   it('生成 PNG', async () => {
     const source = await readFile(helloPath, 'utf8')
-    const { png, report } = await renderFvg(source, {
+    const { png, report } = await renderFlexLayer(source, {
       baseDir: join(pkgDir, 'examples'),
       fontsCacheDir: join(homedir(), '.cache', 'flexlayer', 'fonts'),
     })

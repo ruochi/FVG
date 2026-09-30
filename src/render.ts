@@ -1,16 +1,16 @@
 import { layoutSource } from './layout.js'
 import { paintDocument } from './paint.js'
 import { buildReport } from './report.js'
-import type { FvgReport, RenderOptions } from './types.js'
+import type { FlexLayerReport, RenderOptions } from './types.js'
 import { initFontsForMeasure, setFontsCacheDir } from './fonts.js'
-import type { FvgNode } from './parse.js'
+import type { FlexLayerNode } from './parse.js'
 
 export type RenderResult = {
   png: Buffer
-  report: FvgReport
+  report: FlexLayerReport
 }
 
-export async function renderFvg(source: string | FvgNode, options: RenderOptions = {}): Promise<RenderResult> {
+export async function renderFlexLayer(source: string | FlexLayerNode, options: RenderOptions = {}): Promise<RenderResult> {
   if (options.fontsCacheDir) setFontsCacheDir(options.fontsCacheDir)
   await initFontsForMeasure({ fontsCacheDir: options.fontsCacheDir })
   const baseDir = options.baseDir ?? process.cwd()
@@ -27,13 +27,13 @@ export async function renderFvg(source: string | FvgNode, options: RenderOptions
   return { png, report }
 }
 
-export async function checkFvg(source: string | FvgNode, options: RenderOptions = {}): Promise<FvgReport> {
+export async function checkFlexLayer(source: string | FlexLayerNode, options: RenderOptions = {}): Promise<FlexLayerReport> {
   if (options.fontsCacheDir) setFontsCacheDir(options.fontsCacheDir)
   await initFontsForMeasure({ fontsCacheDir: options.fontsCacheDir })
   const doc = await layoutSource(source, options.baseDir ?? process.cwd())
   return buildReport(doc)
 }
 
-/** 与 renderFvg / checkFvg 相同，推荐新名字 */
-export const renderLayer = renderFvg
-export const checkLayer = checkFvg
+/** 短名，与 renderFlexLayer / checkFlexLayer 相同。 */
+export const renderLayer = renderFlexLayer
+export const checkLayer = checkFlexLayer

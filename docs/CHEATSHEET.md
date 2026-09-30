@@ -1,6 +1,6 @@
 # Flex Layer 速查
 
-HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。根元素 `<Layer width height>` 就是一个 Layer。
+给 AI agent 的一页写法。HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。根元素 `<Layer width height>` 就是一个 Layer。
 
 ## 结构
 

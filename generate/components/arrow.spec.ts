@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { serializeFvgDocument, createHostElement } from '../serialize.js'
-import { renderVueFvg } from '../vue/renderVueFvg.js'
-import { renderReactFvg } from '../react/renderReactFvg.js'
+import { serializeFlexLayerDocument, createHostElement } from '../serialize.js'
+import { renderVueFlexLayer } from '../vue/renderVueFlexLayer.js'
+import { renderReactFlexLayer } from '../react/renderReactFlexLayer.js'
 import { arrowElement } from './arrow.js'
 import { Arrow as ArrowVue } from './arrowVue.js'
 import { Arrow as ArrowReact } from './arrowReact.js'
@@ -12,7 +12,7 @@ function documentOf(arrow: ReturnType<typeof arrowElement>): string {
   root.props.width = 640
   root.props.height = 360
   root.children = [arrow]
-  return serializeFvgDocument(root)
+  return serializeFlexLayerDocument(root)
 }
 
 describe('Arrow 组件', () => {
@@ -36,7 +36,7 @@ describe('Arrow 组件', () => {
   })
 
   it('Vue 和 React 外壳展开成同一段 Layer', () => {
-    const vue = renderVueFvg({
+    const vue = renderVueFlexLayer({
       template: `
         <Layer width="640" height="360">
           <Arrow :x1="280" :y1="200" :x2="420" :y2="200" stroke="#333" :stroke-width="6" />
@@ -44,7 +44,7 @@ describe('Arrow 组件', () => {
       `,
       components: { Arrow: ArrowVue },
     })
-    const react = renderReactFvg(
+    const react = renderReactFlexLayer(
       React.createElement(
         'Layer',
         { width: 640, height: 360 },

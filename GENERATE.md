@@ -1,9 +1,9 @@
 # 用 Vue 或 React 生成 Flex Layer
 
-Flex Layer 的**生成**和**画图**是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
+Agent 用代码生图时，重复结构和数据放在这里生成，输出仍是 `.layer` 文本。生成和画图是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ```text
-Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  →  PNG
+Vue 模板 / React JSX  →  .layer 文本  →  renderFlexLayer / flexlayer render  →  PNG
 ```
 
 生成层只产出 `.layer` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。
@@ -26,11 +26,11 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  �
 
 ```ts
 import { writeFileSync } from 'node:fs'
-import { renderFvg } from '@dc/flexlayer'
+import { renderFlexLayer } from '@dc/flexlayer'
 
 const source = '...' // 下面 Vue 或 React 的输出
 writeFileSync('out.layer', source)
-const { png } = await renderFvg(source, { baseDir: process.cwd() })
+const { png } = await renderFlexLayer(source, { baseDir: process.cwd() })
 ```
 
 或 CLI：`npx tsx src/cli.ts render out.layer -o out.png`
@@ -49,16 +49,16 @@ const { png } = await renderFvg(source, { baseDir: process.cwd() })
 **入口：**
 
 ```ts
-import { renderVueFvg } from './generate/vue/renderVueFvg.js'
+import { renderVueFlexLayer } from './generate/vue/renderVueFlexLayer.js'
 import { renderStarsPosterVue } from './generate/vue/example.js'
 ```
 
 **AI 模板（抄 [`generate/vue/example.ts`](generate/vue/example.ts)）：**
 
 ```ts
-import { renderVueFvg } from './generate/vue/renderVueFvg.js'
+import { renderVueFlexLayer } from './generate/vue/renderVueFlexLayer.js'
 
-const source = renderVueFvg({
+const source = renderVueFlexLayer({
   template: `
 <Layer width="320" height="200" background="#1a1220">
   <Circle
@@ -114,7 +114,7 @@ const source = renderVueFvg({
 **入口：**
 
 ```ts
-import { renderReactFvg } from './generate/react/renderReactFvg.js'
+import { renderReactFlexLayer } from './generate/react/renderReactFlexLayer.js'
 import { renderStarsPosterReact } from './generate/react/example.js'
 ```
 
@@ -122,7 +122,7 @@ import { renderStarsPosterReact } from './generate/react/example.js'
 
 ```tsx
 import React from 'react'
-import { renderReactFvg } from './generate/react/renderReactFvg.js'
+import { renderReactFlexLayer } from './generate/react/renderReactFlexLayer.js'
 import { Circle, Layer } from './generate/react/tags.js'
 
 function Caption({ text }: { text: string }) {
@@ -140,7 +140,7 @@ const stars = [
   { name: 'b', y: 90, r: 4 },
 ]
 
-const source = renderReactFvg(
+const source = renderReactFlexLayer(
   <Layer width="320" height="200" background="#1a1220">
     {stars.map((s, i) => (
       <Circle key={s.name} cx={i * 80 + 40} cy={s.y} r={s.r} fill="#fff8e7" />

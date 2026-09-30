@@ -1,4 +1,4 @@
-import { createHostElement, type FvgHostElement } from '../serialize.js'
+import { createHostElement, type FlexLayerHostElement } from '../serialize.js'
 
 /** 生成层 Arrow 的参数。默认值只在这里算一次，展开成渲染器的 `<Arrow>`。 */
 export type ArrowProps = {
@@ -35,7 +35,7 @@ function fmt(n: number): string {
 }
 
 /** 展开成一个 `<Arrow>`，属性不进 style。 */
-export function arrowElement(props: ArrowProps): FvgHostElement {
+export function arrowElement(props: ArrowProps): FlexLayerHostElement {
   const x1 = coord(props.x1, 'x1')
   const y1 = coord(props.y1, 'y1')
   const x2 = coord(props.x2, 'x2')

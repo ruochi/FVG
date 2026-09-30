@@ -1,4 +1,4 @@
-import type { FvgNode } from './parse.js'
+import type { FlexLayerNode } from './parse.js'
 import { parseStyle } from './style.js'
 import { isTextBoxTag } from './text.js'
 import type { Issue, IssueLevel } from './types.js'
@@ -66,7 +66,7 @@ function hasStyle(attrs: Record<string, string>): boolean {
   return present(attrs, 'style') && attrs.style.trim() !== ''
 }
 
-function usesAttributes(node: FvgNode): boolean {
+function usesAttributes(node: FlexLayerNode): boolean {
   return (
     node.tag === 'Layer' ||
     node.tag === 'symbol' ||
@@ -78,7 +78,7 @@ function usesAttributes(node: FvgNode): boolean {
 }
 
 /** 只检查归属表里的已知属性。不认识的属性留给 draw 使用，不报错。 */
-export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: string): Issue[] {
+export function checkChildAttrs(node: FlexLayerNode, parent: 'layer' | 'flex', path: string): Issue[] {
   const out: Issue[] = []
   const attrs = node.attrs
   const positioned = present(attrs, 'cx') || present(attrs, 'cy') || present(attrs, 'anchor')
@@ -252,7 +252,7 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
   return out
 }
 
-export function checkTextBoxChildren(node: FvgNode, path: string): Issue[] {
+export function checkTextBoxChildren(node: FlexLayerNode, path: string): Issue[] {
   const out: Issue[] = []
   for (const child of node.children) {
     if (typeof child === 'string') continue

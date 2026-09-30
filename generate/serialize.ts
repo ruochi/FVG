@@ -54,19 +54,19 @@ const ATTR_ORDER = [
 
 const SKIP_PROP = new Set(['key', 'ref', 'ref_for', 'ref_key', 'class', 'children'])
 
-export type FvgHostElement = {
+export type FlexLayerHostElement = {
   kind: 'el'
   tag: string
   props: Record<string, unknown>
-  children: FvgHostChild[]
+  children: FlexLayerHostChild[]
 }
 
-export type FvgHostText = {
+export type FlexLayerHostText = {
   kind: 'text'
   text: string
 }
 
-export type FvgHostChild = FvgHostElement | FvgHostText
+export type FlexLayerHostChild = FlexLayerHostElement | FlexLayerHostText
 
 function isHtmlTag(tag: string): boolean {
   return HTML_TAGS.has(tag.toLowerCase())
@@ -114,7 +114,7 @@ function escapeAttr(value: string): string {
   return escapeText(value).replace(/"/g, '&quot;')
 }
 
-function formatAttrs(el: FvgHostElement): string {
+function formatAttrs(el: FlexLayerHostElement): string {
   const html = isHtmlTag(el.tag)
   const style: Record<string, string> = {}
   const attrs = new Map<string, string>()
@@ -154,7 +154,7 @@ function formatAttrs(el: FvgHostElement): string {
   return parts.length ? ` ${parts.join(' ')}` : ''
 }
 
-function serializeElement(el: FvgHostElement, indent: number): string {
+function serializeElement(el: FlexLayerHostElement, indent: number): string {
   const pad = '  '.repeat(indent)
   const tag = el.tag
   const attrs = formatAttrs(el)
@@ -173,10 +173,10 @@ function serializeElement(el: FvgHostElement, indent: number): string {
     return `${pad}<draw${attrs}>\n${indented}\n${pad}</draw>`
   }
   const meaningful = el.children.filter((child) => child.kind !== 'text' || child.text.trim() !== '')
-  const elements = meaningful.filter((child): child is FvgHostElement => child.kind === 'el')
+  const elements = meaningful.filter((child): child is FlexLayerHostElement => child.kind === 'el')
   if (elements.length === 0) {
     const text = meaningful
-      .filter((child): child is FvgHostText => child.kind === 'text')
+      .filter((child): child is FlexLayerHostText => child.kind === 'text')
       .map((child) => child.text)
       .join('')
     if (!text) return `${pad}<${tag}${attrs} />`
@@ -187,18 +187,17 @@ function serializeElement(el: FvgHostElement, indent: number): string {
 }
 
 /** 把 `<Layer>` 根序列化为 Flex Layer 文本（末尾换行）。 */
-export function serializeFvgDocument(root: FvgHostElement): string {
-  const tag = root.tag.toLowerCase() === 'fvg' ? 'Layer' : root.tag
-  if (tag !== 'Layer') {
+export function serializeFlexLayerDocument(root: FlexLayerHostElement): string {
+  if (root.tag !== 'Layer') {
     throw new Error('根节点必须是 <Layer>')
   }
-  return `${serializeElement({ ...root, tag: 'Layer' }, 0)}\n`
+  return `${serializeElement(root, 0)}\n`
 }
 
-export function createHostElement(tag: string): FvgHostElement {
+export function createHostElement(tag: string): FlexLayerHostElement {
   return { kind: 'el', tag, props: {}, children: [] }
 }
 
-export function createHostText(text: string): FvgHostText {
+export function createHostText(text: string): FlexLayerHostText {
   return { kind: 'text', text }
 }
