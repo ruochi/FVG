@@ -31,7 +31,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
 | `width`、`height` | 必填 | 画布尺寸 |
-| `background` | `#ffffff` | 画布背景色，写 `transparent` 输出透明 PNG |
+| `background` | `#ffffff` | 画布背景。纯色、`transparent`，或第 6.1 节的 `gradient()` |
 | `color` | `#111111` | 全局文字色、线条默认色 |
 | `font-family` | `ChillDuanSans` | 全局字体（寒蝉端黑体） |
 | `safe` | 画布短边的 4% | 安全区边距，`上 右 下 左` 或一个数字，只用于检查 |
@@ -96,7 +96,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 `overflow="hidden"` 按 Layer 的盒子裁剪子元素。默认 `visible`。
 
-`background`、`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。
+`background`、`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。`background` 可以是第 6.1 节的渐变。
 
 一组 HTML 要放到画面上，包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。
 
@@ -123,7 +123,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 | `padding` | `0` | 1 到 4 个值，同 CSS |
 | `align-items` | `center` | `start`、`center`、`end`、`stretch`（注意默认值和 CSS 不同） |
 | `justify-content` | `start` | `start`、`center`、`end`、`space-between`、`space-around`、`space-evenly` |
-| `background`、`border`、`border-radius` | 无 | 同 CSS，border 只支持实线 |
+| `background`、`border`、`border-radius` | 无 | 同 CSS，border 只支持实线。`background` 可以是渐变 |
 
 子元素可以写的 flex 属性：`flex-grow`、`flex-shrink`、`align-self`、`width`、`height`。
 
@@ -181,9 +181,40 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 `Rect` 写 SVG 的 `x` `y` `width` `height` 时，按左上角渲染，并报 `info`。形状上写 `anchor` 也照做，并报 `info`。
 
-绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
+绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。`fill` 和 `stroke` 可以是第 6.1 节的渐变。
 
 带 `draw` 且写了尺寸的自定义元素，定位和形状相同。
+
+### 6.1 渐变
+
+`gradient()` 是同一种写法，能画出线性、径向、锥形和矩阵渐变。颜色是一张矩阵：列沿参数 `u`，行沿参数 `v`，行与行用 `/` 分开。像素先映射成 `(u, v)`，再在 OKLab 里做双线性插值（透明按预乘）。超出 0 到 1 的部分钳制在两端。只有一行时忽略 `v`。
+
+```
+gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
+颜色行 = 颜色 [位置] [, 颜色 [位置]]*
+```
+
+位置是 0 到 1，不是像素。省略时第一个是 0，最后一个是 1，中间均匀排开。坐标是元素盒子里的像素，原点在这个盒子的左上角，y 向下，跟元素放在图层的哪里无关。颜色可以是 `#rgb`、`#rgba`、`#rrggbb`、`#rrggbbaa`、`rgb()`、`rgba()`、`transparent`。
+
+| 映射 | u | v |
+| --- | --- | --- |
+| 省略，或 `box` | 从左到右 | 从上到下 |
+| `linear x1 y1 x2 y2` | 线段起点到终点 | 线段的左手侧，距离按线段长度计；第一行贴在线段上 |
+| `radial cx cy r` | 圆心到半径 `r` | 从正上方起顺时针一圈 |
+| `radial cx cy r0 r1` | 内半径到外半径 | 同上 |
+| `conic cx cy [角度]` | 从正上方起、再加起始角度，顺时针一圈 | 圆心到盒子最远角 |
+
+```html
+<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115, #f7931a)" />
+<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115 / #f7931a)" />
+<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#ff0000 #00ff00 / #0000ff #ffffff)" />
+<Circle cx="400" cy="500" r="120" fill="gradient(radial 120 120 120, #ffffff, #f7931a 0.45, #0f1115)" />
+<Rect cx="540" cy="700" width="400" height="400" fill="gradient(conic 200 200, #ff0000, #00ff00, #0000ff, #ff0000)" />
+```
+
+锥形的 `u`、径向的 `v` 走到 1 就回到起点。要无缝接上，把第一个颜色或第一行在末尾再写一次。铺满整个盒子用矩阵；多行的 `linear` 只向线段左侧展开。盒子在某个方向上长度为 0 时（比如水平线没有高度），这一维没有变化：沿竖线变色写成两行，不要写成一行。
+
+画布 `background`、`Layer` 的 `background`、HTML 的 `style="background: …"`、形状和线条的 `fill` / `stroke` 都用这一套。文字的 `color` 仍是纯色。语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。
 
 ## 7. 线条
 
@@ -196,7 +227,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 - 线条只能放在 Layer 里，坐标是 **Layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
 - 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
-- `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
+- `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。`stroke` 和 `fill` 可以是渐变，坐标相对线条的几何外框。
 - `Polygon`、`Path` 的 `fill` 默认 `none`。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
 
@@ -344,5 +375,5 @@ const { frames, contactSheet } = await renderComposition(scene)
 
 - 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
-- `Icon`、渐变、阴影、`Image`。
+- `Icon`、阴影、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
