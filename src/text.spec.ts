@@ -5,7 +5,7 @@ import { initFontsForMeasure } from './fonts.js'
 import { layoutText } from './text.js'
 import type { TextSegment } from './types.js'
 
-const FONT_DIRS = [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']
+const FONT_DIRS = [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']
 
 let hasFont = false
 

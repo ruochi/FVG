@@ -1,4 +1,4 @@
-<fvg width="720" height="960" background="#0c1424" color="#f3ecdf">
+<Layer width="720" height="960" background="#0c1424" color="#f3ecdf">
   <Rect x1="0" y1="0" x2="720" y2="960" fill="linear-gradient(to bottom, #070d18, #16304c 58%, #8d907c)" />
   <Circle cx="470" cy="230" r="74" fill="#f6f1e6" glow="64 #f4ecd8" />
   <Circle cx="446" cy="208" r="18" fill="radial-gradient(at 40% 35%, #ffffff, #ffffff00)" />
@@ -32,4 +32,4 @@
   <Layer cx="210" cy="168" anchor="top-left">
     <p style="font-family:Brush; font-size:36px; color:#ead9b0">九月</p>
   </Layer>
-</fvg>
+</Layer>

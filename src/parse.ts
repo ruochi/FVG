@@ -51,7 +51,7 @@ function parseAttrs(text: string): Record<string, string> {
   return attrs
 }
 
-/** 解析 FVG 标记。标签名保留大小写（`Layer` 与 `layer` 不同）。 */
+/** 解析 Flex Layer 标记。标签名保留大小写（`Layer` 与 `layer` 不同）。 */
 export function parseFvg(source: string): FvgNode[] {
   const src = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[\s\S]*?\?>/g, '')
   const root: FvgNode = { tag: '#root', attrs: {}, children: [] }
@@ -87,9 +87,22 @@ export function parseFvg(source: string): FvgNode[] {
       pos = lt + 1
       continue
     }
-    const node: FvgNode = { tag: open[1], attrs: parseAttrs(open[2] ?? ''), children: [] }
+    const tag = open[1]
+    const attrs = parseAttrs(open[2] ?? '')
+    // <draw> 正文是原始 JS，里面的 < 不要当标签解析
+    if (tag === 'draw' && !open[3]) {
+      const bodyStart = lt + open[0].length
+      const closeToken = '</draw>'
+      const closeAt = src.indexOf(closeToken, bodyStart)
+      const body = closeAt === -1 ? src.slice(bodyStart) : src.slice(bodyStart, closeAt)
+      const node: FvgNode = { tag, attrs, children: body ? [body] : [] }
+      stack[stack.length - 1].children.push(node)
+      pos = closeAt === -1 ? src.length : closeAt + closeToken.length
+      continue
+    }
+    const node: FvgNode = { tag, attrs, children: [] }
     stack[stack.length - 1].children.push(node)
-    if (!open[3] && !VOID_TAGS.has(open[1])) stack.push(node)
+    if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
     pos = lt + open[0].length
   }
 

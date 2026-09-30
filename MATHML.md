@@ -1,8 +1,8 @@
 # MathML 接入说明
 
-本文只规定 FVG 如何接公式。实现时请按 dc 里已经画对的行为来做，不要另写一套间距。
+本文只规定 Flex Layer 如何接公式。实现时请按 dc 里已经画对的行为来做，不要另写一套间距。
 
-FVG 当前不支持 MathML。文字标签只有 `h1`、`h2`、`h3`、`p`、`div`、`span`，行内只有 `span`、`strong`、`b`、`em`、`br`。写进文件的 `<math>`、`<mfrac>`、`<msqrt>` 会被当成不认识的标签丢掉。
+Flex Layer 当前不支持 MathML。文字标签只有 `h1`、`h2`、`h3`、`p`、`div`、`span`，行内只有 `span`、`strong`、`b`、`em`、`br`。写进文件的 `<math>`、`<mfrac>`、`<msqrt>` 会被当成不认识的标签丢掉。
 
 ## 参考代码在哪
 
@@ -23,9 +23,9 @@ dc 仓库 `packages/douchart-core/src/htmlBox/math/`：
 
 ## 不要整个引进 htmlBox
 
-`map.ts` 输出的是 htmlBox 自己的盒子树 `HtmlBoxNode`，不是 FVG 节点。根号拉高和分数线笔画绑着 htmlBox 的测量，以及旧管线的全局间距。
+`map.ts` 输出的是 htmlBox 自己的盒子树 `HtmlBoxNode`，不是 Flex Layer 节点。根号拉高和分数线笔画绑着 htmlBox 的测量，以及旧管线的全局间距。
 
-FVG 只复用规则，自己画。建议抽一个两边都能用的小模块：输入 MathML，输出中性结构树（`row`、`column`、`text`、`rule`、`sqrt`）。dc 再把它转成 `HtmlBoxNode`，FVG 把它转成自己的 `row`、`column`、文字和线条。规则只留一份。
+Flex Layer 只复用规则，自己画。建议抽一个两边都能用的小模块：输入 MathML，输出中性结构树（`row`、`column`、`text`、`rule`、`sqrt`）。dc 再把它转成 `HtmlBoxNode`，Flex Layer 把它转成自己的 `row`、`column`、文字和线条。规则只留一份。
 
 ## 标签子集
 
@@ -44,9 +44,9 @@ FVG 只复用规则，自己画。建议抽一个两边都能用的小模块：�
 - `munder`、`mover`、`munderover` 是纵向叠放。
 - `mtable` 是 `column` 套若干 `row`，行距 `0.2em`，单元格间距 `0.45em`。
 
-## 在 FVG 里怎么写
+## 在 Flex Layer 里怎么写
 
-FVG 的文字盒子里不能再套布局。`<math>` 是和 `row` 一样的布局节点，可以放在 `layer`、`row`、`column` 里。和正文同一行时，用 `row` 把文字和公式排在一起：
+Flex Layer 的文字盒子里不能再套布局。`<math>` 是和 `row` 一样的布局节点，可以放在 `layer`、`row`、`column` 里。和正文同一行时，用 `row` 把文字和公式排在一起：
 
 ```html
 <row style="gap:8px; align-items:center">

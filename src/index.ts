@@ -1,4 +1,4 @@
-export { renderFvg, checkFvg, type RenderResult } from './render.js'
+export { renderFvg, checkFvg, renderLayer, checkLayer, type RenderResult } from './render.js'
 export { renderComposition, interpolate, spring, sequence } from './frame.js'
 export type {
   Composition,

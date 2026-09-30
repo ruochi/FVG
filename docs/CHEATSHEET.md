@@ -1,12 +1,13 @@
-# FVG 速查
+# Flex Layer 速查
 
-HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。根元素 `<fvg width height>` 就是一个 Layer。
+HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。根元素 `<Layer width height>` 就是一个 Layer。
 
 ## 结构
 
 | 标签 | 做什么 |
 | --- | --- |
-| `Layer` | 定位。属性：`cx` `cy` `anchor` `width` `height` `opacity` `rotate` `scale` `origin`。可嵌套 |
+| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景** |
+| `draw` | 子标签。正文是 JS（`ctx`、`el`），画在父元素内容之后。程序侧也可用 `draw={fn}` |
 | `div` 写 `display:flex` | 排布。默认横向；竖排加 `flex-direction:column`。`gap` `align-items` `justify-content` `padding` `flex` 都在 `style` 里 |
 
 要定位一组 HTML，包一层 `Layer`，把 `cx` `cy` `anchor` 写在 `Layer` 上。
@@ -30,7 +31,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 ## 属性归属
 
-HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。`Layer` 和图形把这些写成属性。不认识的属性会保留给 `draw`。
+HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 里。图形的填充写成 `fill`。`Layer` 不填背景：色块用 `Rect`、`div`，或 `<draw>`。不认识的属性会保留给 `draw`。
 
 ## 报告
 
@@ -43,7 +44,7 @@ HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 
 ## 例子
 
 ```html
-<fvg width="800" height="400" background="#0e1219" color="#f4f1ea">
+<Layer width="800" height="400" background="#0e1219" color="#f4f1ea">
   <Layer cx="40" cy="40" anchor="top-left">
     <div style="display:flex; gap:16px; align-items:center">
       <div style="width:28px; height:28px; border-radius:14px; background:#3ecfc4"></div>
@@ -55,11 +56,18 @@ HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 
     <Circle cx="200" cy="60" r="16" fill="#f4f1ea" />
     <Line x1="160" y1="60" x2="184" y2="60" stroke="#f4f1ea" stroke-width="4" />
   </Layer>
-</fvg>
+  <!-- 嵌套 Layer 不写 background；要自己画用 draw -->
+  <Layer width="120" height="80" cx="640" cy="300">
+    <draw>
+      ctx.fillStyle = '#f5c16c'
+      ctx.fillRect(0, 0, el.w, el.h)
+    </draw>
+  </Layer>
+</Layer>
 ```
 
 ```html
-<fvg width="800" height="200" background="#0e1219" color="#f4f1ea">
+<Layer width="800" height="200" background="#0e1219" color="#f4f1ea">
   <Layer cx="40" cy="80" anchor="top-left">
     <div style="display:flex; width:720px; gap:16px; align-items:center">
       <p style="font-size:40px">左</p>
@@ -67,5 +75,5 @@ HTML 的字号、颜色、背景、间距、透明度、旋转都写在 `style` 
       <p style="font-size:40px">右</p>
     </div>
   </Layer>
-</fvg>
+</Layer>
 ```

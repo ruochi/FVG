@@ -6,7 +6,7 @@ import { initFontsForMeasure } from './fonts.js'
 import { renderFvg } from './render.js'
 
 beforeAll(async () => {
-  await initFontsForMeasure({ fontsCacheDir: join(homedir(), '.cache', 'fvg', 'fonts') })
+  await initFontsForMeasure({ fontsCacheDir: join(homedir(), '.cache', 'flexlayer', 'fonts') })
 })
 
 async function pixels(png: Buffer) {
@@ -25,7 +25,7 @@ async function pixels(png: Buffer) {
 describe('绘制', () => {
   it('Path 画在路径坐标上，不再叠加盒子偏移', async () => {
     const { png } = await renderFvg(
-      `<fvg width="200" height="200" background="#ffffff"><Path d="M 80 90 L 140 90" stroke="#0000ff" stroke-width="4" /></fvg>`,
+      `<Layer width="200" height="200" background="#ffffff"><Path d="M 80 90 L 140 90" stroke="#0000ff" stroke-width="4" /></Layer>`,
     )
     const { at } = await pixels(png)
     const onLine = at(100, 90)
@@ -37,7 +37,7 @@ describe('绘制', () => {
 
   it('夜空渐变上深下浅，月晕染到圆的外面', async () => {
     const { png } = await renderFvg(
-      `<fvg width="120" height="120" background="#ffffff"><Rect x="0" y="0" width="120" height="120" fill="linear-gradient(#102038, #d8e2ea)" /><Circle cx="60" cy="60" r="16" fill="#f4efe4" glow="18 #f4efe4" /></fvg>`,
+      `<Layer width="120" height="120" background="#ffffff"><Rect x="0" y="0" width="120" height="120" fill="linear-gradient(#102038, #d8e2ea)" /><Circle cx="60" cy="60" r="16" fill="#f4efe4" glow="18 #f4efe4" /></Layer>`,
     )
     const { at } = await pixels(png)
     expect(at(10, 8)[2]).toBeGreaterThan(at(10, 8)[0])
@@ -49,7 +49,7 @@ describe('绘制', () => {
 
   it('同一 symbol 可以摆两次', async () => {
     const { png } = await renderFvg(
-      `<fvg width="80" height="40" background="#ffffff"><symbol id="dot"><Circle cx="8" cy="8" r="6" fill="#ff0000" /></symbol><use href="#dot" cx="16" cy="20" /><use href="#dot" cx="56" cy="20" /></fvg>`,
+      `<Layer width="80" height="40" background="#ffffff"><symbol id="dot"><Circle cx="8" cy="8" r="6" fill="#ff0000" /></symbol><use href="#dot" cx="16" cy="20" /><use href="#dot" cx="56" cy="20" /></Layer>`,
     )
     const { at } = await pixels(png)
     expect(at(16, 20)[0]).toBeGreaterThan(200)
@@ -59,10 +59,10 @@ describe('绘制', () => {
 
   it('内阴影压暗圆角矩形内侧', async () => {
     const { png, report } = await renderFvg(
-      `<fvg width="120" height="80" background="#ffffff"><Rect cx="60" cy="40" width="80" height="50" rx="8" fill="#6aa1ff" inner-shadow="0 6 8 #000000aa" /></fvg>`,
+      `<Layer width="120" height="80" background="#ffffff"><Rect cx="60" cy="40" width="80" height="50" rx="8" fill="#6aa1ff" inner-shadow="0 6 8 #000000aa" /></Layer>`,
     )
     const plain = await renderFvg(
-      `<fvg width="120" height="80" background="#ffffff"><Rect cx="60" cy="40" width="80" height="50" rx="8" fill="#6aa1ff" /></fvg>`,
+      `<Layer width="120" height="80" background="#ffffff"><Rect cx="60" cy="40" width="80" height="50" rx="8" fill="#6aa1ff" /></Layer>`,
     )
     const { at } = await pixels(png)
     const base = await pixels(plain.png)
@@ -76,10 +76,10 @@ describe('绘制', () => {
 
   it('图层模糊把硬边染开', async () => {
     const sharp = await renderFvg(
-      `<fvg width="80" height="80" background="#000000"><Rect cx="40" cy="40" width="20" height="20" fill="#ffffff" /></fvg>`,
+      `<Layer width="80" height="80" background="#000000"><Rect cx="40" cy="40" width="20" height="20" fill="#ffffff" /></Layer>`,
     )
     const soft = await renderFvg(
-      `<fvg width="80" height="80" background="#000000"><Rect cx="40" cy="40" width="20" height="20" fill="#ffffff" blur="6" /></fvg>`,
+      `<Layer width="80" height="80" background="#000000"><Rect cx="40" cy="40" width="20" height="20" fill="#ffffff" blur="6" /></Layer>`,
     )
     const a = await pixels(sharp.png)
     const b = await pixels(soft.png)
@@ -90,11 +90,11 @@ describe('绘制', () => {
 
   it('backdrop-blur 糊掉半透明块背后的条纹', async () => {
     const scene = (backdrop: string) =>
-      `<fvg width="120" height="80" background="#102038">
+      `<Layer width="120" height="80" background="#102038">
         <Rect x="0" y="0" width="120" height="80" fill="#204060" />
         <Rect x="0" y="30" width="120" height="8" fill="#f4efe4" />
         <Rect cx="60" cy="40" width="70" height="40" rx="8" fill="#ffffff55" ${backdrop} />
-      </fvg>`
+      </Layer>`
     const withBlur = await renderFvg(scene('backdrop-blur="8"'))
     const without = await renderFvg(scene(''))
     const a = await pixels(withBlur.png)
@@ -105,10 +105,10 @@ describe('绘制', () => {
   })
   it('filter grayscale 去掉饱和色', async () => {
     const color = await renderFvg(
-      `<fvg width="40" height="40" background="#000000"><Rect cx="20" cy="20" width="30" height="30" fill="#ff0000" /></fvg>`,
+      `<Layer width="40" height="40" background="#000000"><Rect cx="20" cy="20" width="30" height="30" fill="#ff0000" /></Layer>`,
     )
     const gray = await renderFvg(
-      `<fvg width="40" height="40" background="#000000"><Rect cx="20" cy="20" width="30" height="30" fill="#ff0000" filter="grayscale(1)" /></fvg>`,
+      `<Layer width="40" height="40" background="#000000"><Rect cx="20" cy="20" width="30" height="30" fill="#ff0000" filter="grayscale(1)" /></Layer>`,
     )
     const c = await pixels(color.png)
     const g = await pixels(gray.png)
@@ -118,7 +118,7 @@ describe('绘制', () => {
 
   it('noise 与 blend 进入报告', async () => {
     const { report } = await renderFvg(
-      `<fvg width="60" height="60" background="#112233"><Rect cx="30" cy="30" width="40" height="40" fill="#3ecfc4" noise="0.2" blend="multiply" inner-glow="10 #ffffff" /></fvg>`,
+      `<Layer width="60" height="60" background="#112233"><Rect cx="30" cy="30" width="40" height="40" fill="#3ecfc4" noise="0.2" blend="multiply" inner-glow="10 #ffffff" /></Layer>`,
     )
     const el = report.elements.find((e) => e.tag === 'Rect')
     expect(el?.noise).toEqual({ amount: 0.2 })
@@ -129,11 +129,11 @@ describe('绘制', () => {
   it('clear glass 不模糊：中心原样透出，边缘弧面把内侧内容折射出来', async () => {
     // 左红右青，分界 x=165；圆心 (100,100) r=80 → 右缘弧面里的青色像素被向内折射成红色
     const scene = (glass: string) =>
-      `<fvg width="240" height="200" background="#000000">
+      `<Layer width="240" height="200" background="#000000">
         <Rect x="0" y="0" width="165" height="200" fill="#ff0000" />
         <Rect x="165" y="0" width="75" height="200" fill="#00e5ff" />
         <Circle cx="100" cy="100" r="80" fill="#ffffff00" ${glass} />
-      </fvg>`
+      </Layer>`
     const withGlass = await renderFvg(scene('glass="clear"'))
     const plain = await renderFvg(scene(''))
     const g = await pixels(withGlass.png)
@@ -154,11 +154,11 @@ describe('绘制', () => {
   it('文字投影跟随字形墨迹，不是整块盒子', async () => {
     // 「一」只有中间横笔；红影右移 20px。盒子上沿内侧若出现红斑，说明仍按 box 投影。
     const { png, report } = await renderFvg(
-      `<fvg width="200" height="100" background="#ffffff" color="#0000ff">
+      `<Layer width="200" height="100" background="#ffffff" color="#0000ff">
         <Layer cx="100" cy="50">
           <h1 style="font-size:64px; color:#0000ff; shadow:20 0 0 #ff0000">一</h1>
         </Layer>
-      </fvg>`,
+      </Layer>`,
     )
     const { at } = await pixels(png)
     const h1 = report.elements.find((el) => el.tag === 'h1')!

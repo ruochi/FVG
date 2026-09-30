@@ -1,4 +1,4 @@
-<fvg width="780" height="1400" background="#0b0f1a" color="#ffffff" font-family="Kai">
+<Layer width="780" height="1400" background="#0b0f1a" color="#ffffff" font-family="Kai">
   <!-- 壁纸：大色块 + 大字 + 细条，给折射一些细节 -->
   <Rect x1="0" y1="0" x2="780" y2="1400" fill="linear-gradient(160deg, #1d2b64, #5b2a86 45%, #f0765a 80%, #ffcf7a)" />
   <Circle cx="600" cy="300" r="220" fill="#ff5aa5" opacity="0.85" />
@@ -44,4 +44,4 @@
   <Layer cx="313" cy="1276" anchor="center"><p style="font-size:32px; color:#ffffffbb">发现</p></Layer>
   <Layer cx="467" cy="1276" anchor="center"><p style="font-size:32px; color:#ffffffbb">消息</p></Layer>
   <Layer cx="620" cy="1276" anchor="center"><p style="font-size:32px; color:#ffffffbb">我的</p></Layer>
-</fvg>
+</Layer>

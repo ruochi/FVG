@@ -1,10 +1,12 @@
 /**
- * AI 参考模板：Vue 生成 FVG
+ * AI 参考模板：Vue 生成 Flex Layer
  *
- * - 根必须是 <fvg width height>
+ * - 根必须是 <Layer width height background>（background 仅根上画布底色）
+ * - 嵌套 Layer 不填背景；色块用 Rect / HTML style / <draw>
  * - Layer 和图形首字母大写，只用属性；文字和 div 只用 style
  * - 排布用 <div style="display:flex">，不要 row / column
  * - PascalCase 组件名在 components 里注册，展开后不留组件名
+ * - 自定义绘制见 generate/vue/draw-example.ts
  */
 import { renderVueFvg } from './renderVueFvg.js'
 
@@ -19,7 +21,7 @@ export const starsExampleBindings = {
 export function renderStarsPosterVue(): string {
   return renderVueFvg({
     template: `
-<fvg width="320" height="200" background="#1a1220">
+<Layer width="320" height="200" background="#1a1220">
   <Circle
     v-for="(s, i) in stars"
     :key="s.name"
@@ -29,7 +31,7 @@ export function renderStarsPosterVue(): string {
     fill="#fff8e7"
   />
   <Caption :text="title" />
-</fvg>
+</Layer>
     `,
     bindings: starsExampleBindings,
     components: {

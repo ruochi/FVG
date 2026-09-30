@@ -1,4 +1,4 @@
-<fvg width="780" height="1400" background="#0a0c12" color="#f4f1ea" font-family="Kai">
+<Layer width="780" height="1400" background="#0a0c12" color="#f4f1ea" font-family="Kai">
   <!-- 彩色背景，方便看出透镜折射把背后内容「弯」了 -->
   <Rect x1="0" y1="0" x2="780" y2="1400" fill="linear-gradient(to bottom, #1a1040, #0b3d5c 45%, #2a6b4f)" />
   <Circle cx="180" cy="280" r="140" fill="#ff5aa5" opacity="0.85" />
@@ -47,4 +47,4 @@
   <Layer cx="390" cy="1200" anchor="center">
     <p style="font-size:28px; color:#ffffff">lens</p>
   </Layer>
-</fvg>
+</Layer>

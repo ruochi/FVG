@@ -1,7 +1,7 @@
 {
-  "name": "@dc/fvg",
+  "name": "@dc/flexlayer",
   "version": "0.1.0",
-  "description": "FVG (Flex Vector Graphics): AI-friendly 2D frame markup with flex layout, HTML text and SVG-style shapes, rendered to PNG",
+  "description": "Flex Layer: AI-friendly 2D frame markup with flex layout, HTML text and SVG-style shapes, rendered to PNG",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,14 +16,14 @@
     }
   },
   "bin": {
-    "fvg": "dist/cli.js"
+    "flexlayer": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "test:generate": "vitest run --config generate/vitest.config.ts",
     "pythagoras": "tsx examples/render-pythagoras.ts",
-    "fvg": "tsx src/cli.ts"
+    "flexlayer": "tsx src/cli.ts"
   },
   "license": "MIT",
   "dependencies": {

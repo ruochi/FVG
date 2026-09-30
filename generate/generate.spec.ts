@@ -3,12 +3,14 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { initFontsForMeasure } from '../src/fonts.js'
 import { layoutSource } from '../src/layout.js'
+import { renderDrawPanelReact } from './react/draw-example.tsx'
 import { renderStarsPosterReact } from './react/example.tsx'
+import { renderDrawPanelVue } from './vue/draw-example.ts'
 import { renderStarsPosterVue } from './vue/example.ts'
 import { renderBatchPosters } from './vue/posters-batch.ts'
 
 beforeAll(async () => {
-  for (const dir of [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']) {
+  for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
     if (await initFontsForMeasure({ fontsCacheDir: dir })) break
   }
 })
@@ -58,6 +60,20 @@ describe('serialize + 生成器', () => {
     const circles = doc.root.children.filter((n) => n.tag === 'Circle')
     expect(circles.length).toBe(2)
     expect(doc.issues.filter((issue) => issue.code === 'unknown-tag')).toEqual([])
+  })
+
+  it('Vue/React <draw> 原样写出比较符，嵌套 Layer 无 background', async () => {
+    const vue = renderDrawPanelVue()
+    const react = renderDrawPanelReact()
+    for (const source of [vue, react]) {
+      expect(source).toContain('<draw>')
+      expect(source).toContain('el.w < 200')
+      expect(source).not.toContain('el.w &lt; 200')
+      expect(source).not.toMatch(/<Layer[^>]*background="[^"]+"[^>]*>[\s\S]*<Layer[^>]*background=/)
+      const doc = await layoutSource(source, process.cwd())
+      expect(doc.issues.filter((i) => i.code === 'invalid-draw' || i.code === 'unknown-tag')).toEqual([])
+      expect(typeof doc.root.children.find((n) => n.tag === 'Layer')?.draw).toBe('function')
+    }
   })
 
   it('十张海报没有旧标签，布局不报 unknown-tag', async () => {

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { renderCityJazzPosterVue } from './poster-city-jazz.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const outFvg = join(root, 'examples', 'poster-city-jazz.fvg')
+const outFvg = join(root, 'examples', 'poster-city-jazz.layer')
 const source = renderCityJazzPosterVue()
 writeFileSync(outFvg, source, 'utf8')
 console.log('Wrote', outFvg)

@@ -31,13 +31,13 @@ function renderElement(el: ReactElement): FvgHostElement {
   if (type === Fragment) {
     const kids = renderChildren(props.children)
     if (kids.length === 1 && kids[0]!.kind === 'el') return kids[0]!
-    throw new Error('Fragment 必须只包一层 FVG 元素，或把子节点直接写在父级里')
+    throw new Error('Fragment 必须只包一层 Flex Layer 元素，或把子节点直接写在父级里')
   }
   if (typeof type === 'function') {
     const rendered = type(props) as ReactNode
     const kids = renderChildren(rendered)
     if (kids.length === 1 && kids[0]!.kind === 'el') return kids[0]!
-    throw new Error(`组件 ${type.name || 'Anonymous'} 必须返回单个 FVG 元素`)
+    throw new Error(`组件 ${type.name || 'Anonymous'} 必须返回单个 Flex Layer 元素`)
   }
   if (typeof type !== 'string') {
     throw new Error('不支持的 React 元素类型')
@@ -49,8 +49,8 @@ function renderElement(el: ReactElement): FvgHostElement {
 }
 
 /**
- * React JSX → FVG 文本。
- * 小写标签为 FVG 元素；大写函数组件会展开。内部用 React 元素树展开（与 reconciler 宿主输出相同结构）。
+ * React JSX → Flex Layer 文本。
+ * 小写标签为 Flex Layer 元素；大写函数组件会展开。内部用 React 元素树展开（与 reconciler 宿主输出相同结构）。
  */
 export function renderReactFvg(element: ReactElement): string {
   const root = renderElement(element)

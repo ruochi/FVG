@@ -34,7 +34,7 @@ export const cityJazzBindings = {
 export function renderCityJazzPosterVue(): string {
   return renderVueFvg({
     template: `
-<fvg width="1080" height="1620" background="#0a1628" color="#e8eef7" safe="48">
+<Layer width="1080" height="1620" background="#0a1628" color="#e8eef7" safe="48">
   <Circle
     v-for="(s, i) in stars"
     :key="i"
@@ -79,7 +79,7 @@ export function renderCityJazzPosterVue(): string {
   <Layer cx="540" cy="1560" anchor="center">
     <p style="font-size:28px; letter-spacing:4px; color:#6a849c">预约见小程序 · 现场少量站票</p>
   </Layer>
-</fvg>
+</Layer>
     `,
     bindings: cityJazzBindings,
     components: {

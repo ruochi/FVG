@@ -17,7 +17,7 @@ function flattenChildren(parts: unknown[]): FvgChild[] {
   return out
 }
 
-/** 构建 FVG 节点；`draw` 挂在节点上，不进 `attrs`。 */
+/** 构建 Flex Layer 节点；`draw` 挂在节点上，不进 `attrs`。 */
 export function h(tag: string, props: FvgProps | null, ...children: unknown[]): FvgNode {
   const attrs: Record<string, string> = {}
   let draw: DrawFn | undefined

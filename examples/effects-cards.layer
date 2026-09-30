@@ -1,4 +1,4 @@
-<fvg width="900" height="700" background="#f3efe6" color="#1a2430" font-family="Kai">
+<Layer width="900" height="700" background="#f3efe6" color="#1a2430" font-family="Kai">
   <Rect x1="0" y1="0" x2="900" y2="700" fill="linear-gradient(to bottom, #efe8da, #d9e2ea)" />
 
   <Layer cx="80" cy="48" anchor="top-left">
@@ -34,4 +34,4 @@
   <Layer cx="450" cy="620" anchor="center">
     <p style="font-size:28px; color:#6a7a8a; blur:1.5">轻微虚化说明文字</p>
   </Layer>
-</fvg>
+</Layer>
