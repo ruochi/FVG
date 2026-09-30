@@ -25,6 +25,7 @@ import {
   parseGlow,
   parseNoise,
   parseNumber,
+  parseOverlay,
   parsePx,
   parseShadow,
   parseStyle,
@@ -57,6 +58,7 @@ import type {
   LineGeometry,
   LineLayoutNode,
   NoiseSpec,
+  OverlaySpec,
   ShadowSpec,
   ShapeLayoutNode,
   TextLayoutNode,
@@ -259,6 +261,34 @@ function readEffects(src: EffectSource, ctx: LayoutContext, glowColor: string): 
   }
 
   return out
+}
+
+/** 仅 Layer：解析 overlay，校验 paint。 */
+function readLayerOverlay(attrs: Record<string, string>, ctx: LayoutContext): OverlaySpec | undefined {
+  const raw = attrs.overlay
+  if (raw == null || raw.trim() === '' || raw.trim() === 'none') return undefined
+  const parsed = parseOverlay(raw)
+  if (!parsed) {
+    warnInvalid(
+      ctx,
+      'overlay',
+      raw,
+      '写成 #00000066、#ff8800 0.4 multiply，或 linear-gradient(...) soft-light。仅 Layer 可用',
+    )
+    return undefined
+  }
+  if (isGradient(parsed.paint)) {
+    if (!parseGradient(parsed.paint)) {
+      warnInvalid(
+        ctx,
+        'overlay',
+        raw,
+        '例如 overlay="linear-gradient(to bottom, #fff0, #0008) multiply"',
+      )
+      return undefined
+    }
+  }
+  return parsed
 }
 
 function readPaint(raw: string, fallback: string, ctx: LayoutContext, label: string): string {
@@ -1133,6 +1163,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     return p.child
   })
 
+  const overlay = readLayerOverlay(node.attrs, ctx)
   return {
     kind: 'layer',
     path: ctx.pathPrefix,
@@ -1147,6 +1178,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
     ...readEffects(node.attrs, ctx, solidPaint(appearance.border?.color, ctx.color)),
+    ...(overlay ? { overlay } : {}),
     ...layoutDrawMeta(node, ctx),
   }
 }

@@ -33,6 +33,7 @@ import type {
   LayoutNode,
   LineLayoutNode,
   NoiseSpec,
+  OverlaySpec,
   ShadowSpec,
   ShapeLayoutNode,
   TextLayoutNode,
@@ -420,9 +421,27 @@ function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: nu
     drawTextNode(ctx, node, ink)
     return
   }
+  if (node.kind === 'custom') {
+    if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
+      drawBoxSilhouette(ctx, node, spread, ink)
+    }
+    return
+  }
   if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
     drawBoxSilhouette(ctx, node, spread, ink)
   }
+}
+
+/** Layer overlay：自身 chrome + 子树着墨（子元素局部坐标）。 */
+function drawSubtreeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
+  drawNodeInk(ctx, node, spread, ink)
+  if (node.kind !== 'layer' && node.kind !== 'flex') return
+  const insetX = node.kind === 'flex' ? node.padding.left + (node.border?.width ?? 0) : 0
+  const insetY = node.kind === 'flex' ? node.padding.top + (node.border?.width ?? 0) : 0
+  ctx.save()
+  ctx.translate(node.x + insetX, node.y + insetY)
+  for (const ch of node.children) drawSubtreeInk(ctx, ch, spread, ink)
+  ctx.restore()
 }
 
 function transformScale(ctx: CanvasRenderingContext2D): number {
@@ -481,6 +500,35 @@ function paintInnerEffect(
   ctx.save()
   ctx.globalCompositeOperation = blend
   ctx.drawImage(fill, node.x - pad, node.y - pad, twLogic, thLogic)
+  ctx.restore()
+}
+
+/** Layer 专用：按子树墨迹裁切后叠加纯色/渐变。 */
+function paintOverlay(ctx: PaintCtx, node: LayoutNode, overlay: OverlaySpec) {
+  if (node.width <= 0 || node.height <= 0 || overlay.opacity <= 0) return
+  const w = Math.max(1, Math.ceil(node.width))
+  const h = Math.max(1, Math.ceil(node.height))
+  const k = transformScale(ctx)
+  const tw = Math.max(1, Math.ceil(w * k))
+  const th = Math.max(1, Math.ceil(h * k))
+  const off = createCanvas(tw, th)
+  const octx = off.getContext('2d') as PaintCtx
+  octx.setTransform(k, 0, 0, k, 0, 0)
+  octx.fillStyle = paintOf(octx, overlay.paint, 0, 0, node.width, node.height)
+  octx.fillRect(0, 0, node.width, node.height)
+
+  const clip = createCanvas(tw, th)
+  const clipCtx = clip.getContext('2d') as PaintCtx
+  clipCtx.setTransform(k, 0, 0, k, 0, 0)
+  clipCtx.translate(-node.x, -node.y)
+  drawSubtreeInk(clipCtx, node, 0, '#ffffff')
+  octx.globalCompositeOperation = 'destination-in'
+  octx.drawImage(clip, 0, 0)
+
+  ctx.save()
+  ctx.globalAlpha *= overlay.opacity
+  ctx.globalCompositeOperation = overlay.blend
+  ctx.drawImage(off, node.x, node.y, node.width, node.height)
   ctx.restore()
 }
 
@@ -918,6 +966,7 @@ function paintNodeEffectsAndBody(
       'screen',
     )
   }
+  if (node.overlay) paintOverlay(ctx, node, node.overlay)
   if (node.noise) paintNoise(ctx, node, node.noise)
   runElementDraw(ctx, node, t)
 }

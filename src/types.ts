@@ -99,6 +99,8 @@ export type TextLineReport = {
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
 export type NoiseSpec = { amount: number; color?: string }
+/** Layer 专用纯色/渐变叠加 */
+export type OverlaySpec = { paint: string; opacity: number; blend: BlendMode }
 export type GlassSpec = {
   variant: 'regular' | 'clear' | 'thick'
   blur: number
@@ -138,6 +140,7 @@ export type ElementReport = {
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
+  overlay?: OverlaySpec
   glass?: GlassSpec
   filter?: ColorFilterSpec[]
   blend?: BlendMode
@@ -222,6 +225,7 @@ export type LayoutNodeBase = {
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
+  overlay?: OverlaySpec
   glass?: GlassSpec
   colorFilter?: ColorFilterSpec[]
   blend?: BlendMode

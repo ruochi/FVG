@@ -126,6 +126,61 @@ describe('绘制', () => {
     expect(el?.innerGlow?.blur).toBe(10)
   })
 
+  it('Layer overlay 纯色叠加变暗，并进入报告', async () => {
+    const plain = await renderFvg(
+      `<Layer width="80" height="80" background="#000000">
+        <Layer width="60" height="60" cx="40" cy="40">
+          <Rect cx="30" cy="30" width="60" height="60" fill="#ffffff" />
+        </Layer>
+      </Layer>`,
+    )
+    const over = await renderFvg(
+      `<Layer width="80" height="80" background="#000000">
+        <Layer width="60" height="60" cx="40" cy="40" overlay="#00000088">
+          <Rect cx="30" cy="30" width="60" height="60" fill="#ffffff" />
+        </Layer>
+      </Layer>`,
+    )
+    const p = await pixels(plain.png)
+    const o = await pixels(over.png)
+    expect(p.at(40, 40)[0]).toBeGreaterThan(240)
+    expect(o.at(40, 40)[0]).toBeLessThan(200)
+    expect(o.at(40, 40)[0]).toBeGreaterThan(40)
+    const layer = over.report.elements.find((e) => e.tag === 'Layer' && e.overlay)
+    expect(layer?.overlay).toEqual({ paint: '#00000088', opacity: 1, blend: 'source-over' })
+  })
+
+  it('Layer overlay 渐变 + multiply', async () => {
+    const { png, report } = await renderFvg(
+      `<Layer width="100" height="40" background="#ffffff">
+        <Layer width="100" height="40" overlay="linear-gradient(to right, #ff0000, #0000ff) multiply">
+          <Rect cx="50" cy="20" width="100" height="40" fill="#ffffff" />
+        </Layer>
+      </Layer>`,
+    )
+    const { at } = await pixels(png)
+    const left = at(8, 20)
+    const right = at(92, 20)
+    expect(left[0]).toBeGreaterThan(left[2] + 40)
+    expect(right[2]).toBeGreaterThan(right[0] + 40)
+    const layer = report.elements.find((e) => e.overlay)
+    expect(layer?.overlay?.blend).toBe('multiply')
+    expect(layer?.overlay?.paint).toContain('linear-gradient')
+  })
+
+  it('Rect 上的 overlay 不生效', async () => {
+    const { png, report } = await renderFvg(
+      `<Layer width="60" height="60" background="#000000">
+        <Rect cx="30" cy="30" width="40" height="40" fill="#ffffff" overlay="#ff0000" />
+      </Layer>`,
+    )
+    const { at } = await pixels(png)
+    expect(at(30, 30)[0]).toBeGreaterThan(240)
+    expect(at(30, 30)[1]).toBeGreaterThan(240)
+    expect(report.issues.some((i) => i.message.includes('overlay'))).toBe(true)
+    expect(report.elements.find((e) => e.tag === 'Rect')?.overlay).toBeUndefined()
+  })
+
   it('clear glass 不模糊：中心原样透出，边缘弧面把内侧内容折射出来', async () => {
     // 左红右青，分界 x=165；圆心 (100,100) r=80 → 右缘弧面里的青色像素被向内折射成红色
     const scene = (glass: string) =>

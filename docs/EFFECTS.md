@@ -12,12 +12,13 @@
 | `backdrop-blur` | 背景模糊（采样主画布已有像素） |
 | `glass` | iOS Liquid Glass：边缘弧面折射 + 色散 + 朝光高光，`clear` 零模糊 |
 | `noise` | 确定性噪点，`soft-light` 叠加 |
+| `overlay` | **仅 Layer**：纯色 / 渐变叠加，`paint [opacity] [blend]`，按子树墨迹裁切 |
 | `filter` | 色彩滤镜（brightness / contrast / saturate / grayscale / hue-rotate / sepia / invert） |
 | `blend` | 混合模式子集 |
 
-归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。
+归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay` 例外：只允许写在 `Layer` 上。**
 
-绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` 或 `filter`，阴影到噪点先画进离屏再贴回。
+绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` 或 `filter`，阴影到噪点先画进离屏再贴回。
 
 ## 墨迹原则
 

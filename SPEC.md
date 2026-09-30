@@ -272,6 +272,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
 | `glass` | 见下 | iOS Liquid Glass：边缘凸弧面**透镜折射** + 色散 + 朝光高光；`clear` 不模糊；与 `backdrop-blur` 同时写时以 `glass` 为准 |
 | `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
+| `overlay` | `<paint> [opacity] [blend]` | **仅 Layer**：纯色或渐变叠加，按子树墨迹裁切；默认 opacity `1`、blend `source-over` |
 | `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
 | `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
 
@@ -279,7 +280,9 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 `filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+`overlay` **只写在 `Layer` 上**（图形 / 文字写了会 warn 并忽略）。`paint` 同 `fill`（纯色或渐变）；可选 `opacity`（`0–1` 或百分比）与混合模式（与 `blend` 同一集合）。示例：`overlay="#00000066"`、`overlay="#ff8800 0.4 multiply"`、`overlay="linear-gradient(to bottom, #ffffff00, #00000088) soft-light"`。
+
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 Layer 子树墨迹裁切。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
 
 ## 8. 布局报告
 
