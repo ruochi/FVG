@@ -611,29 +611,130 @@ function paintBackdropBlur(ctx: PaintCtx, node: LayoutNode, radius: number) {
   ctx.restore()
 }
 
+const EDT_INF = 1e20
+
+/** Felzenszwalb 一维平方距离变换 */
+function edt1d(f: Float64Array, n: number, d: Float64Array, v: Int32Array, z: Float64Array) {
+  let k = 0
+  v[0] = 0
+  z[0] = -EDT_INF
+  z[1] = EDT_INF
+  for (let q = 1; q < n; q++) {
+    let s = (f[q]! + q * q - (f[v[k]!]! + v[k]! * v[k]!)) / (2 * q - 2 * v[k]!)
+    while (s <= z[k]!) {
+      k--
+      s = (f[q]! + q * q - (f[v[k]!]! + v[k]! * v[k]!)) / (2 * q - 2 * v[k]!)
+    }
+    k++
+    v[k] = q
+    z[k] = s
+    z[k + 1] = EDT_INF
+  }
+  k = 0
+  for (let q = 0; q < n; q++) {
+    while (z[k + 1]! < q) k++
+    const dq = q - v[k]!
+    d[q] = dq * dq + f[v[k]!]!
+  }
+}
+
+/** 墨迹内部每个像素到最近墨迹边缘的欧氏距离（设备像素） */
+function inkDistanceField(maskData: Uint8ClampedArray, w: number, h: number): Float32Array {
+  const grid = new Float64Array(w * h)
+  for (let i = 0; i < w * h; i++) grid[i] = maskData[i * 4 + 3]! >= 128 ? EDT_INF : 0
+  const n = Math.max(w, h)
+  const f = new Float64Array(n)
+  const d = new Float64Array(n)
+  const v = new Int32Array(n)
+  const z = new Float64Array(n + 1)
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) f[y] = grid[y * w + x]!
+    edt1d(f, h, d, v, z)
+    for (let y = 0; y < h; y++) grid[y * w + x] = d[y]!
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) f[x] = grid[y * w + x]!
+    edt1d(f, w, d, v, z)
+    for (let x = 0; x < w; x++) grid[y * w + x] = d[x]!
+  }
+  const out = new Float32Array(w * h)
+  for (let i = 0; i < w * h; i++) out[i] = grid[i]! > 0 ? Math.max(0, Math.sqrt(grid[i]!) - 0.5) : 0
+  return out
+}
+
+/** 可分离盒式模糊，用来抹平二值距离场的台阶，让法线方向连续 */
+function boxBlurField(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  if (r < 1) return src
+  const tmp = new Float32Array(w * h)
+  const out = new Float32Array(w * h)
+  const span = 2 * r + 1
+  for (let y = 0; y < h; y++) {
+    const row = y * w
+    let acc = 0
+    for (let i = -r; i <= r; i++) acc += src[row + Math.min(w - 1, Math.max(0, i))]!
+    for (let x = 0; x < w; x++) {
+      tmp[row + x] = acc / span
+      acc += src[row + Math.min(w - 1, x + r + 1)]! - src[row + Math.max(0, x - r)]!
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let acc = 0
+    for (let i = -r; i <= r; i++) acc += tmp[Math.min(h - 1, Math.max(0, i)) * w + x]!
+    for (let y = 0; y < h; y++) {
+      out[y * w + x] = acc / span
+      acc += tmp[Math.min(h - 1, y + r + 1) * w + x]! - tmp[Math.max(0, y - r) * w + x]!
+    }
+  }
+  return out
+}
+
+const GLASS_PROFILE_STEPS = 256
+
 /**
- * 近似 iOS Liquid Glass：背景模糊 + 径向透镜折射（边缘放大）+ 顶部高光。
- * 不是物理级实时透镜，但对海报/单帧足够像。
+ * 边缘弧面的向内位移表：t∈[0,1]（0=边缘，1=弧面内沿）→ 位移（设备像素）。
+ * shift = S·(1-t)²：内沿处位移与斜率都归零，和平坦中心无缝衔接；
+ * S ≤ bezel/2 时 d + shift(d) 单调，背景在边缘被连续放大而不会翻折或拉成一条线。
  */
-function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec) {
-  if (node.width <= 0 || node.height <= 0) return
+function glassShiftTable(bezel: number, glass: GlassSpec): Float32Array {
+  const maxShift = bezel * 0.5 * Math.min(1, Math.max(0, glass.refraction))
+  const table = new Float32Array(GLASS_PROFILE_STEPS + 1)
+  for (let i = 0; i <= GLASS_PROFILE_STEPS; i++) {
+    const u = 1 - i / GLASS_PROFILE_STEPS
+    table[i] = maxShift * u * u
+  }
+  return table
+}
+
+/**
+ * iOS Liquid Glass：墨迹距离场 → 边缘凸弧面 Snell 折射（中心平坦不变形）→ 色散 → 朝光边缘高光。
+ * `blur` 为 0 时背景完全清晰，只有折射。
+ * `drawShadow` 在取样之后、玻璃落版之前画，投影不会透过玻璃被看到。
+ */
+function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec, drawShadow?: () => void) {
+  if (node.width <= 0 || node.height <= 0) {
+    drawShadow?.()
+    return
+  }
   const k = transformScale(ctx)
-  const samplePad = Math.ceil((glass.blur * 2 + Math.max(node.width, node.height) * glass.refraction * 2) * k)
+  const samplePad = Math.ceil(glass.blur * 2 * k) + 2
   const { matrix, minX, minY, sw, sh } = nodeDeviceBounds(ctx, node, samplePad)
-  if (sw <= 0 || sh <= 0) return
+  if (sw <= 0 || sh <= 0) {
+    drawShadow?.()
+    return
+  }
 
   const snapshot = ctx.getImageData(minX, minY, sw, sh)
-  const src = createCanvas(sw, sh)
-  const sctx = src.getContext('2d') as PaintCtx
-  sctx.putImageData(snapshot, 0, 0)
-
-  // 先糊再折射，接近「散射 + 透镜」叠层
-  const blurred = createCanvas(sw, sh)
-  const bctx = blurred.getContext('2d') as PaintCtx
-  bctx.filter = `blur(${glass.blur * k}px) saturate(1.15) brightness(1.04)`
-  bctx.drawImage(src, 0, 0)
-  bctx.filter = 'none'
-  const blurData = bctx.getImageData(0, 0, sw, sh).data
+  let srcData = snapshot.data
+  if (glass.blur > 0) {
+    const src = createCanvas(sw, sh)
+    ;(src.getContext('2d') as PaintCtx).putImageData(snapshot, 0, 0)
+    const blurred = createCanvas(sw, sh)
+    const bctx = blurred.getContext('2d') as PaintCtx
+    bctx.filter = `blur(${glass.blur * k}px) saturate(1.15) brightness(1.04)`
+    bctx.drawImage(src, 0, 0)
+    bctx.filter = 'none'
+    srcData = bctx.getImageData(0, 0, sw, sh).data
+  }
 
   const mask = createCanvas(sw, sh)
   const mctx = mask.getContext('2d') as PaintCtx
@@ -641,34 +742,77 @@ function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec) {
   drawNodeInk(mctx, node, 0, '#ffffff')
   const maskData = mctx.getImageData(0, 0, sw, sh).data
 
+  const rawDist = inkDistanceField(maskData, sw, sh)
+  let inradius = 0
+  for (let i = 0; i < rawDist.length; i++) if (rawDist[i]! > inradius) inradius = rawDist[i]!
+  const dist = boxBlurField(rawDist, sw, sh, Math.max(1, Math.round(1.5 * k)))
+
+  const bezelLogic = Math.min(64, Math.max(3, Math.min(node.width, node.height) * glass.bezel))
+  const bezel = Math.max(1, Math.min(bezelLogic * k, inradius))
+  const shiftTable = glassShiftTable(bezel, glass)
+  if (process.env.GLASS_DEBUG) console.log({ sw, sh, inradius, bezel, k, mid: rawDist[Math.floor(sh / 2) * sw + Math.floor(sw / 2)], table: [shiftTable[0], shiftTable[64], shiftTable[128], shiftTable[192], shiftTable[256]] })
+  const disp = glass.dispersion
+  const lineWidth = Math.max(0.8, 1.1 * k)
+  const lightX = -0.55
+  const lightY = -0.835
+
   const out = createCanvas(sw, sh)
   const octx = out.getContext('2d') as PaintCtx
   const outImg = octx.createImageData(sw, sh)
   const outData = outImg.data
 
-  // 元素中心（设备像素，相对采样区）
-  const cxLogic = node.x + node.width / 2
-  const cyLogic = node.y + node.height / 2
-  const centerX = matrix.a * cxLogic + matrix.c * cyLogic + matrix.e - minX
-  const centerY = matrix.b * cxLogic + matrix.d * cyLogic + matrix.f - minY
-  const radiusLogic = Math.hypot(node.width, node.height) / 2
-  const maxR = Math.max(1, radiusLogic * k)
-  const strength = Math.max(0, glass.refraction)
-
   for (let y = 0; y < sh; y++) {
     for (let x = 0; x < sw; x++) {
-      const mi = (y * sw + x) * 4
+      const i = y * sw + x
+      const mi = i * 4
       const a = maskData[mi + 3]!
       if (a < 1) continue
-      const dx = x - centerX
-      const dy = y - centerY
-      const dist = Math.hypot(dx, dy)
-      const t = Math.min(1, dist / maxR)
-      // 边缘更强：从中心取样 → 视觉上像透镜放大/折射
-      const bend = strength * t * t * (1.15 + glass.specular * 0.35)
-      const sx = centerX + dx * (1 - bend)
-      const sy = centerY + dy * (1 - bend)
-      const [r, g, b, sa] = sampleBilinear(blurData, sw, sh, sx, sy)
+      const d = rawDist[i]!
+      if (d >= bezel) {
+        outData[mi] = srcData[mi]!
+        outData[mi + 1] = srcData[mi + 1]!
+        outData[mi + 2] = srcData[mi + 2]!
+        outData[mi + 3] = (srcData[mi + 3]! * a) / 255
+        continue
+      }
+      const gx = dist[Math.min(sw - 1, x + 1) + y * sw]! - dist[Math.max(0, x - 1) + y * sw]!
+      const gy = dist[x + Math.min(sh - 1, y + 1) * sw]! - dist[x + Math.max(0, y - 1) * sw]!
+      const gl = Math.hypot(gx, gy)
+      const nx = gl > 1e-6 ? gx / gl : 0
+      const ny = gl > 1e-6 ? gy / gl : 0
+      const t = d / bezel
+      const shift = shiftTable[Math.min(GLASS_PROFILE_STEPS, Math.round(t * GLASS_PROFILE_STEPS))]!
+
+      let r: number
+      let g: number
+      let b: number
+      let sa: number
+      if (disp > 0) {
+        const sr = shift * (1 + disp)
+        const sb = shift * (1 - disp)
+        const cr = sampleBilinear(srcData, sw, sh, x + nx * sr, y + ny * sr)
+        const cg = sampleBilinear(srcData, sw, sh, x + nx * shift, y + ny * shift)
+        const cb = sampleBilinear(srcData, sw, sh, x + nx * sb, y + ny * sb)
+        r = cr[0]
+        g = cg[1]
+        b = cb[2]
+        sa = cg[3]
+      } else {
+        ;[r, g, b, sa] = sampleBilinear(srcData, sw, sh, x + nx * shift, y + ny * shift)
+      }
+
+      if (glass.specular > 0) {
+        // 外法线 = -梯度；朝光一侧亮，对侧有一道较弱的回光
+        const facing = -(nx * lightX + ny * lightY)
+        const lit = Math.pow(Math.max(0, facing), 1.3) + 0.45 * Math.pow(Math.max(0, -facing), 1.3) + 0.12
+        const u = 1 - t
+        const line = Math.exp(-d / lineWidth)
+        const hl = Math.min(1, (0.85 * line + 0.3 * u * u * u) * lit * glass.specular)
+        r += (255 - r) * hl
+        g += (255 - g) * hl
+        b += (255 - b) * hl
+        sa += (255 - sa) * hl
+      }
       outData[mi] = r
       outData[mi + 1] = g
       outData[mi + 2] = b
@@ -677,43 +821,16 @@ function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec) {
   }
   octx.putImageData(outImg, 0, 0)
 
-  // 色调层（glass tint 或淡白）
-  const tint = glass.tint ?? (glass.variant === 'clear' ? '#ffffff14' : glass.variant === 'thick' ? '#ffffff2a' : '#ffffff1f')
-  octx.save()
-  octx.globalCompositeOperation = 'source-atop'
-  octx.fillStyle = tint
-  octx.fillRect(0, 0, sw, sh)
-  octx.restore()
-
-  // 顶部高光（specular rim）
-  if (glass.specular > 0) {
-    const spec = createCanvas(sw, sh)
-    const sp = spec.getContext('2d') as PaintCtx
-    const grad = sp.createLinearGradient(0, 0, 0, sh * 0.55)
-    const peak = Math.min(0.85, 0.25 + glass.specular * 0.55)
-    grad.addColorStop(0, `rgba(255,255,255,${peak})`)
-    grad.addColorStop(0.35, `rgba(255,255,255,${peak * 0.25})`)
-    grad.addColorStop(1, 'rgba(255,255,255,0)')
-    sp.fillStyle = grad
-    sp.fillRect(0, 0, sw, sh)
-    // 只留上沿一条细高光带
-    sp.globalCompositeOperation = 'destination-in'
-    const band = sp.createLinearGradient(0, 0, 0, Math.max(8, sh * 0.22))
-    band.addColorStop(0, '#fff')
-    band.addColorStop(1, '#0000')
-    sp.fillStyle = band
-    sp.fillRect(0, 0, sw, sh)
+  const tint = glass.tint ?? (glass.variant === 'thick' ? '#ffffff2a' : glass.variant === 'regular' ? '#ffffff14' : undefined)
+  if (tint) {
     octx.save()
-    octx.globalCompositeOperation = 'screen'
-    octx.globalAlpha = 0.65 * glass.specular
-    octx.drawImage(spec, 0, 0)
+    octx.globalCompositeOperation = 'source-atop'
+    octx.fillStyle = tint
+    octx.fillRect(0, 0, sw, sh)
     octx.restore()
   }
 
-  // 墨迹裁切
-  octx.globalCompositeOperation = 'destination-in'
-  octx.drawImage(mask, 0, 0)
-
+  drawShadow?.()
   ctx.save()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.drawImage(out, minX, minY)
@@ -754,23 +871,27 @@ function paintNodeEffectsAndBody(
   state: PaintState,
   opts: { sampleBackdrop: boolean },
 ) {
-  // glass / backdrop-blur 采样背后像素，只能在主画布上做一次
-  if (opts.sampleBackdrop) {
-    if (node.glass) paintGlass(ctx, node, node.glass)
-    else if (node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
-  }
   // glass 未写 shadow 时补一层柔和投影，接近系统控件浮起感
-  if (node.shadow) {
-    drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeInk(ctx, node, spread))
-  } else if (node.glass) {
-    const depth = node.glass.variant === 'thick' ? 18 : node.glass.variant === 'clear' ? 10 : 14
-    drawEffect(
-      ctx,
-      state,
-      node,
-      { dx: 0, dy: depth * 0.35, blur: depth, spread: 0, color: '#00000033' },
-      (spread) => drawNodeInk(ctx, node, spread),
-    )
+  const drawShadow = () => {
+    if (node.shadow) {
+      drawEffect(ctx, state, node, shadowEffect(node.shadow), (spread) => drawNodeInk(ctx, node, spread))
+    } else if (node.glass) {
+      const depth = node.glass.variant === 'thick' ? 18 : node.glass.variant === 'clear' ? 12 : 14
+      drawEffect(
+        ctx,
+        state,
+        node,
+        { dx: 0, dy: depth * 0.35, blur: depth, spread: 0, color: '#0000002e' },
+        (spread) => drawNodeInk(ctx, node, spread),
+      )
+    }
+  }
+  // glass / backdrop-blur 采样背后像素，只能在主画布上做一次
+  if (opts.sampleBackdrop && node.glass) {
+    paintGlass(ctx, node, node.glass, drawShadow)
+  } else {
+    if (opts.sampleBackdrop && node.backdropBlur) paintBackdropBlur(ctx, node, node.backdropBlur)
+    drawShadow()
   }
   if (node.glow) paintGlow(ctx, state, node, node.glow, (spread) => drawNodeInk(ctx, node, spread))
   paintBody(ctx, node, debug, t, state)

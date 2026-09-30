@@ -269,12 +269,12 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `inner-glow` | 同 `glow` | 内发光，画在本体之后，不外扩 |
 | `blur` | 单个非负像素 | 图层模糊：糊本元素（含 Layer 子树）已绘制像素；外扩计入 `effect-clipped` |
 | `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
-| `glass` | 见下 | 近似 iOS Liquid Glass：背景模糊 + **透镜折射** + 顶部高光；与 `backdrop-blur` 同时写时以 `glass` 为准 |
+| `glass` | 见下 | iOS Liquid Glass：边缘凸弧面**透镜折射** + 色散 + 朝光高光；`clear` 不模糊；与 `backdrop-blur` 同时写时以 `glass` 为准 |
 | `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
 | `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
 | `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
 
-`glass` 写法：`regular` / `clear` / `thick`，或 `24` / `24 #ffffff33` / `thick #a8d8ff40`。折射按墨迹做径向取样位移（边缘放大），不是物理级实时透镜。
+`glass` 写法：`clear` / `regular` / `thick`，后可跟模糊像素与色调，如 `clear #a8c8ff20`、`regular 8 #ffffff22`、`0`。三档预设：`clear` 模糊 0（背景完全清晰，只有折射）、`regular` 模糊 6、`thick` 模糊 36（毛玻璃）。折射只发生在墨迹边缘的弧面带（宽约短边 24%，最多 64px）：背景向内取样、在边缘被放大弯折，中心平坦区原样透出。glass 的投影不会透过玻璃被看到。
 
 `filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
 

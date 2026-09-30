@@ -105,6 +105,8 @@ export type GlassSpec = {
   tint?: string
   refraction: number
   specular: number
+  bezel: number
+  dispersion: number
 }
 export type ColorFilterSpec =
   | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
