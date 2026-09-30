@@ -97,7 +97,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 `overflow="hidden"` 按 Layer 的盒子裁剪子元素。默认 `visible`。
 
-`background`、`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。
+`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。`Layer` 不填背景。色块用 `Rect` 的 `fill`，或 HTML 的 `style="background: …"`。`Layer` 或 `use` 上写 `background` 会警告并忽略。画布底色只写在根节点 `<fvg background>`。
 
 一组 HTML 要放到画面上，包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。
 
@@ -197,7 +197,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
-`fill`、`stroke` 和 Layer、文字的 `background` 可以写渐变。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。
+`fill`、`stroke` 和文字的 `background` 可以写渐变。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。
 
 ```html
 <Rect x="0" y="0" width="720" height="960" fill="linear-gradient(to bottom, #0c1424, #1a3352 55%, #6e7c72)" />
@@ -233,7 +233,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 锥形的 `u`、径向的 `v` 走到 1 就回到起点。要无缝接上，把第一个颜色或第一行在末尾再写一次。铺满整个盒子用矩阵；多行的 `linear` 只向线段左侧展开。盒子在某个方向上长度为 0 时（比如水平线没有高度），这一维没有变化：沿竖线变色写成两行，不要写成一行。
 
-画布 `background`、`Layer` 的 `background`、HTML 的 `style="background: …"`、形状和线条的 `fill` / `stroke` 都可以用 `gradient()`，也可以用上面的 `linear-gradient` / `radial-gradient`。文字的 `color` 仍是纯色。语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。线条上的渐变坐标相对线条的几何外框。
+画布 `background`、HTML 的 `style="background: …"`、形状和线条的 `fill` / `stroke` 都可以用 `gradient()`，也可以用上面的 `linear-gradient` / `radial-gradient`。文字的 `color` 仍是纯色。语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。线条上的渐变坐标相对线条的几何外框。
 
 带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<fvg>` 的 `draw` 和其它元素一样，在背景和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
 
