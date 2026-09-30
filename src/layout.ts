@@ -921,20 +921,22 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
     { ...ctx, useStack: [...ctx.useStack, id] },
   )
   const appearance = readAttrAppearance(node.attrs)
+  appearance.background = undefined
   return {
     ...laid,
     tag: 'use',
     id: node.attrs.id,
     path: ctx.pathPrefix,
     ...appearance,
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background, ctx.color)),
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const appearance = readAttrAppearance(node.attrs)
-  if (appearance.background) appearance.background = readPaint(appearance.background, 'transparent', ctx, 'background')
+  // 根节点的 background 是画布底色，由 paintDocument 绘制。Layer 自身不填色。
+  appearance.background = undefined
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
 
@@ -1040,7 +1042,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ...appearance,
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
-    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.background ?? appearance.border?.color, ctx.color)),
+    ...readEffects(node.attrs.shadow, node.attrs.glow, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -1114,7 +1116,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       code: 'invalid-attr',
       path: 'fvg',
       message: 'Layer 和图形不使用 style',
-      hint: '把 width、background、opacity 写成属性',
+      hint: '把 width、opacity 写成属性。背景用 Rect 的 fill，或 HTML 的 style',
     })
   }
   const paintCtx: LayoutContext = {

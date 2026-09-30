@@ -149,16 +149,26 @@ describe('gradient()', () => {
     expect(linePix[2]).toBeGreaterThan(40)
   })
 
-  it('矩阵铺满 Layer 背景', async () => {
+  it('矩阵铺满 Rect', async () => {
     const { png } = await render(
       `<fvg width="20" height="20" background="#000000">
-        <Layer width="20" height="20" background="gradient(#ff0000 #000000 / #000000 #00ff00)" />
+        <Rect x="0" y="0" width="20" height="20" fill="gradient(#ff0000 #000000 / #000000 #00ff00)" />
       </fvg>`,
     )
     const topLeft = await pixelAt(png, 1, 1)
     const bottomRight = await pixelAt(png, 18, 18)
     expect(topLeft[0]).toBeGreaterThan(200)
     expect(bottomRight[1]).toBeGreaterThan(200)
+  })
+
+  it('Layer 的 background 不绘制，画布底色仍在', async () => {
+    const { png, doc } = await render(
+      `<fvg width="20" height="20" background="#0000ff"><Layer width="20" height="20" background="#ff0000" /></fvg>`,
+    )
+    expect(doc.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('background'))).toBe(true)
+    const pix = await pixelAt(png, 10, 10)
+    expect(pix[2]).toBeGreaterThan(200)
+    expect(pix[0]).toBeLessThan(20)
   })
 
   it('写错的渐变退回纯色并报告', async () => {

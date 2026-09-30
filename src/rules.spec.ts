@@ -37,6 +37,14 @@ describe('属性归属', () => {
     expect(hit?.hint).toContain('style')
   })
 
+  it('Layer 写 background 报 warn', async () => {
+    const report = await issues(`<fvg width="400" height="200" background="#111"><Layer width="40" height="40" background="#fff" /></fvg>`)
+    const hit = report.issues.find((issue) => issue.message.includes('background'))
+    expect(hit?.level).toBe('warn')
+    expect(hit?.hint).toContain('Rect')
+    expect(report.issues.some((issue) => issue.path === 'fvg')).toBe(false)
+  })
+
   it('Layer 写 style 报 warn', async () => {
     const report = await issues(`<fvg width="400" height="200"><Layer cx="20" cy="20" style="background:#fff"></Layer></fvg>`)
     expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('style'))).toBe(true)
