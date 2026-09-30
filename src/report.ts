@@ -176,7 +176,7 @@ export function buildReport(doc: FvgDocument): FvgReport {
   }
 
   return {
-    fvg: '0.1',
+    flexlayer: '0.1',
     width: doc.width,
     height: doc.height,
     elements,

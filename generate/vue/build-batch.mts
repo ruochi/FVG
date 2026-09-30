@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const dir = join(root, 'examples', 'batch')
 mkdirSync(dir, { recursive: true })
 for (const poster of renderBatchPosters()) {
-  const file = join(dir, `${poster.id}.fvg`)
+  const file = join(dir, `${poster.id}.layer`)
   writeFileSync(file, poster.source)
   console.log(file)
 }

@@ -1,6 +1,6 @@
-# FVG
+# Flex Layer
 
-FVG（Flex Vector Graphics）用标签描述一帧画面：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。渲染器读入 `.fvg`，输出 PNG 和一份布局报告。
+Flex Layer 用标签描述一帧画面：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。渲染器读入 `.layer`，输出 PNG 和一份布局报告。
 
 规范见 [SPEC.md](SPEC.md)。给模型用的一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。当前版本是单帧 v0.1。
 
@@ -13,20 +13,20 @@ npm install
 npm run build
 ```
 
-默认字体是寒蝉端黑体。`Song`（宋体）、`Kai`（楷体）、`Brush`（书法）也是内置的，第一次用到时下载到 `~/.cache/fvg/fonts`。
+默认字体是寒蝉端黑体。`Song`（宋体）、`Kai`（楷体）、`Brush`（书法）也是内置的，第一次用到时下载到 `~/.cache/flexlayer/fonts`。
 
 ## 命令
 
 ```bash
-npx tsx src/cli.ts render examples/hello.fvg -o hello.png --report hello.json
-npx tsx src/cli.ts render examples/hello.fvg --debug --scale 0.5
-npx tsx src/cli.ts check examples/hello.fvg
+npx tsx src/cli.ts render examples/hello.layer -o hello.png --report hello.json
+npx tsx src/cli.ts render examples/hello.layer --debug --scale 0.5
+npx tsx src/cli.ts check examples/hello.layer
 ```
 
 构建之后也可以：
 
 ```bash
-node dist/cli.js render examples/hello.fvg -o hello.png
+node dist/cli.js render examples/hello.layer -o hello.png
 ```
 
 有 error 级别问题时，命令退出码为 1。
@@ -34,7 +34,7 @@ node dist/cli.js render examples/hello.fvg -o hello.png
 ## 代码调用
 
 ```ts
-import { renderFvg } from '@dc/fvg'
+import { renderFvg } from '@dc/flexlayer'
 
 const { png, report } = await renderFvg(source, { scale: 0.5 })
 ```
@@ -42,10 +42,10 @@ const { png, report } = await renderFvg(source, { scale: 0.5 })
 用 `h()` 或 JSX 构建节点时，可给任意元素挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
 
 ```ts
-import { h, renderFvg } from '@dc/fvg'
+import { h, renderFvg } from '@dc/flexlayer'
 
 const root = h(
-  'fvg',
+  'Layer',
   { width: '400', height: '300', background: '#fff' },
   h(
     'h1',
@@ -67,7 +67,7 @@ await renderFvg(root)
 按帧生成一组 PNG 和一张联系表：
 
 ```ts
-import { h, renderComposition, type Composition } from '@dc/fvg'
+import { h, renderComposition, type Composition } from '@dc/flexlayer'
 
 const scene: Composition = {
   id: 'slide',
@@ -77,7 +77,7 @@ const scene: Composition = {
   durationInFrames: 4,
   component: ({ frame }) =>
     h(
-      'fvg',
+      'Layer',
       { width: '32', height: '32', background: '#000' },
       h('Rect', { width: '8', height: '32', cx: String(4 + frame * 8), cy: '16', fill: '#fff' }),
     ),

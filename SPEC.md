@@ -1,7 +1,7 @@
-# FVG 规范 v0.1（Flex Vector Graphics）
+# Flex Layer 规范 v0.1
 
-FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
-动画 = 程序为每个时刻生成一份 FVG（v0.2 起）。
+Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
+动画 = 程序为每个时刻生成一份 Flex Layer（v0.2 起）。
 
 设计原则：
 
@@ -15,7 +15,7 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
 ## 1. 文件结构
 
 ```html
-<fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
+<Layer width="1080" height="1920" background="#0f1115" color="#ffffff">
   <font family="DeYiHei" src="https://example.com/deyihei.otf" />
   <Layer cx="540" cy="700">
     <div style="display:flex; flex-direction:column; gap:32px; align-items:center">
@@ -23,10 +23,10 @@ FVG 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用�
       <p style="color:#f7931a">每四年一次</p>
     </div>
   </Layer>
-</fvg>
+</Layer>
 ```
 
-根元素 `<fvg>` 本身就是一个 `Layer`（见下文），属性：
+根元素 `<Layer>` 本身就是一个 `Layer`（见下文），属性：
 
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -235,7 +235,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 画布 `background`、`Layer` 的 `background`、HTML 的 `style="background: …"`、形状和线条的 `fill` / `stroke` 都可以用 `gradient()`，也可以用上面的 `linear-gradient` / `radial-gradient`。文字的 `color` 仍是纯色。语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。线条上的渐变坐标相对线条的几何外框。
 
-带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<fvg>` 的 `draw` 和其它元素一样，在背景和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
+带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<Layer>` 的 `draw` 和其它元素一样，在背景和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
 
 ## 7. 线条
 
@@ -286,12 +286,12 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 ```json
 {
-  "fvg": "0.1",
+  "flexlayer": "0.1",
   "width": 1080,
   "height": 1920,
   "elements": [
     {
-      "path": "fvg/Layer[0]/div[0]/h1[0]",
+      "path": "Layer/Layer[0]/div[0]/h1[0]",
       "id": "title",
       "tag": "h1",
       "box": { "x": 330, "y": 600, "width": 420, "height": 106, "left": 330, "top": 600, "right": 750, "bottom": 706, "centerX": 540, "centerY": 653 },
@@ -302,7 +302,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
     }
   ],
   "issues": [
-    { "level": "warn", "code": "invalid-child", "path": "fvg/div[0]/Line[0]", "message": "线条不能放在 flex 容器内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
+    { "level": "warn", "code": "invalid-child", "path": "Layer/div[0]/Line[0]", "message": "线条不能放在 flex 容器内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
   ]
 }
 ```
@@ -338,17 +338,17 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 ## 9. 命令行
 
 ```bash
-fvg render scene.fvg -o scene.png --report scene.json   # 渲染 PNG + 报告
-fvg render scene.fvg --debug                             # 叠加画出盒子（蓝）和着墨范围（红）
-fvg render scene.fvg --scale 0.5                         # 缩小输出，方便 AI 快速查看
-fvg check scene.fvg                                      # 只输出检查结果，不出图
+flexlayer render scene.layer -o scene.png --report scene.json   # 渲染 PNG + 报告
+flexlayer render scene.layer --debug                             # 叠加画出盒子（蓝）和着墨范围（红）
+flexlayer render scene.layer --scale 0.5                         # 缩小输出，方便 AI 快速查看
+flexlayer check scene.layer                                      # 只输出检查结果，不出图
 ```
 
-默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/fvg/fonts`。
+默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/flexlayer/fonts`。
 
 ## 10. 自定义绘制 draw
 
-程序调用（React / Vue JSX 或 `h()`）时，任意元素可挂 `draw={(ctx, el) => { ... }}`。纯 `.fvg` 文本和 CLI 无法携带函数，行为与 v0.1 相同。
+程序调用（React / Vue JSX 或 `h()`）时，任意元素可挂 `draw={(ctx, el) => { ... }}`。纯 `.layer` 文本和 CLI 无法携带函数，行为与 v0.1 相同。
 
 绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素盒子的左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`，并且已经包含该元素和所有祖先 `Layer` 的 `rotate`、`scale`（绕各自的 `origin`）。线条的盒子是纯几何范围，所以水平线的 `el.h` 是 0。尺寸用 `el.w`、`el.h`，不要从 `el.attr` 推算。`opacity` 由外层统一乘到 `globalAlpha`。自定义属性原样出现在 `el.attr` 里。
 
@@ -366,9 +366,9 @@ fvg check scene.fvg                                      # 只输出检查结果
 未知标签若同时带有 `draw` 以及 `width` 与 `height`（属性或 `style`），会当作自定义盒子参与布局，不再报 `unknown-tag`；缺少尺寸时仍警告并跳过。
 
 ```ts
-import { h, renderFvg } from '@dc/fvg'
+import { h, renderFvg } from '@dc/flexlayer'
 
-const root = h('fvg', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
+const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
   h('h1', {
     cx: '540', cy: '700', anchor: 'center',
     style: 'font-size:96px; color:#f7931a',
@@ -386,14 +386,14 @@ const root = h('fvg', { width: '1080', height: '1920', background: '#0f1115', co
 await renderFvg(root)
 ```
 
-JSX 可将 `jsxImportSource` 设为 `@dc/fvg`，使用 `@dc/fvg/jsx-runtime`。
+JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-runtime`。
 
 ## 11. 帧序列
 
-动画由程序按时间生成一棵 FVG 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFvg` 不传 `t` 时，`el.t` 为 `0`。
+动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFvg` 不传 `t` 时，`el.t` 为 `0`。
 
 ```ts
-import { h, renderComposition, type Composition } from '@dc/fvg'
+import { h, renderComposition, type Composition } from '@dc/flexlayer'
 
 const scene: Composition = {
   id: 'halving',
@@ -402,7 +402,7 @@ const scene: Composition = {
   fps: 30,
   durationInFrames: 90,
   component: ({ frame, fps, t }) =>
-    h('fvg', { width: '1080', height: '1920', background: '#0f1115' },
+    h('Layer', { width: '1080', height: '1920', background: '#0f1115' },
       h('h1', { cy: String(700 + Math.sin(t) * 40) }, '比特币减半'),
     ),
 }
@@ -422,7 +422,7 @@ const { frames, contactSheet } = await renderComposition(scene)
 | `spring({ frame, fps })` | 阻尼弹簧，从 0 趋近 1。`frame` 为 0 时是 0 |
 | `sequence(input, { from, durationInFrames }, render)` | 当前帧落在区间内时，把减去 `from` 的局部 `frame` 和 `t` 交给 `render`；否则返回 `null` |
 
-同一 `frame` 调用两次，得到同一张 PNG。命令行仍只渲染 `.fvg` 文件。
+同一 `frame` 调用两次，得到同一张 PNG。命令行仍只渲染 `.layer` 文件。
 
 ## 12. 预留（后续版本）
 

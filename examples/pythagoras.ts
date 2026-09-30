@@ -470,7 +470,7 @@ export const pythagoras: Composition = {
   durationInFrames: DURATION,
   component: ({ frame }) =>
     h(
-      'fvg',
+      'Layer',
       { width: String(W), height: String(H), background: BG, color: INK },
       h('Dots', { cx: String(W / 2), cy: String(H / 2), width: String(W), height: String(H), draw: drawDots }),
       intro(frame),

@@ -1,38 +1,38 @@
-# 用 Vue 或 React 生成 FVG
+# 用 Vue 或 React 生成 Flex Layer
 
-FVG 的**生成**和**画图**是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
+Flex Layer 的**生成**和**画图**是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ```text
-Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
+Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  →  PNG
 ```
 
-生成层只产出 `.fvg` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。
+生成层只产出 `.layer` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。
 
 ## 规则（AI 必守）
 
 | 写什么 | 放哪里 |
 | --- | --- |
-| `fvg` 的 `width`、`height`、`background`、`color`、`safe` | 根元素**属性** |
+| 根 `<Layer>` 的 `width`、`height`、`background`、`color`、`safe` | 根元素**属性** |
 | `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
 | 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
-| 可复用块 | **PascalCase 组件名**，展开后只剩 FVG 标签 |
+| 可复用块 | **PascalCase 组件名**，展开后只剩 Flex Layer 标签 |
 
-`Layer` 和图形首字母大写。文字和 `div`、`fvg`、`symbol`、`use` 小写。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
+根与定位容器都是大写 `<Layer>`；图形首字母大写。文字和 `div`、`symbol`、`use` 小写。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
 
 生成完成后交给现有渲染器：
 
 ```ts
 import { writeFileSync } from 'node:fs'
-import { renderFvg } from '@dc/fvg'
+import { renderFvg } from '@dc/flexlayer'
 
 const source = '...' // 下面 Vue 或 React 的输出
-writeFileSync('out.fvg', source)
+writeFileSync('out.layer', source)
 const { png } = await renderFvg(source, { baseDir: process.cwd() })
 ```
 
-或 CLI：`npx tsx src/cli.ts render out.fvg -o out.png`
+或 CLI：`npx tsx src/cli.ts render out.layer -o out.png`
 
 ---
 
@@ -43,7 +43,7 @@ const { png } = await renderFvg(source, { baseDir: process.cwd() })
 **依赖（见 [`generate/vue/package.json`](generate/vue/package.json)）：**
 
 - `@vue/compiler-dom` — 编译模板（`v-for`、`v-if`、`{{ }}`、`:cx`）
-- `@vue/runtime-core` — 自定义渲染器，挂内存节点后序列化成 FVG
+- `@vue/runtime-core` — 自定义渲染器，挂内存节点后序列化成 Flex Layer
 
 **入口：**
 
@@ -59,7 +59,7 @@ import { renderVueFvg } from './generate/vue/renderVueFvg.js'
 
 const source = renderVueFvg({
   template: `
-<fvg width="320" height="200" background="#1a1220">
+<Layer width="320" height="200" background="#1a1220">
   <Circle
     v-for="(s, i) in stars"
     :key="s.name"
@@ -69,7 +69,7 @@ const source = renderVueFvg({
     fill="#fff8e7"
   />
   <Caption :text="title" />
-</fvg>
+</Layer>
   `,
   bindings: {
     title: '霜降',
@@ -107,7 +107,7 @@ const source = renderVueFvg({
 - `react`
 - `@types/react`（TypeScript）
 
-**类型：** [`generate/react/jsx.d.ts`](generate/react/jsx.d.ts) 声明 FVG 标签。
+**类型：** [`generate/react/jsx.d.ts`](generate/react/jsx.d.ts) 声明 Flex Layer 标签。
 
 **入口：**
 
@@ -139,20 +139,20 @@ const stars = [
 ]
 
 const source = renderReactFvg(
-  <fvg width="320" height="200" background="#1a1220">
+  <Layer width="320" height="200" background="#1a1220">
     {stars.map((s, i) => (
       <Circle key={s.name} cx={i * 80 + 40} cy={s.y} r={s.r} fill="#fff8e7" />
     ))}
     <Caption text="霜降" />
-  </fvg>,
+  </Layer>,
 )
 ```
 
 要点：
 
-- `fvg`、`div`、`h1` 小写，不用 import。`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
+- `div`、`h1` 小写，不用 import。根与定位都用 `Layer`；`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
 - 循环用 `array.map`；条件用 `{show && <Circle ... />}`。
-- 大写函数组件会展开，并且必须返回**单个** FVG 元素。
+- 大写函数组件会展开，并且必须返回**单个** Flex Layer 元素。
 
 实现说明：当前用 **React 元素树递归展开**（依赖 `react`）。若要用 `react-reconciler` 挂完整宿主，输出格式与这里相同。
 
@@ -167,7 +167,7 @@ cd generate && npm install
 cd .. && npm run test:generate
 ```
 
-测试会用 [`src/layout.ts`](src/layout.ts) 校验生成的 `.fvg` 能否布局，并确认没有 `row`、`column` 和小写图形标签。
+测试会用 [`src/layout.ts`](src/layout.ts) 校验生成的 `.layer` 能否布局，并确认没有 `row`、`column` 和小写图形标签。
 
 ### 完整海报示例（Vue）
 
@@ -175,5 +175,5 @@ cd .. && npm run test:generate
 
 ```bash
 npx tsx generate/vue/build-poster-city-jazz.mts
-npx tsx src/cli.ts render examples/poster-city-jazz.fvg -o poster-city-jazz.png --scale 0.5
+npx tsx src/cli.ts render examples/poster-city-jazz.layer -o poster-city-jazz.png --scale 0.5
 ```

@@ -8,7 +8,7 @@ import { Arrow as ArrowReact } from './arrowReact.js'
 import React from 'react'
 
 function documentOf(arrow: ReturnType<typeof arrowElement>): string {
-  const root = createHostElement('fvg')
+  const root = createHostElement('Layer')
   root.props.width = 640
   root.props.height = 360
   root.children = [arrow]
@@ -35,18 +35,18 @@ describe('Arrow 组件', () => {
     expect(() => arrowElement({ x1: 'nope', y1: 0, x2: 1, y2: 1 })).toThrow(/x1/)
   })
 
-  it('Vue 和 React 外壳展开成同一段 fvg', () => {
+  it('Vue 和 React 外壳展开成同一段 Layer', () => {
     const vue = renderVueFvg({
       template: `
-        <fvg width="640" height="360">
+        <Layer width="640" height="360">
           <Arrow :x1="280" :y1="200" :x2="420" :y2="200" stroke="#333" :stroke-width="6" />
-        </fvg>
+        </Layer>
       `,
       components: { Arrow: ArrowVue },
     })
     const react = renderReactFvg(
       React.createElement(
-        'fvg',
+        'Layer',
         { width: 640, height: 360 },
         React.createElement(ArrowReact, { x1: 280, y1: 200, x2: 420, y2: 200, stroke: '#333', strokeWidth: 6 }),
       ),

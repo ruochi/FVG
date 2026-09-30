@@ -999,7 +999,7 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
       code: 'missing-symbol',
       path: ctx.pathPrefix,
       message: `找不到 symbol #${id}`,
-      hint: `在 <fvg> 下写 <symbol id="${id}">…</symbol>`,
+      hint: `在 <Layer> 下写 <symbol id="${id}">…</symbol>`,
     })
     return null
   }
@@ -1193,7 +1193,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       rootNode = n
     }
   }
-  if (!rootNode) throw new Error('FVG 缺少根元素 <fvg> 或 <Layer>')
+  if (!rootNode) throw new Error('Flex Layer 缺少根元素 <Layer>')
   await registerFontsFromDocument(fontNodes.filter((f) => f.family && f.src), baseDir)
 
   const attrs = rootNode.attrs
@@ -1206,7 +1206,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
 
   const issues: Issue[] = []
   const symbols = new Map<string, FvgNode>()
-  collectSymbols(rootNode, symbols, issues, 'fvg')
+  collectSymbols(rootNode, symbols, issues, 'Layer')
   const families = new Set<string>([fontFamily])
   collectFontFamilies(rootNode, families)
   await ensureBuiltinFonts(families)
@@ -1214,7 +1214,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
     issues.push({
       level: 'warn',
       code: 'invalid-attr',
-      path: 'fvg',
+      path: 'Layer',
       message: 'Layer 和图形不使用 style',
       hint: '把 width、background、opacity 写成属性',
     })
@@ -1224,15 +1224,22 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
     fontFamily,
     maxContentWidth,
     issues,
-    pathPrefix: 'fvg',
+    pathPrefix: 'Layer',
     symbols,
     useStack: [],
   }
   const hadBackground = attrs.background != null && attrs.background.trim() !== ''
   const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'
   const rootAttrs = hadBackground ? { ...attrs, background } : attrs
-  const rootForLayout =
-    rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer', attrs: rootAttrs } : { ...rootNode, attrs: rootAttrs }
+  // 根必须是 Layer；旧写法 <fvg> 归一成 Layer
+  const rootForLayout = {
+    ...rootNode,
+    tag: rootNode.tag.toLowerCase() === 'fvg' ? 'Layer' : rootNode.tag,
+    attrs: rootAttrs,
+  }
+  if (rootForLayout.tag !== 'Layer') {
+    throw new Error(`Flex Layer 根元素必须是 <Layer>，收到 <${rootNode.tag}>`)
+  }
   const root = await layoutLayer(rootForLayout, paintCtx)
 
   root.width = width

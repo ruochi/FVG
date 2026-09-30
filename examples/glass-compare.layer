@@ -1,4 +1,4 @@
-<fvg width="1080" height="1280" background="#0a0e14" color="#f4f1ea" font-family="Kai">
+<Layer width="1080" height="1280" background="#0a0e14" color="#f4f1ea" font-family="Kai">
   <Rect x1="0" y1="0" x2="1080" y2="1280" fill="linear-gradient(to bottom, #121826, #1a3348 50%, #243c38)" />
 
   <!-- 共用背景：圆点 + 网格条，方便左右对比 -->
@@ -62,4 +62,4 @@
   <Layer cx="780" cy="960" anchor="center">
     <p style="font-size:28px; color:#ffffff">lens</p>
   </Layer>
-</fvg>
+</Layer>

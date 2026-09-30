@@ -12,7 +12,7 @@ function vue(template: string, bindings: Record<string, unknown> = {}, component
 
 export function renderBatchPosters(): BatchPoster[] {
   const ticket = vue(
-    `<fvg width="780" height="1200" background="#1a0b0c" color="#f4e6d4" safe="36">
+    `<Layer width="780" height="1200" background="#1a0b0c" color="#f4e6d4" safe="36">
       <Rect cx="390" cy="28" width="780" height="16" fill="#e23b2f" />
       <Layer cx="48" cy="72" anchor="top-left">
         <p style="font-size:22px; letter-spacing:6px; color:#e23b2f; white-space:nowrap">ADMIT ONE</p>
@@ -40,7 +40,7 @@ export function renderBatchPosters(): BatchPoster[] {
           <div v-for="(bar, i) in bars" :key="i" :style="'width:' + bar + 'px; height:72px; background:#f4e6d4'"></div>
         </div>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       rows: [
         { k: '场次', v: '03 月 21 日 19:30' },
@@ -52,7 +52,7 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const album = vue(
-    `<fvg width="1080" height="1080" background="#10241c" color="#e7f6ee" safe="48">
+    `<Layer width="1080" height="1080" background="#10241c" color="#e7f6ee" safe="48">
       <Circle cx="540" cy="400" r="220" fill="#0b1612" stroke="#7dffa8" stroke-width="10" />
       <Circle cx="540" cy="400" r="70" fill="#7dffa8" />
       <Circle cx="540" cy="400" r="16" fill="#10241c" />
@@ -67,12 +67,12 @@ export function renderBatchPosters(): BatchPoster[] {
           <p v-for="t in tracks" :key="t" style="font-size:26px; color:#b7d8c4; white-space:nowrap">{{ t }}</p>
         </div>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     { tracks: ['01 潮', '02 岸', '03 风'] },
   )
 
   const weather = vue(
-    `<fvg width="900" height="1500" background="#d7eef8" color="#14324a" safe="40">
+    `<Layer width="900" height="1500" background="#d7eef8" color="#14324a" safe="40">
       <Layer cx="60" cy="70" anchor="top-left">
         <p style="font-size:28px; color:#3d6d88; white-space:nowrap">上海 · 晴间多云</p>
       </Layer>
@@ -92,7 +92,7 @@ export function renderBatchPosters(): BatchPoster[] {
           </div>
         </div>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       hours: [
         { t: '08:00', s: '多云', c: '14°' },
@@ -105,7 +105,7 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const metro = vue(
-    `<fvg width="1680" height="840" background="#f4f1ea" color="#1c1a17" safe="40">
+    `<Layer width="1680" height="840" background="#f4f1ea" color="#1c1a17" safe="40">
       <Layer cx="64" cy="48" anchor="top-left">
         <p style="font-size:28px; letter-spacing:4px; color:#8a8175; white-space:nowrap">市域线路</p>
       </Layer>
@@ -120,7 +120,7 @@ export function renderBatchPosters(): BatchPoster[] {
       <Layer v-for="line in lines" :key="line.name + 'n'" cx="64" :cy="line.y" anchor="left">
         <p :style="'font-size:26px; color:' + line.color + '; white-space:nowrap'">{{ line.name }}</p>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       lines: [
         { name: '1', y: 280, color: '#e23b2f' },
@@ -140,7 +140,7 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const exhibit = vue(
-    `<fvg width="1080" height="1620" background="#f3efe6" color="#1a1814" safe="64">
+    `<Layer width="1080" height="1620" background="#f3efe6" color="#1a1814" safe="64">
       <Line x1="80" y1="80" x2="80" y2="1540" stroke="#1a1814" stroke-width="2" />
       <Layer cx="110" cy="90" anchor="top-left">
         <p style="font-size:24px; letter-spacing:6px; white-space:nowrap">美术馆 三月</p>
@@ -155,11 +155,11 @@ export function renderBatchPosters(): BatchPoster[] {
         <p style="font-size:28px; color:#5c564c; white-space:nowrap">3.12 — 5.02  免费预约</p>
       </Layer>
       <Rect cx="860" cy="1480" width="280" height="8" fill="#1a1814" />
-    </fvg>`,
+    </Layer>`,
   )
 
   const menu = vue(
-    `<fvg width="860" height="1500" background="#24160f" color="#f6efe6" safe="40">
+    `<Layer width="860" height="1500" background="#24160f" color="#f6efe6" safe="40">
       <Layer cx="430" cy="80" anchor="center">
         <p style="font-size:24px; letter-spacing:8px; color:#e07a3a; white-space:nowrap">SUPPER</p>
       </Layer>
@@ -177,7 +177,7 @@ export function renderBatchPosters(): BatchPoster[] {
       <Layer cx="430" cy="1400" anchor="center">
         <p style="font-size:24px; color:#a89080; white-space:nowrap">当日售罄即止</p>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       dishes: [
         { name: '番茄牛腩', price: '68' },
@@ -190,7 +190,7 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const derby = vue(
-    `<fvg width="1500" height="860" background="#0e1a14" color="#f4f7f2" safe="32">
+    `<Layer width="1500" height="860" background="#0e1a14" color="#f4f7f2" safe="32">
       <Rect cx="375" cy="430" width="750" height="860" fill="#143024" />
       <Rect cx="1125" cy="430" width="750" height="860" fill="#10243a" />
       <Layer cx="375" cy="180" anchor="center">
@@ -208,11 +208,11 @@ export function renderBatchPosters(): BatchPoster[] {
       <Layer cx="750" cy="430" anchor="center">
         <p style="font-size:48px; color:#f4f7f2; white-space:nowrap">终场</p>
       </Layer>
-    </fvg>`,
+    </Layer>`,
   )
 
   const fern = vue(
-    `<fvg width="980" height="1400" background="#f7f3ea" color="#2a3228" safe="48">
+    `<Layer width="980" height="1400" background="#f7f3ea" color="#2a3228" safe="48">
       <Ellipse cx="490" cy="460" rx="220" ry="280" fill="#e4efe0" stroke="#2f6b45" stroke-width="3" />
       <Ellipse cx="490" cy="460" rx="70" ry="150" fill="#2f6b45" />
       <Line x1="120" y1="860" x2="860" y2="860" stroke="#2a3228" stroke-width="1" />
@@ -228,11 +228,11 @@ export function renderBatchPosters(): BatchPoster[] {
       <Layer cx="120" cy="1120" anchor="top-left">
         <p style="font-size:26px; color:#4d5c48; width:740px">林下阴湿处。羽片对生，孢子囊群沿叶缘排列。</p>
       </Layer>
-    </fvg>`,
+    </Layer>`,
   )
 
   const market = vue(
-    `<fvg width="1080" height="1620" background="#fff6ea" color="#2a140c" safe="40">
+    `<Layer width="1080" height="1620" background="#fff6ea" color="#2a140c" safe="40">
       <Rect cx="540" cy="160" width="1080" height="220" fill="#d23a2a" />
       <Layer cx="540" cy="160" anchor="center">
         <h1 style="font-size:84px; color:#fff6ea; white-space:nowrap">早市</h1>
@@ -250,7 +250,7 @@ export function renderBatchPosters(): BatchPoster[] {
       <Layer cx="540" cy="1520" anchor="center">
         <p style="font-size:26px; color:#8a5a3a; white-space:nowrap">周六 6:00 — 11:00</p>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       stalls: [
         { name: '豆腐', where: '东棚', color: '#d23a2a' },
@@ -262,7 +262,7 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const month = vue(
-    `<fvg width="1100" height="1100" background="#f2f4f7" color="#1d2430" safe="36">
+    `<Layer width="1100" height="1100" background="#f2f4f7" color="#1d2430" safe="36">
       <Layer cx="64" cy="48" anchor="top-left">
         <h1 style="font-size:64px; white-space:nowrap">三月</h1>
       </Layer>
@@ -283,7 +283,7 @@ export function renderBatchPosters(): BatchPoster[] {
           </div>
         </div>
       </Layer>
-    </fvg>`,
+    </Layer>`,
     {
       heads: ['一', '二', '三', '四', '五', '六', '日'],
       weeks: [

@@ -1,4 +1,4 @@
-<fvg width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
+<Layer width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
   <Rect x1="0" y1="0" x2="900" y2="1100" fill="linear-gradient(to bottom, #101828, #16324a 55%, #1a4038)" />
 
   <!-- 细密条纹：折射时边缘会被放大/弯折 -->
@@ -38,4 +38,4 @@
   <Layer cx="450" cy="660" anchor="center">
     <p style="font-size:26px; color:#c5d0da">中心原样透出 · 边缘放大弯折</p>
   </Layer>
-</fvg>
+</Layer>

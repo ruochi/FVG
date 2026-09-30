@@ -144,7 +144,8 @@ export type ElementReport = {
 }
 
 export type FvgReport = {
-  fvg: string
+  /** 格式版本 */
+  flexlayer: string
   width: number
   height: number
   elements: ElementReport[]

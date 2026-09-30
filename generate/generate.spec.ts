@@ -8,7 +8,7 @@ import { renderStarsPosterVue } from './vue/example.ts'
 import { renderBatchPosters } from './vue/posters-batch.ts'
 
 beforeAll(async () => {
-  for (const dir of [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']) {
+  for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
     if (await initFontsForMeasure({ fontsCacheDir: dir })) break
   }
 })

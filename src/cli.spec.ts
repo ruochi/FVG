@@ -7,20 +7,20 @@ import { initFontsForMeasure } from './fonts.js'
 import { renderFvg } from './render.js'
 
 const pkgDir = join(fileURLToPath(import.meta.url), '..', '..')
-const helloPath = join(pkgDir, 'examples', 'hello.fvg')
+const helloPath = join(pkgDir, 'examples', 'hello.layer')
 
 beforeAll(async () => {
-  for (const dir of [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']) {
+  for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
     if (await initFontsForMeasure({ fontsCacheDir: dir })) break
   }
 })
 
-describe('render hello.fvg', () => {
+describe('render hello.layer', () => {
   it('生成 PNG', async () => {
     const source = await readFile(helloPath, 'utf8')
     const { png, report } = await renderFvg(source, {
       baseDir: join(pkgDir, 'examples'),
-      fontsCacheDir: join(homedir(), '.cache', 'fvg', 'fonts'),
+      fontsCacheDir: join(homedir(), '.cache', 'flexlayer', 'fonts'),
     })
     expect(png[0]).toBe(0x89)
     expect(png[1]).toBe(0x50)

@@ -1,4 +1,4 @@
-<fvg width="1080" height="1400" background="#12161c" color="#e8e4dc" font-family="Kai">
+<Layer width="1080" height="1400" background="#12161c" color="#e8e4dc" font-family="Kai">
   <Rect x1="0" y1="0" x2="1080" y2="1400" fill="linear-gradient(to bottom, #0e1218, #1a2430 55%, #2a3540)" />
 
   <Layer cx="80" cy="64" anchor="top-left">
@@ -61,4 +61,4 @@
   <Layer cx="690" cy="1345" anchor="top">
     <p style="font-size:26px; color:#9aa7b5">blend screen</p>
   </Layer>
-</fvg>
+</Layer>

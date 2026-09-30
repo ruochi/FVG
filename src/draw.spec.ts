@@ -10,10 +10,10 @@ import { layoutSource } from './layout.js'
 import { renderFvg } from './render.js'
 
 const pkgDir = join(fileURLToPath(import.meta.url), '..', '..')
-const helloPath = join(pkgDir, 'examples', 'hello.fvg')
+const helloPath = join(pkgDir, 'examples', 'hello.layer')
 
 beforeAll(async () => {
-  for (const dir of [join(homedir(), '.cache', 'fvg', 'fonts'), '/tmp/fvgtest']) {
+  for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
     if (await initFontsForMeasure({ fontsCacheDir: dir })) break
   }
 })
@@ -32,7 +32,7 @@ describe('draw(ctx, el)', () => {
     let seen: Record<string, unknown> | null = null
 
     const root = h(
-      'fvg',
+      'Layer',
       { width: '400', height: '300', background: '#ffffff', color: '#111111' },
       h(
         'h1',
@@ -84,7 +84,7 @@ describe('draw(ctx, el)', () => {
   it('未知标签带 draw 与尺寸时参与布局', async () => {
     let drawCalled = false
     const root = h(
-      'fvg',
+      'Layer',
       { width: '200', height: '200', background: '#000000' },
       h(
         'Ring',
@@ -122,7 +122,7 @@ describe('draw(ctx, el)', () => {
   it('线条上的 draw 原点在几何范围的左上角', async () => {
     let seen: { w: number; h: number } | null = null
     const root = h(
-      'fvg',
+      'Layer',
       { width: '200', height: '80', background: '#000000' },
       h('Line', {
         x1: '20',
@@ -148,7 +148,7 @@ describe('draw(ctx, el)', () => {
   it('形状上的自定义属性出现在 el.attr', async () => {
     let total = ''
     const root = h(
-      'fvg',
+      'Layer',
       { width: '80', height: '80' },
       h('Rect', {
         cx: '40',
@@ -165,11 +165,11 @@ describe('draw(ctx, el)', () => {
     expect(total).toBe('33')
   })
 
-  it('根节点 fvg 的 draw 在子元素之后执行', async () => {
+  it('根节点 Layer 的 draw 在子元素之后执行', async () => {
     let seen: { w: number; h: number; t: number } | null = null
     let childAtDraw: number[] | null = null
     const root = h(
-      'fvg',
+      'Layer',
       {
         width: '80',
         height: '40',
@@ -198,7 +198,7 @@ describe('draw(ctx, el)', () => {
     expect(child[2]).toBeLessThan(40)
   })
 
-  it('hello.fvg 无 draw 时结果不变', async () => {
+  it('hello.layer 无 draw 时结果不变', async () => {
     const source = await readFile(helloPath, 'utf8')
     const { report } = await renderFvg(source, {
       baseDir: join(pkgDir, 'examples'),

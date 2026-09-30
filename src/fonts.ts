@@ -19,7 +19,7 @@ export function setFontsCacheDir(dir: string | undefined): void {
 }
 
 export function getFontsCacheDir(): string {
-  return cacheDirOverride ?? join(homedir(), '.cache', 'fvg', 'fonts')
+  return cacheDirOverride ?? join(homedir(), '.cache', 'flexlayer', 'fonts')
 }
 
 async function fileExists(path: string): Promise<boolean> {

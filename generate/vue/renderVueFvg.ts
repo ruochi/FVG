@@ -123,7 +123,7 @@ function compileRender(template: string, componentNames: Set<string>): RenderFn 
     }).code
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`FVG 模板编译失败: ${message}`)
+    throw new Error(`Flex Layer 模板编译失败: ${message}`)
   }
   const factory = new Function('Vue', code) as (vue: typeof VueRuntime) => RenderFn
   return factory(VueRuntime)
@@ -165,7 +165,7 @@ function prepareComponents(components: Record<string, VueFvgComponent>): Record<
   return prepared
 }
 
-/** Vue 模板 → FVG 文本。未注册的标签按原样输出，PascalCase 组件在 components 里注册。 */
+/** Vue 模板 → Flex Layer 文本。未注册的标签按原样输出，PascalCase 组件在 components 里注册。 */
 export function renderVueFvg(options: VueFvgOptions): string {
   const components = prepareComponents(options.components ?? {})
   const componentNames = new Set(Object.keys(components))
@@ -182,6 +182,6 @@ export function renderVueFvg(options: VueFvgOptions): string {
   )
   render(vnode, container as unknown as RendererElement)
   const roots = container.children.filter((c): c is FvgHostElement => c.kind === 'el')
-  if (roots.length !== 1) throw new Error('模板需要一个 <fvg> 根元素')
+  if (roots.length !== 1) throw new Error('模板需要一个 <Layer> 根元素')
   return serializeFvgDocument(roots[0]!)
 }

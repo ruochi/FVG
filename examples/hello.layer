@@ -1,4 +1,4 @@
-<fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
+<Layer width="1080" height="1920" background="#0f1115" color="#ffffff">
   <Layer cx="540" cy="700">
     <div style="display:flex; flex-direction:column; gap:32px; align-items:center">
       <h1 style="font-size:96px; color:#fff">比特币减半</h1>
@@ -9,4 +9,4 @@
     </div>
   </Layer>
   <Circle cx="540" cy="1300" r="180" fill="none" stroke="#f7931a" stroke-width="12" />
-</fvg>
+</Layer>

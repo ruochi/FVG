@@ -45,24 +45,23 @@ type FvgShape = FvgPositioned &
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      fvg: FvgCommon & {
-        width?: number | string
-        height?: number | string
-        background?: string
-        color?: string
-        safe?: number | string
-      }
       font: { family?: string; src?: string }
+      /** 根画布与定位容器：根上写 width/height/background/color/safe */
       Layer: FvgPositioned &
         FvgEffects & {
           width?: number | string
           height?: number | string
           background?: string
+          color?: string
+          'font-family'?: string
+          safe?: number | string
           opacity?: number | string
           rotate?: number | string
           scale?: number | string
           origin?: string
           overflow?: string
+          border?: string
+          'border-radius'?: string | number
         }
       symbol: FvgCommon & { width?: number | string; height?: number | string }
       use: FvgPositioned & { href?: string; rotate?: number | string; scale?: number | string }

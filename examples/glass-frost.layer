@@ -1,4 +1,4 @@
-<fvg width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
+<Layer width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
   <Rect x1="0" y1="0" x2="900" y2="1100" fill="linear-gradient(to bottom, #141a28, #1e3a4a 50%, #2d4a3e)" />
 
   <!-- 高对比背景：条纹 + 色块，糊掉后应看不清细节 -->
@@ -29,4 +29,4 @@
   <Layer cx="450" cy="660" anchor="center">
     <p style="font-size:26px; color:#c5d0da">细节不可读 · 像 iOS 磨砂材质</p>
   </Layer>
-</fvg>
+</Layer>

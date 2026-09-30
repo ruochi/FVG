@@ -33,3 +33,7 @@ export async function checkFvg(source: string | FvgNode, options: RenderOptions 
   const doc = await layoutSource(source, options.baseDir ?? process.cwd())
   return buildReport(doc)
 }
+
+/** 与 renderFvg / checkFvg 相同，推荐新名字 */
+export const renderLayer = renderFvg
+export const checkLayer = checkFvg

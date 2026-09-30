@@ -1,5 +1,5 @@
 {
-  "name": "@dc/fvg-generate",
+  "name": "@dc/flexlayer-generate",
   "version": "0.1.0",
   "private": true,
   "type": "module",
