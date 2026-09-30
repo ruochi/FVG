@@ -1,3 +1,5 @@
 export { renderReactFvg, Fragment, isValidElement, type ReactElement, type ReactNode } from './renderReactFvg.js'
 export { Arrow as ArrowReact } from '../components/arrowReact.js'
 export { renderStarsPosterReact, StarsPosterReact, starsExample } from './example.js'
+export { EffectsGalleryReact, renderEffectsGalleryReact } from './effects-gallery.js'
+export { FVG_EFFECT_ATTRS, FVG_EFFECT_EXAMPLES, type FvgEffectsProps, type FvgEffectAttr } from '../effects.js'

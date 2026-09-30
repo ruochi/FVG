@@ -3,7 +3,10 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { initFontsForMeasure } from '../src/fonts.js'
 import { layoutSource } from '../src/layout.js'
+import { FVG_EFFECT_ATTRS } from './effects.ts'
+import { renderEffectsGalleryReact } from './react/effects-gallery.tsx'
 import { renderStarsPosterReact } from './react/example.tsx'
+import { renderEffectsGalleryVue } from './vue/effects-gallery.ts'
 import { renderStarsPosterVue } from './vue/example.ts'
 import { renderBatchPosters } from './vue/posters-batch.ts'
 
@@ -58,6 +61,23 @@ describe('serialize + 生成器', () => {
     const circles = doc.root.children.filter((n) => n.tag === 'Circle')
     expect(circles.length).toBe(2)
     expect(doc.issues.filter((issue) => issue.code === 'unknown-tag')).toEqual([])
+  })
+
+  it('效果总览：Vue / React 都写出全部效果属性', async () => {
+    const vue = renderEffectsGalleryVue()
+    const react = renderEffectsGalleryReact()
+    for (const source of [vue, react]) {
+      for (const attr of FVG_EFFECT_ATTRS) {
+        expect(source, attr).toMatch(new RegExp(`\\b${attr}="`))
+      }
+      expect(source).toContain('glass="clear"')
+      expect(source).toContain('glass="thick"')
+      expect(source).toMatch(/shadow:\s*12 16 0 #ff5aa5/)
+      expect(source).not.toMatch(OLD_TAG)
+      const doc = await layoutSource(source, process.cwd())
+      expect(doc.issues.filter((issue) => issue.code === 'unknown-tag')).toEqual([])
+      expect(doc.issues.filter((issue) => issue.severity === 'error')).toEqual([])
+    }
   })
 
   it('十张海报没有旧标签，布局不报 unknown-tag', async () => {

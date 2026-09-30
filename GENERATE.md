@@ -6,14 +6,14 @@ FVG 的**生成**和**画图**是两层。可复用块的写法见 [generate/COM
 Vue 模板 / React JSX  →  .fvg 文本  →  renderFvg / fvg render  →  PNG
 ```
 
-生成层只产出 `.fvg` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。
+生成层只产出 `.fvg` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。全部效果的视觉总览与手册：[examples/effects-gallery.png](examples/effects-gallery.png) · [docs/EFFECTS.md](docs/EFFECTS.md)。
 
 ## 规则（AI 必守）
 
 | 写什么 | 放哪里 |
 | --- | --- |
 | `fvg` 的 `width`、`height`、`background`、`color`、`safe` | 根元素**属性** |
-| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
+| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`glass`/`blur` 等，见 [`generate/effects.ts`](generate/effects.ts)） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
 | 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
@@ -95,6 +95,7 @@ const source = renderVueFvg({
 - 未注册的标签按模板里的大小写输出。`Circle`、`Layer` 不用注册。
 - `Caption` 这种组件名在 `components` 里注册，展开后文件里不留这个名字。
 - 动态坐标用 `:cx="表达式"`。半径写 `:r="s.r"`，不要放进 `style`。
+- 效果属性写在标签上：`shadow` / `glow` / `glass="clear"` / `backdrop-blur="16"` 等。完整模板见 [`generate/vue/effects-gallery.ts`](generate/vue/effects-gallery.ts)。
 
 ---
 
@@ -153,6 +154,7 @@ const source = renderReactFvg(
 - `fvg`、`div`、`h1` 小写，不用 import。`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
 - 循环用 `array.map`；条件用 `{show && <Circle ... />}`。
 - 大写函数组件会展开，并且必须返回**单个** FVG 元素。
+- 效果属性：`shadow` / `glow` / `glass` / `blur` 等写在图形与 `Layer` 上（`Line` / `Path` 也支持）；类型见 [`generate/react/jsx.d.ts`](generate/react/jsx.d.ts)。完整模板见 [`generate/react/effects-gallery.tsx`](generate/react/effects-gallery.tsx)。
 
 实现说明：当前用 **React 元素树递归展开**（依赖 `react`）。若要用 `react-reconciler` 挂完整宿主，输出格式与这里相同。
 
