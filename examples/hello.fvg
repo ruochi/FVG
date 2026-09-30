@@ -1,12 +1,12 @@
 <fvg width="1080" height="1920" background="#0f1115" color="#ffffff">
   <Layer cx="540" cy="700">
-    <Column style="gap:32px; align-items:center">
+    <div style="display:flex; flex-direction:column; gap:32px; align-items:center">
       <h1 style="font-size:96px; color:#fff">比特币减半</h1>
-      <Row style="gap:24px">
+      <div style="display:flex; gap:24px">
         <div style="padding:16px 28px; background:#f7931a; border-radius:999px; font-size:40px; color:#111">2024</div>
         <div style="padding:16px 28px; border:2px solid #f7931a; border-radius:999px; font-size:40px; color:#fff">3.125 BTC</div>
-      </Row>
-    </Column>
+      </div>
+    </div>
   </Layer>
   <Circle cx="540" cy="1300" r="180" fill="none" stroke="#f7931a" stroke-width="12" />
 </fvg>

@@ -91,7 +91,8 @@ describe('draw(ctx, el)', () => {
         {
           cx: '100',
           cy: '100',
-          style: 'width:80px; height:80px',
+          width: '80',
+          height: '80',
           draw: (ctx, el) => {
             drawCalled = true
             ctx.fillStyle = '#ffffff'

@@ -8,7 +8,7 @@ async function issues(source: string) {
 
 describe('属性归属', () => {
   it('flex 子元素写 cx 报 warn 并带 hint', async () => {
-    const report = await issues(`<fvg width="400" height="200"><Row><p cx="10" cy="10">甲</p></Row></fvg>`)
+    const report = await issues(`<fvg width="400" height="200"><div style="display:flex"><p cx="10" cy="10">甲</p></div></fvg>`)
     const hit = report.issues.find((issue) => issue.code === 'invalid-attr')
     expect(hit?.level).toBe('warn')
     expect(hit?.hint).toBeTruthy()
@@ -24,11 +24,22 @@ describe('属性归属', () => {
     expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('线条'))).toBe(true)
   })
 
-  it('Row 在 Layer 里写 cx 报 non-canonical', async () => {
-    const report = await issues(`<fvg width="400" height="200"><Row cx="20" cy="20"><p>甲</p></Row></fvg>`)
-    const hit = report.issues.find((issue) => issue.code === 'non-canonical')
-    expect(hit?.level).toBe('info')
-    expect(hit?.hint).toContain('Layer')
+  it('Row 报 unknown-tag，并提示改成 div', async () => {
+    const report = await issues(`<fvg width="400" height="200"><Row><p>甲</p></Row></fvg>`)
+    const hit = report.issues.find((issue) => issue.code === 'unknown-tag')
+    expect(hit?.hint).toContain('display:flex')
+  })
+
+  it('HTML 上的 width 属性报 warn', async () => {
+    const report = await issues(`<fvg width="400" height="200"><p width="80">甲</p></fvg>`)
+    const hit = report.issues.find((issue) => issue.code === 'invalid-attr')
+    expect(hit?.message).toContain('width')
+    expect(hit?.hint).toContain('style')
+  })
+
+  it('Layer 写 style 报 warn', async () => {
+    const report = await issues(`<fvg width="400" height="200"><Layer cx="20" cy="20" style="background:#fff"></Layer></fvg>`)
+    expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('style'))).toBe(true)
   })
 
   it('形状写 anchor 报 non-canonical，仍然按 anchor 绘制', async () => {
@@ -55,6 +66,6 @@ describe('属性归属', () => {
   it('文字盒子里的块级标签报 invalid-child', async () => {
     const report = await issues(`<fvg width="400" height="200"><div cx="40" cy="40"><h3>标题</h3></div></fvg>`)
     const hit = report.issues.find((issue) => issue.code === 'invalid-child')
-    expect(hit?.hint).toContain('Column')
+    expect(hit?.hint).toContain('display:flex')
   })
 })

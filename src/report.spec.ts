@@ -94,7 +94,7 @@ describe('buildReport', () => {
 
   it('完全透明的重叠文字不报 text-overlap', async () => {
     const rep = await checkFvg(
-      `<fvg width="400" height="200"><h1 cx="120" cy="80" opacity="0">勾股</h1><h1 cx="120" cy="80" opacity="0">勾股</h1></fvg>`,
+      `<fvg width="400" height="200"><h1 style="opacity:0">勾股</h1><h1 style="opacity:0">勾股</h1></fvg>`,
     )
     expect(rep.issues.some((i) => i.code === 'text-overlap')).toBe(false)
     expect(rep.elements.filter((e) => e.tag === 'h1')).toHaveLength(2)

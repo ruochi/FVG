@@ -15,12 +15,12 @@ beforeAll(async () => {
 describe('layoutSource', () => {
   it('Layer anchor top-left', async () => {
     const doc = await layoutSource(
-      `<fvg width="400" height="300" background="#fff"><h1 cx="10" cy="10" anchor="top-left">A</h1></fvg>`,
+      `<fvg width="400" height="300" background="#fff"><Layer cx="10" cy="10" anchor="top-left"><h1>A</h1></Layer></fvg>`,
       process.cwd(),
     )
-    const h1 = doc.root.children[0]
-    expect(h1?.x).toBe(10)
-    expect(h1?.y).toBe(10)
+    const layer = doc.root.children[0]
+    expect(layer?.x).toBe(10)
+    expect(layer?.y).toBe(10)
   })
 
   it('线条边界盒', async () => {
@@ -63,26 +63,18 @@ describe('layoutSource', () => {
     expect(doc.issues.some((issue) => issue.code === 'invalid-attr' && issue.hint)).toBe(true)
   })
 
-  it('Row 直接定位和包一层 Layer 得到同一个盒子', async () => {
-    const direct = await layoutSource(
-      `<fvg width="800" height="400"><Row cx="120" cy="64" anchor="top-left" style="gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></Row></fvg>`,
+  it('竖排 flex 把文字排成一列', async () => {
+    const doc = await layoutSource(
+      `<fvg width="800" height="400"><div style="display:flex; flex-direction:column; gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></div></fvg>`,
       process.cwd(),
     )
-    const wrapped = await layoutSource(
-      `<fvg width="800" height="400"><Layer cx="120" cy="64" anchor="top-left"><Row style="gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></Row></Layer></fvg>`,
-      process.cwd(),
-    )
-    const row = direct.root.children[0]!
-    const layer = wrapped.root.children[0]!
-    expect(layer.x).toBeCloseTo(row.x, 3)
-    expect(layer.y).toBeCloseTo(row.y, 3)
-    expect(layer.width).toBeCloseTo(row.width, 3)
-    expect(layer.height).toBeCloseTo(row.height, 3)
+    const column = doc.root.children[0] as { children: Array<{ y: number }> }
+    expect(column.children[1]!.y).toBeGreaterThan(column.children[0]!.y)
   })
 
-  it('Row 里带内边距的短文字不被小数宽度挤到换行', async () => {
+  it('flex 里带内边距的短文字不被小数宽度挤到换行', async () => {
     const doc = await layoutSource(
-      `<fvg width="1920" height="1080"><Row style="gap:20px"><div style="padding:2px 29px; font-size:72px">a²</div><div style="padding:4px 22px; border:2px solid #333; font-size:44px">1 三角形</div></Row></fvg>`,
+      `<fvg width="1920" height="1080"><div style="display:flex; gap:20px"><div style="padding:2px 29px; font-size:72px">a²</div><div style="padding:4px 22px; border:2px solid #333; font-size:44px">1 三角形</div></div></fvg>`,
       process.cwd(),
     )
     expect(doc.issues.filter((i) => i.code === 'auto-wrap')).toEqual([])
@@ -104,9 +96,9 @@ describe('layoutSource', () => {
     expect(second?.y).toBe(30)
   })
 
-  it('invalid-child 线条进 Row', async () => {
+  it('invalid-child 线条进 flex', async () => {
     const doc = await layoutSource(
-      `<fvg width="200" height="200"><Row><Line x1="0" y1="0" x2="10" y2="10" /></Row></fvg>`,
+      `<fvg width="200" height="200"><div style="display:flex"><Line x1="0" y1="0" x2="10" y2="10" /></div></fvg>`,
       process.cwd(),
     )
     expect(doc.issues.some((i) => i.code === 'invalid-child')).toBe(true)

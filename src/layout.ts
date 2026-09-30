@@ -27,8 +27,8 @@ import {
   isTextBoxTag,
   layoutText,
 } from './text.js'
-import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint } from './rules.js'
-import { FONT_TAG, isFlexTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint, isDisplayFlex, rowColumnHint } from './rules.js'
+import { FONT_TAG, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
 import type {
   Anchor,
   Box,
@@ -108,21 +108,34 @@ function nodePath(prefix: string, tag: string, index: number): string {
   return `${prefix}/${tag}[${index}]`
 }
 
-function readAppearance(attrs: Record<string, string>, style: Record<string, string>, ctx: LayoutContext) {
-  const padding = parseEdges(style.padding) ?? ZERO_EDGES
-  const border = parseBorder(style.border)
-  const borderRadius = parsePx(style['border-radius']) ?? 0
-  const background = style.background ?? style['background-color']
+function readHtmlAppearance(style: Record<string, string>) {
   return {
-    padding,
-    border,
-    borderRadius,
-    background,
+    padding: parseEdges(style.padding) ?? ZERO_EDGES,
+    border: parseBorder(style.border),
+    borderRadius: parsePx(style['border-radius']) ?? 0,
+    background: style.background ?? style['background-color'],
+    opacity: parseNumber(style.opacity) ?? 1,
+    rotate: parseNumber(style.rotate) ?? 0,
+    scale: parseNumber(style.scale) ?? 1,
+    origin: parseAnchor(style.origin),
+  }
+}
+
+function readAttrAppearance(attrs: Record<string, string>) {
+  return {
+    padding: ZERO_EDGES,
+    border: parseBorder(attrs.border),
+    borderRadius: parsePx(attrs['border-radius']) ?? 0,
+    background: attrs.background,
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
     origin: parseAnchor(attrs.origin),
   }
+}
+
+function flexDirectionOf(style: Record<string, string>): 'row' | 'column' {
+  return style['flex-direction']?.trim().toLowerCase() === 'column' ? 'column' : 'row'
 }
 
 function directTextContent(node: FvgNode): string {
@@ -144,7 +157,7 @@ function computeDrawStyle(node: FvgNode, ctx: LayoutContext, style: Record<strin
     parseFontWeight(style['font-weight']) ?? (isTextBoxTag(node.tag) ? defaultFontWeightForTag(tag) : 400)
   const fontFamily = style['font-family']?.trim() || ctx.fontFamily
   const color = style.color ?? ctx.color
-  const opacity = parseNumber(node.attrs.opacity) ?? 1
+  const opacity = isTextBoxTag(node.tag) ? parseNumber(style.opacity) ?? 1 : parseNumber(node.attrs.opacity) ?? 1
   return { color, fontFamily, fontSize, fontWeight, opacity }
 }
 
@@ -161,11 +174,10 @@ function layoutDrawMeta(node: FvgNode, ctx: LayoutContext) {
 
 function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode | null {
   if (!node.draw) return null
-  const style = parseStyle(node.attrs.style)
   let x = 0
   let y = 0
-  let w = parsePx(style.width) ?? parseNumber(node.attrs.width)
-  let h = parsePx(style.height) ?? parseNumber(node.attrs.height)
+  let w = parseNumber(node.attrs.width)
+  let h = parseNumber(node.attrs.height)
   if (hasTwoPoint(node.attrs)) {
     const x1 = parseNumber(node.attrs.x1) ?? 0
     const y1 = parseNumber(node.attrs.y1) ?? 0
@@ -180,7 +192,7 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
     y = parseNumber(node.attrs.y) ?? 0
   }
   if (w == null || h == null) return null
-  const appearance = readAppearance(node.attrs, style, ctx)
+  const appearance = readAttrAppearance(node.attrs)
   return {
     kind: 'custom',
     path: ctx.pathPrefix,
@@ -199,7 +211,14 @@ function layoutCustomDraw(node: FvgNode, ctx: LayoutContext): CustomLayoutNode |
 function layoutUnknownOrCustom(node: FvgNode, ctx: LayoutContext): LayoutNode | null {
   const custom = layoutCustomDraw(node, ctx)
   if (custom) return custom
-  ctx.issues.push({ level: 'warn', code: 'unknown-tag', path: ctx.pathPrefix, message: `未知标签 ${node.tag}` })
+  const retired = node.tag === 'Row' || node.tag === 'Column'
+  ctx.issues.push({
+    level: 'warn',
+    code: 'unknown-tag',
+    path: ctx.pathPrefix,
+    message: `未知标签 ${node.tag}`,
+    hint: retired ? rowColumnHint(node.tag) : undefined,
+  })
   return null
 }
 
@@ -348,7 +367,7 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
   const maxW = parsePx(style['max-width']) ?? contentWidthLimit
   const lineHeightRatio = parseNumber(style['line-height']) ?? (segments.length > 1 ? 1.4 : 1.2)
 
-  const appearance = readAppearance(node.attrs, style, ctx)
+  const appearance = readHtmlAppearance(style)
   const innerPadX = appearance.padding.left + appearance.padding.right + (appearance.border?.width ?? 0) * 2
   const innerPadY = appearance.padding.top + appearance.padding.bottom + (appearance.border?.width ?? 0) * 2
 
@@ -409,12 +428,11 @@ function layoutTextBox(node: FvgNode, ctx: LayoutContext, contentWidthLimit?: nu
 }
 
 function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): ShapeLayoutNode {
-  const style = parseStyle(node.attrs.style)
-  const appearance = readAppearance(node.attrs, style, ctx)
+  const appearance = readAttrAppearance(node.attrs)
   let x = 0
   let y = 0
-  let w = parsePx(style.width) ?? parseNumber(node.attrs.width) ?? 0
-  let h = parsePx(style.height) ?? parseNumber(node.attrs.height) ?? 0
+  let w = parseNumber(node.attrs.width) ?? 0
+  let h = parseNumber(node.attrs.height) ?? 0
   const twoPoint = hasTwoPoint(node.attrs) && node.tag !== 'Circle'
   if (twoPoint) {
     const x1 = parseNumber(node.attrs.x1) ?? 0
@@ -444,9 +462,9 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
       h = parseNumber(node.attrs.height) ?? h
     }
   }
-  const fill = node.attrs.fill ?? style.fill ?? '#000000'
-  const stroke = node.attrs.stroke ?? style.stroke ?? 'none'
-  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? parsePx(style['stroke-width']) ?? 1
+  const fill = node.attrs.fill ?? '#000000'
+  const stroke = node.attrs.stroke ?? 'none'
+  const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 1
   const ink = { x: 0, y: 0, width: w, height: h }
   return {
     kind: 'shape',
@@ -463,7 +481,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     fill,
     stroke,
     strokeWidth,
-    rx: parseNumber(node.attrs.rx) ?? parsePx(style['border-radius']),
+    rx: parseNumber(node.attrs.rx),
     r: parseNumber(node.attrs.r),
     rxEllipse: twoPoint ? undefined : parseNumber(node.attrs.rx),
     ry: twoPoint ? undefined : parseNumber(node.attrs.ry),
@@ -540,13 +558,24 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       level: 'warn',
       code: 'invalid-child',
       path: ctx.pathPrefix,
-      message: '线条不能放在 Row/Column 内',
+      message: '线条不能放在 flex 容器内',
       hint: `包一层 Layer，例如 <Layer><${node.tag} …/></Layer>`,
     })
     return null
   }
   if (isShapeTag(node.tag) && (hasTwoPoint(node.attrs) || (node.tag === 'Circle' && node.attrs.x1 != null))) {
     return null
+  }
+  if (isDisplayFlex(node.attrs.style) && isTextBoxTag(node.tag)) {
+    const nested = await layoutFlex(node, ctx)
+    return {
+      node: nested,
+      minMain: direction === 'row' ? nested.width : nested.height,
+      minCross: direction === 'row' ? nested.height : nested.width,
+      preferredMain: direction === 'row' ? nested.width : nested.height,
+      preferredCross: direction === 'row' ? nested.height : nested.width,
+      isText: false,
+    }
   }
   if (isTextBoxTag(node.tag)) {
     const laid = layoutTextBox(node, ctx, ctx.maxContentWidth)
@@ -567,17 +596,6 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       minCross: direction === 'row' ? s.height : s.width,
       preferredMain: direction === 'row' ? s.width : s.height,
       preferredCross: direction === 'row' ? s.height : s.width,
-      isText: false,
-    }
-  }
-  if (isFlexTag(node.tag)) {
-    const nested = await layoutFlex(node, ctx)
-    return {
-      node: nested,
-      minMain: direction === 'row' ? nested.width : nested.height,
-      minCross: direction === 'row' ? nested.height : nested.width,
-      preferredMain: direction === 'row' ? nested.width : nested.height,
-      preferredCross: direction === 'row' ? nested.height : nested.width,
       isText: false,
     }
   }
@@ -608,9 +626,9 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
 }
 
 async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayoutNode> {
-  const direction = node.tag === 'Row' ? 'row' : 'column'
   const style = parseStyle(node.attrs.style)
-  const appearance = readAppearance(node.attrs, style, ctx)
+  const direction = flexDirectionOf(style)
+  const appearance = readHtmlAppearance(style)
   const gap = parsePx(style.gap) ?? 0
   const justify = mapJustify(style['justify-content'])
   const alignItems = mapAlign(style['align-items'])
@@ -723,10 +741,10 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 
   const outer = outerFromContent(contentW, contentH, appearance.padding, appearance.border)
   if (fixedW != null && outer.width > fixedW + 1e-3) {
-    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 width' })
+    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'flex 内容超出写死的 width' })
   }
   if (fixedH != null && outer.height > fixedH + 1e-3) {
-    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'Row/Column 内容超出写死的 height' })
+    ctx.issues.push({ level: 'warn', code: 'flex-overflow', path: ctx.pathPrefix, message: 'flex 内容超出写死的 height' })
   }
 
   return {
@@ -747,10 +765,9 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
 }
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
-  const style = parseStyle(node.attrs.style)
-  const appearance = readAppearance(node.attrs, style, ctx)
-  const fixedW = parsePx(style.width) ?? parseNumber(node.attrs.width)
-  const fixedH = parsePx(style.height) ?? parseNumber(node.attrs.height)
+  const appearance = readAttrAppearance(node.attrs)
+  const fixedW = parseNumber(node.attrs.width)
+  const fixedH = parseNumber(node.attrs.height)
 
   const childFvg = node.children.filter((c) => typeof c !== 'string') as FvgNode[]
   const placed: Array<{
@@ -769,21 +786,22 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     const subCtx = { ...ctx, pathPrefix: path }
     let laid: LayoutNode | null = null
     if (isLineTag(ch.tag)) laid = layoutLineNode(ch, subCtx, ctx.color)
+    else if (isDisplayFlex(ch.attrs.style) && isTextBoxTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
-    else if (isFlexTag(ch.tag)) laid = await layoutFlex(ch, subCtx)
     else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
       laid = layoutUnknownOrCustom(ch, subCtx)
       if (!laid) continue
     }
-    const cx = parseNumber(ch.attrs.cx)
-    const cy = parseNumber(ch.attrs.cy)
+    const html = isTextBoxTag(ch.tag)
+    const cx = html ? undefined : parseNumber(ch.attrs.cx)
+    const cy = html ? undefined : parseNumber(ch.attrs.cy)
     placed.push({
       child: laid,
       cx: cx ?? undefined,
       cy: cy ?? undefined,
-      anchor: parseAnchor(ch.attrs.anchor),
+      anchor: html ? 'center' : parseAnchor(ch.attrs.anchor),
       useDefaultCenter: cx == null || cy == null,
       coords: usesOwnCoords(ch, laid.kind),
     })
@@ -850,7 +868,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ink,
     ...appearance,
     children,
-    overflow: node.attrs.overflow === 'hidden' || style.overflow === 'hidden' ? 'hidden' : 'visible',
+    overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
     ...layoutDrawMeta(node, ctx),
   }
 }
@@ -870,16 +888,24 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   await registerFontsFromDocument(fontNodes.filter((f) => f.family && f.src), baseDir)
 
   const attrs = rootNode.attrs
-  const style = parseStyle(attrs.style)
-  const width = parseNumber(attrs.width) ?? parsePx(style.width) ?? 1080
-  const height = parseNumber(attrs.height) ?? parsePx(style.height) ?? 1920
-  const background = attrs.background ?? style.background ?? '#ffffff'
-  const color = attrs.color ?? style.color ?? '#111111'
-  const fontFamily = attrs['font-family'] ?? style['font-family'] ?? 'ChillDuanSans'
+  const width = parseNumber(attrs.width) ?? 1080
+  const height = parseNumber(attrs.height) ?? 1920
+  const background = attrs.background ?? '#ffffff'
+  const color = attrs.color ?? '#111111'
+  const fontFamily = attrs['font-family'] ?? 'ChillDuanSans'
   const safe = parseSafe(attrs.safe, width, height)
   const maxContentWidth = width - safe.left - safe.right
 
   const issues: Issue[] = []
+  if (attrs.style?.trim()) {
+    issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: 'fvg',
+      message: 'Layer 和图形不使用 style',
+      hint: '把 width、background、opacity 写成属性',
+    })
+  }
   const root = await layoutLayer(
     rootNode.tag.toLowerCase() === 'fvg' ? { ...rootNode, tag: 'Layer' } : rootNode,
     {
