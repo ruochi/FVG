@@ -23,7 +23,7 @@
     <h1 style="font-size:52px; color:#f7f2e8">透明玻璃</h1>
   </Layer>
   <Layer cx="64" cy="120" anchor="top-left">
-    <p style="font-size:28px; color:#aeb8c4">glass="clear" · 弱模糊 · 强折射</p>
+    <p style="font-size:28px; color:#aeb8c4">glass="clear" · 零模糊 · 边缘透镜折射</p>
   </Layer>
 
   <Rect cx="450" cy="560" width="620" height="420" rx="40"
@@ -36,6 +36,6 @@
     <p style="font-size:30px; color:#e8eef4">边缘条纹被放大弯折</p>
   </Layer>
   <Layer cx="450" cy="660" anchor="center">
-    <p style="font-size:26px; color:#c5d0da">中心更透 · 像玻璃透镜</p>
+    <p style="font-size:26px; color:#c5d0da">中心原样透出 · 边缘放大弯折</p>
   </Layer>
 </fvg>
