@@ -13,6 +13,8 @@ type FvgPositioned = FvgCommon & {
   cx?: number | string
   cy?: number | string
   anchor?: string
+  /** box（默认）按布局盒子定位；ink 按子树着墨外接矩形定位 */
+  'anchor-box'?: 'box' | 'ink' | string
 }
 
 type FvgEffects = {
