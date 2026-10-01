@@ -26,7 +26,7 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 形状和自定义元素不用 `anchor`，也不写 `style`。色块、圆点、分隔线用 div：`<div style="width:28px; height:28px; border-radius:14px; background:#3ecfc4">`，分隔线用 `flex:1; height:4px`。
 
-`fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。**仅 Layer**：`overlay="#00000066"` / `overlay="#ff8800 0.4 multiply"` / `overlay="linear-gradient(to bottom, #fff0, #0008) soft-light"`。图形写属性，文字写在 `style` 里。
+`fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`ink-stroke`（`6 #000 outside`，或 `6 #fff, 14 #c8321e`；按墨迹描边，可 `inside` / `center`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。**仅 Layer**：`overlay="#00000066"` / `overlay="#ff8800 0.4 multiply"` / `overlay="linear-gradient(to bottom, #fff0, #0008) soft-light"`。图形写属性，文字写在 `style` 里。Layer 上的 `ink-stroke` 按整组子树墨迹描一圈。
 
 调色只写在 `Layer` 上：`<Layer grade="lomo 0.8, fade 0.1">`。参数有 `shadows #色 [强度]`、`highlights #色 [强度]`、`contrast`、`fade`、`saturate`、`warmth`、`vignette`；预设有 `lomo`、`matte`、`chrome`、`bleach`、`mono`。只想调某一块就加 `grade-mask="radial-gradient(#fff0 30%, #fff)"`，alpha 是强度。图片要调色就外包 `Layer`。
 

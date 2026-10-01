@@ -98,6 +98,9 @@ export type TextLineReport = {
 
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
+export type InkStrokePosition = 'outside' | 'inside' | 'center'
+/** 一层墨迹描边。width 是到墨迹的总距离。 */
+export type InkStrokeSpec = { width: number; color: string; position: InkStrokePosition }
 export type NoiseSpec = { amount: number; color?: string }
 /** Layer 专用纯色/渐变叠加 */
 export type OverlaySpec = { paint: string; opacity: number; blend: BlendMode }
@@ -155,6 +158,8 @@ export type ElementReport = {
   glow?: GlowSpec
   innerShadow?: ShadowSpec
   innerGlow?: GlowSpec
+  /** 按墨迹距离描边，从内到外。 */
+  inkStroke?: InkStrokeSpec[]
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
@@ -243,6 +248,7 @@ export type LayoutNodeBase = {
   glow?: GlowSpec
   innerShadow?: ShadowSpec
   innerGlow?: GlowSpec
+  inkStroke?: InkStrokeSpec[]
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec

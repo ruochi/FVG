@@ -20,6 +20,8 @@ type FvgEffects = {
   glow?: string
   'inner-shadow'?: string
   'inner-glow'?: string
+  /** 按墨迹描边：`6 #000 outside`，逗号分隔多层 */
+  'ink-stroke'?: string
   blur?: number | string
   'backdrop-blur'?: number | string
   noise?: string

@@ -43,6 +43,7 @@ const ATTR_ORDER = [
   'glow',
   'inner-shadow',
   'inner-glow',
+  'ink-stroke',
   'blur',
   'backdrop-blur',
   'noise',
