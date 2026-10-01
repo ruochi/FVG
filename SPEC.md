@@ -290,6 +290,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `glow` | `blur [spread] [color]` | 外发光，无偏移；默认颜色取本体，按加光（screen）绘制 |
 | `inner-shadow` | 同 `shadow` | 内阴影，画在本体之后，不外扩 |
 | `inner-glow` | 同 `glow` | 内发光，画在本体之后，不外扩 |
+| `ink-stroke` | `<宽度> <颜色或渐变> [outside\|inside\|center]`，逗号分隔多层 | 按墨迹距离描边。默认 `outside`。第二层宽度是到墨迹的总距离。`none` 不描边 |
 | `blur` | 单个非负像素 | 图层模糊：糊本元素（含 Layer 子树）已绘制像素；外扩计入 `effect-clipped` |
 | `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
 | `glass` | 见下 | iOS Liquid Glass：边缘凸弧面**透镜折射** + 色散 + 朝光高光；`clear` 不模糊；与 `backdrop-blur` 同时写时以 `glass` 为准 |
@@ -306,7 +307,26 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 `overlay` **只写在 `Layer` 上**（图形 / 文字写了会 warn 并忽略）。`paint` 同 `fill`（纯色或渐变）；可选 `opacity`（`0–1` 或百分比）与混合模式（与 `blend` 同一集合）。示例：`overlay="#00000066"`、`overlay="#ff8800 0.4 multiply"`、`overlay="linear-gradient(to bottom, #ffffff00, #00000088) soft-light"`。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 Layer 子树墨迹裁切。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter` / `grade`，把阴影到 overlay 画进离屏，先 `grade`，再 `blur` / `filter`，贴回后再叠 `noise`（写了 `grade` 时颗粒不被染色）。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+`ink-stroke` 按着墨距离描边，类似图层样式里的描边，不占用 `stroke`（SVG 几何描边，居中）、`outline`（盒子描边）或 `-webkit-text-stroke`（只能居中，会吃细中文笔画）。写法：`6 #000`、`6 #000 outside`、`6 #fff inside`、`8 #fff center`，或 `6 #ffffff, 14 #c8321e`（内白 6px、外红到 14px）。颜色可以是纯色，也可以是 `linear-gradient` / `radial-gradient` / `gradient()`，渐变坐标按该元素盒子计算，与 `fill` 一致。位置默认 `outside`。解析失败报 `invalid-attr`，hint 为 `写成 6 #000 outside`。
+
+写在 Layer 上时，按整个子树合并后的墨迹描一圈：相邻或重叠的字得到一整圈外轮廓，而不是每个字各描一圈互相压住。`shadow` / `glow` 的轮廓是本体加上外侧描边，投影会带着描边的形状。`overlay` 只染本体，不染描边，所以渐变字和纯色描边可以同时成立。描边和阴影到 overlay 画在同一段里，有 `grade` / `filter` 时一起进离屏。`inside` / `center` 的内侧宽度达到字号的约 8% 时，报 `ink-stroke-fill`：小字号宽内描边会填死字内空白（如「口」）。
+
+```html
+<!-- 海报标题：鎏金渐变字 + 深红外描边 + 投影 -->
+<Layer cx="540" cy="300" overlay="linear-gradient(to bottom, #fff3c4, #c8861e)">
+  <h1 style="font-size:180px; font-weight:700; ink-stroke:6 #7a1b10; shadow:0 10 16 #00000066">鎏金</h1>
+</Layer>
+
+<!-- 贴纸风：整组文字合并描两层 -->
+<Layer cx="540" cy="700" ink-stroke="8 #ffffff, 18 #1b1612">
+  <div style="display:flex; gap:0">
+    <h1 style="font-size:160px; color:#ff5a3c">国</h1>
+    <h1 style="font-size:160px; color:#ffb400">潮</h1>
+  </div>
+</Layer>
+```
+
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；文字和图片的 `spread` 按墨迹 alpha 膨胀或收缩，不按矩形外扩。`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 Layer 子树墨迹裁切，不覆盖描边。绘制顺序：`backdrop-blur` / `glass` → `shadow` → `glow` → 外描边（`outside` 与 `center` 外半） → 本体 → 内描边（`inside` 与 `center` 内半） → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter` / `grade`，把阴影到 overlay 画进离屏，先 `grade`，再 `blur` / `filter`，贴回后再叠 `noise`（写了 `grade` 时颗粒不被染色）。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
 
 ### 7.1 调色 grade
 
@@ -408,7 +428,8 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |
 | `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
 | `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |
-| `effect-clipped` | warn | 本体在画布内，阴影、光晕或图层模糊超出画布 |
+| `effect-clipped` | warn | 本体在画布内，阴影、光晕、描边或图层模糊超出画布 |
+| `ink-stroke-fill` | warn | `inside` / `center` 的内侧宽度达到字号的约 8%，容易填死字内空白 |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 
@@ -520,4 +541,4 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
-- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。
+- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`、`outline`。

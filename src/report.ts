@@ -1,4 +1,5 @@
 import { applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
+import { innerInkStrokeReach, outerInkStrokeReach } from './style.js'
 import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode } from './types.js'
 import { boxToRect, translateBox, unionBoxes } from './types.js'
 
@@ -53,6 +54,7 @@ function walk(
   if (node.glow) entry.glow = node.glow
   if (node.innerShadow) entry.innerShadow = node.innerShadow
   if (node.innerGlow) entry.innerGlow = node.innerGlow
+  if (node.inkStroke) entry.inkStroke = node.inkStroke
   if (node.blur != null) entry.blur = node.blur
   if (node.backdropBlur != null) entry.backdropBlur = node.backdropBlur
   if (node.noise) entry.noise = node.noise
@@ -119,11 +121,15 @@ export function buildReport(doc: FvgDocument): FvgReport {
         message: '着墨超出画布',
       })
     }
+    const strokeReach = outerInkStrokeReach(el.inkStroke)
     const effectPad = Math.max(
-      el.shadow ? el.shadow.blur * 2 + el.shadow.spread + Math.max(Math.abs(el.shadow.x), Math.abs(el.shadow.y)) : 0,
-      el.glow ? el.glow.blur * 2 + el.glow.spread : 0,
+      el.shadow
+        ? el.shadow.blur * 2 + el.shadow.spread + strokeReach + Math.max(Math.abs(el.shadow.x), Math.abs(el.shadow.y))
+        : 0,
+      el.glow ? el.glow.blur * 2 + el.glow.spread + strokeReach : 0,
       el.blur != null ? el.blur * 2 : 0,
       el.glass ? el.glass.blur * 2 : 0,
+      strokeReach,
     )
     if (!inkOutside && effectPad > 0) {
       const outside =
@@ -136,8 +142,8 @@ export function buildReport(doc: FvgDocument): FvgReport {
           level: 'warn',
           code: 'effect-clipped',
           path: el.path,
-          message: '本体在画布内，但阴影、光晕或模糊超出画布',
-          hint: '把元素往里移，或减小 blur',
+          message: '本体在画布内，但阴影、光晕、描边或模糊超出画布',
+          hint: '把元素往里移，或减小 blur / ink-stroke',
         })
       }
     }
@@ -157,6 +163,18 @@ export function buildReport(doc: FvgDocument): FvgReport {
           code: 'min-font-size',
           path: el.path,
           message: `字号 ${el.fontSize}px 小于建议最小 ${minFs.toFixed(1)}px`,
+        })
+      }
+    }
+    if (el.fontSize != null && el.inkStroke) {
+      const inner = innerInkStrokeReach(el.inkStroke)
+      if (inner >= el.fontSize * 0.08) {
+        issues.push({
+          level: 'warn',
+          code: 'ink-stroke-fill',
+          path: el.path,
+          message: '小字号宽内描边会填死字内空白（如「口」）',
+          hint: '把 inside / center 的内侧宽度收到字号的 8% 以内，或改用 outside',
         })
       }
     }

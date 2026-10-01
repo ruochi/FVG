@@ -26,6 +26,7 @@ import {
   parseFontWeight,
   parseGlass,
   parseGlow,
+  parseInkStroke,
   parseNoise,
   parseNumber,
   parseOverlay,
@@ -59,6 +60,7 @@ import type {
   ColorFilterSpec,
   GlassSpec,
   GlowSpec,
+  InkStrokeSpec,
   GradeSpec,
   LineGeometry,
   LineLayoutNode,
@@ -149,6 +151,7 @@ type EffectFields = {
   glow?: GlowSpec
   innerShadow?: ShadowSpec
   innerGlow?: GlowSpec
+  inkStroke?: InkStrokeSpec[]
   blur?: number
   backdropBlur?: number
   noise?: NoiseSpec
@@ -198,6 +201,16 @@ function readEffects(src: EffectSource, ctx: LayoutContext, glowColor: string): 
   if (parsedInnerGlow) out.innerGlow = { ...parsedInnerGlow, color: parsedInnerGlow.color ?? glowColor }
   else if (innerGlowRaw && innerGlowRaw.trim() !== 'none') {
     warnInvalid(ctx, 'inner-glow', innerGlowRaw, '写成 24 #f3ead4，顺序是 blur spread color')
+  }
+
+  const inkRaw = src['ink-stroke']
+  const parsedInk = parseInkStroke(inkRaw)
+  if (parsedInk) {
+    const badGradient = parsedInk.some((layer) => isGradient(layer.color) && !parseGradient(layer.color))
+    if (badGradient) warnInvalid(ctx, 'ink-stroke', inkRaw!, '写成 6 #000 outside')
+    else out.inkStroke = parsedInk
+  } else if (inkRaw && inkRaw.trim() !== 'none') {
+    warnInvalid(ctx, 'ink-stroke', inkRaw, '写成 6 #000 outside')
   }
 
   const blurRaw = src.blur

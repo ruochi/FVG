@@ -31,6 +31,7 @@ const HTML_STYLE_ATTRS = [
   'glow',
   'inner-shadow',
   'inner-glow',
+  'ink-stroke',
   'blur',
   'backdrop-blur',
   'noise',
@@ -258,6 +259,22 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
   }
   if (html) {
     const styleMap = parseStyle(attrs.style)
+    const webkitStroke = styleMap['-webkit-text-stroke']
+    const outline = styleMap.outline ?? (present(attrs, 'outline') ? attrs.outline : undefined)
+    const wantsBrowserStroke =
+      (webkitStroke != null && webkitStroke.trim() !== '' && webkitStroke.trim().toLowerCase() !== 'none') ||
+      (outline != null && outline.trim() !== '' && outline.trim().toLowerCase() !== 'none' && outline.trim() !== '0')
+    if (wantsBrowserStroke) {
+      out.push(
+        flagged(
+          'info',
+          'non-canonical',
+          path,
+          'outline 与 -webkit-text-stroke 不会按墨迹描边',
+          '改用 ink-stroke，例如 style="ink-stroke:6 #000 outside"',
+        ),
+      )
+    }
     if (styleMap.overlay) {
       out.push(
         flagged(
