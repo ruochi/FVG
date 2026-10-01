@@ -59,6 +59,21 @@ describe('属性归属', () => {
     expect(hit?.hint).toContain('Layer')
   })
 
+  it('grade 只写在 Layer 上：Rect 属性和 img 的 style 都报 warn', async () => {
+    const report = await issues(
+      `<Layer width="200" height="100"><Rect cx="40" cy="40" width="40" height="40" fill="#fff" grade="mono" /><img src="x.png" style="width:20px; height:20px; grade:lomo" /></Layer>`,
+    )
+    const hits = report.issues.filter((issue) => issue.code === 'invalid-attr' && issue.message.includes('grade'))
+    expect(hits).toHaveLength(2)
+    expect(hits.every((issue) => issue.hint?.includes('Layer'))).toBe(true)
+  })
+
+  it('grade 写错报 invalid-attr 并给出写法', async () => {
+    const report = await issues(`<Layer width="200" height="100" grade="contrast 5"><Layer grade-mask="#fff" /></Layer>`)
+    expect(report.issues.some((issue) => issue.message.includes('grade') && issue.hint?.includes('lomo'))).toBe(true)
+    expect(report.issues.some((issue) => issue.message.includes('grade-mask'))).toBe(true)
+  })
+
   it('HTML style 写 overlay 报 warn', async () => {
     const report = await issues(
       `<Layer width="200" height="100"><Layer cx="20" cy="20" anchor="top-left"><p style="overlay:#00000066; font-size:24px">x</p></Layer></Layer>`,

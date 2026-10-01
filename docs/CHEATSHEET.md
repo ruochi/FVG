@@ -28,6 +28,8 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 `fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。**仅 Layer**：`overlay="#00000066"` / `overlay="#ff8800 0.4 multiply"` / `overlay="linear-gradient(to bottom, #fff0, #0008) soft-light"`。图形写属性，文字写在 `style` 里。
 
+调色只写在 `Layer` 上：`<Layer grade="lomo 0.8, fade 0.1">`。参数有 `shadows #色 [强度]`、`highlights #色 [强度]`、`contrast`、`fade`、`saturate`、`warmth`、`vignette`；预设有 `lomo`、`matte`、`chrome`、`bleach`、`mono`。只想调某一块就加 `grade-mask="radial-gradient(#fff0 30%, #fff)"`，alpha 是强度。图片要调色就外包 `Layer`。
+
 竖排：`style="writing-mode:vertical-rl"`。字体名 `Song`、`Kai`、`Brush` 不用自带字体文件。
 
 ## 属性归属

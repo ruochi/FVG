@@ -23,6 +23,7 @@ type PaintCtx = CanvasRenderingContext2D & {
 }
 import { buildFontString } from './fonts.js'
 import { fitImageRect } from './image.js'
+import { applyGrade } from './grade.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { originOffset } from './matrix.js'
@@ -30,6 +31,7 @@ import { colorFilterToCss } from './style.js'
 import type {
   GlassSpec,
   GlowSpec,
+  GradeSpec,
   ImageLayoutNode,
   LayerLayoutNode,
   LayoutNode,
@@ -961,7 +963,7 @@ function paintNodeEffectsAndBody(
   debug: boolean,
   t: number,
   state: PaintState,
-  opts: { sampleBackdrop: boolean },
+  opts: { sampleBackdrop: boolean; skipNoise?: boolean },
 ) {
   // glass 未写 shadow 时补一层柔和投影，接近系统控件浮起感
   const drawShadow = () => {
@@ -1011,8 +1013,40 @@ function paintNodeEffectsAndBody(
     )
   }
   if (node.overlay) paintOverlay(ctx, node, node.overlay)
-  if (node.noise) paintNoise(ctx, node, node.noise)
+  if (node.noise && !opts.skipNoise) paintNoise(ctx, node, node.noise)
   runElementDraw(ctx, node, t)
+}
+
+/**
+ * 对整块像素缓冲调色。origin 是盒子左上角在缓冲里的逻辑坐标，k 是逻辑到像素的缩放。
+ * 遮罩按盒子铺，alpha 是强度。
+ */
+function gradeCanvas(
+  canvas: Canvas,
+  spec: GradeSpec,
+  maskPaint: string | undefined,
+  k: number,
+  originX: number,
+  originY: number,
+  width: number,
+  height: number,
+) {
+  const pw = canvas.width
+  const ph = canvas.height
+  if (pw <= 0 || ph <= 0) return
+  const cctx = canvas.getContext('2d') as PaintCtx
+  const image = cctx.getImageData(0, 0, pw, ph)
+  let mask: Uint8ClampedArray | undefined
+  if (maskPaint) {
+    const m = createCanvas(pw, ph)
+    const mctx = m.getContext('2d') as PaintCtx
+    mctx.setTransform(k, 0, 0, k, originX * k, originY * k)
+    mctx.fillStyle = paintOf(mctx, maskPaint, 0, 0, width, height)
+    mctx.fillRect(-originX, -originY, pw / k, ph / k)
+    mask = mctx.getImageData(0, 0, pw, ph).data
+  }
+  applyGrade(image.data, pw, ph, spec, { x: originX * k, y: originY * k, width: width * k, height: height * k }, mask)
+  cctx.putImageData(image, 0, 0)
 }
 
 function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
@@ -1031,7 +1065,9 @@ function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t
   const octx = off.getContext('2d') as PaintCtx
   octx.setTransform(k, 0, 0, k, 0, 0)
   octx.translate(-node.x + effectPad, -node.y + effectPad)
-  paintNodeEffectsAndBody(octx, node, debug, t, state, { sampleBackdrop: false })
+  // 有 grade 时颗粒在调色之后再叠，不被染色
+  paintNodeEffectsAndBody(octx, node, debug, t, state, { sampleBackdrop: false, skipNoise: node.grade != null })
+  if (node.grade) gradeCanvas(off, node.grade, node.gradeMask, k, effectPad, effectPad, node.width, node.height)
   const parts: string[] = []
   if (blur > 0) parts.push(`blur(${blur}px)`)
   if (filterCss) parts.push(filterCss)
@@ -1040,6 +1076,7 @@ function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t
   ctx.drawImage(off, node.x - effectPad, node.y - effectPad, tw, th)
   ctx.filter = 'none'
   ctx.restore()
+  if (node.grade && node.noise) paintNoise(ctx, node, node.noise)
 }
 
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
@@ -1050,7 +1087,10 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
   if (node.blend && node.blend !== 'source-over') {
     pctx.globalCompositeOperation = node.blend
   }
-  const useLayerFilter = (node.blur != null && node.blur > 0) || (node.colorFilter != null && node.colorFilter.length > 0)
+  const useLayerFilter =
+    (node.blur != null && node.blur > 0) ||
+    (node.colorFilter != null && node.colorFilter.length > 0) ||
+    node.grade != null
   if (useLayerFilter) {
     // 先在主画布采样玻璃/背景模糊，再把本体效果离屏糊上
     if (node.glass) paintGlass(pctx, node, node.glass)
@@ -1091,9 +1131,24 @@ export function paintDocument(
       ctx.fillRect(0, 0, w, h)
     }
   }
+  // 根 Layer 的 grade 作用于整幅画布，连同画布底色
+  const rootGrade = root.grade
+  const body: LayerLayoutNode = rootGrade ? { ...root, grade: undefined, gradeMask: undefined, noise: undefined } : root
   ctx.save()
   ctx.scale(opts.scale, opts.scale)
-  paintNode(ctx, root, opts.debug, opts.t, state)
+  paintNode(ctx, body, opts.debug, opts.t, state)
   ctx.restore()
+  if (rootGrade) {
+    gradeCanvas(canvas, rootGrade, root.gradeMask, opts.scale, 0, 0, opts.width, opts.height)
+    if (root.noise) {
+      const pctx = ctx as PaintCtx
+      pctx.save()
+      pctx.scale(opts.scale, opts.scale)
+      pctx.globalAlpha *= root.opacity
+      applyNodeTransform(pctx, root)
+      paintNoise(pctx, root, root.noise)
+      pctx.restore()
+    }
+  }
   return canvas.toBuffer('image/png')
 }

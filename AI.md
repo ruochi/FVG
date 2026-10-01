@@ -134,6 +134,7 @@ flowchart TD
 | 线条放在 `Layer` 里，用 `x1`…`d` | 直接放进 flex 不渲染 |
 | 文字的 `cx` 写在外包的 `Layer` 上 | 写在 `h1` / `p` 上会 `warn` |
 | 图片用 `<img src="…" style="width:…; height:…">` | `img` 是 HTML：`src` 是属性，尺寸在 `style`。`image` 同样可用 |
+| 调色写 `<Layer grade="lomo, fade 0.1">`，先选预设再改一两项 | `grade` 只在 Layer 上生效；报告里有展开后的参数，照着改 |
 | 多段文字用 flex，别在 `p` 里嵌 `div` | 文字盒子里只能放行内标签 |
 | 验证时先读 **`issues` 和 `report.json`** | 数字比压缩图更适合改 markup |
 

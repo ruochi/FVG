@@ -110,6 +110,24 @@ export type GlassSpec = {
   bezel: number
   dispersion: number
 }
+export type GradePresetName = 'lomo' | 'matte' | 'chrome' | 'bleach' | 'mono'
+/** 只取颜色的色相和浓淡；amount 0 到 1。 */
+export type GradeTone = { color: string; amount: number }
+/** Layer 调色。预设已展开，每一项都是最终生效的值。 */
+export type GradeSpec = {
+  preset?: GradePresetName
+  /** 整体强度 0 到 1，和原图混合。 */
+  amount: number
+  shadows?: GradeTone
+  midtones?: GradeTone
+  highlights?: GradeTone
+  contrast: number
+  fade: number
+  saturate: number
+  warmth: number
+  vignette: number
+  vignetteColor: string
+}
 export type ColorFilterSpec =
   | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
   | { name: 'hue-rotate'; value: number }
@@ -144,6 +162,9 @@ export type ElementReport = {
   glass?: GlassSpec
   filter?: ColorFilterSpec[]
   blend?: BlendMode
+  /** 预设展开后的调色参数。 */
+  grade?: GradeSpec
+  gradeMask?: string
 }
 
 export type FvgReport = {
@@ -229,6 +250,9 @@ export type LayoutNodeBase = {
   glass?: GlassSpec
   colorFilter?: ColorFilterSpec[]
   blend?: BlendMode
+  grade?: GradeSpec
+  /** 纯色或渐变，alpha 是调色强度。 */
+  gradeMask?: string
 }
 
 export type LayerLayoutNode = LayoutNodeBase & {

@@ -60,6 +60,8 @@ function walk(
   if (node.glass) entry.glass = node.glass
   if (node.colorFilter) entry.filter = node.colorFilter
   if (node.blend) entry.blend = node.blend
+  if (node.grade) entry.grade = node.grade
+  if (node.gradeMask) entry.gradeMask = node.gradeMask
   if (node.kind === 'text') {
     const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
     const contentY = node.y + node.padding.top + (node.border?.width ?? 0)

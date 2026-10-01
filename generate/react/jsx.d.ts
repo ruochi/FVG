@@ -33,6 +33,12 @@ type FvgLayerOverlay = {
   overlay?: string
 }
 
+/** 仅 Layer：调色。例如 grade="lomo 0.8, fade 0.1"，grade-mask 的 alpha 是强度 */
+type FvgLayerGrade = {
+  grade?: string
+  'grade-mask'?: string
+}
+
 type FvgShape = FvgPositioned &
   FvgEffects & {
     r?: number | string
@@ -57,7 +63,8 @@ declare global {
        */
       Layer: FvgPositioned &
         FvgEffects &
-        FvgLayerOverlay & {
+        FvgLayerOverlay &
+        FvgLayerGrade & {
           width?: number | string
           height?: number | string
           /** 仅根节点：画布底色。嵌套 Layer 写了会 warn 并忽略 */

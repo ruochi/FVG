@@ -372,7 +372,19 @@ function matchParen(s: string, open: number): number {
   return -1
 }
 
-function hexToRgba(hex: string): Rgba | null {
+/** `#rgb`…`#rrggbbaa`、`rgb()`、`rgba()`、`transparent`、`black`、`white`。 */
+export function parseColor(text: string): Rgba | null {
+  const t = text.trim().toLowerCase()
+  if (t.startsWith('#')) return hexToRgba(t)
+  const fn = /^rgba?\(([^)]*)\)$/.exec(t)
+  if (fn) return parseRgb(fn[1]!)
+  if (t === 'transparent') return { r: 0, g: 0, b: 0, a: 0 }
+  if (t === 'black') return { r: 0, g: 0, b: 0, a: 255 }
+  if (t === 'white') return { r: 255, g: 255, b: 255, a: 255 }
+  return null
+}
+
+export function hexToRgba(hex: string): Rgba | null {
   let h = hex.slice(1)
   if (h.length === 3 || h.length === 4) h = [...h].map((c) => c + c).join('')
   if (h.length !== 6 && h.length !== 8) return null
@@ -400,7 +412,7 @@ function parseRgb(body: string): Rgba | null {
   }
 }
 
-function rgbToOklab(r8: number, g8: number, b8: number): { L: number; a: number; b: number } {
+export function rgbToOklab(r8: number, g8: number, b8: number): { L: number; a: number; b: number } {
   const r = srgbToLinear(r8)
   const g = srgbToLinear(g8)
   const b = srgbToLinear(b8)
@@ -414,7 +426,7 @@ function rgbToOklab(r8: number, g8: number, b8: number): { L: number; a: number;
   }
 }
 
-function oklabToSrgb(L: number, a: number, b: number): [number, number, number] {
+export function oklabToSrgb(L: number, a: number, b: number): [number, number, number] {
   const l = L + 0.3963377774 * a + 0.2158037573 * b
   const m = L - 0.1055613458 * a - 0.0638541728 * b
   const s = L - 0.0894841775 * a - 1.291485548 * b
