@@ -271,6 +271,31 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
     }
   }
 
+  const gradeKeys = ['grade', 'grade-mask'].filter((key) => present(attrs, key))
+  if (node.tag !== 'Layer' && gradeKeys.length > 0) {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        `${gradeKeys.join('、')} 只写在 Layer 上`,
+        '外包一层 Layer，例如 <Layer grade="lomo"><img src="…" style="width:320px" /></Layer>',
+      ),
+    )
+  }
+  const gradeInStyle = Object.keys(parseStyle(attrs.style)).filter((key) => key === 'grade' || key === 'grade-mask')
+  if (gradeInStyle.length > 0) {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        `${gradeInStyle.join('、')} 只写在 Layer 的属性上`,
+        '不要写进 style；外包 <Layer grade="…">',
+      ),
+    )
+  }
+
   if (usesAttributes(node) && hasStyle(attrs)) {
     out.push(
       flagged(

@@ -295,6 +295,8 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `glass` | 见下 | iOS Liquid Glass：边缘凸弧面**透镜折射** + 色散 + 朝光高光；`clear` 不模糊；与 `backdrop-blur` 同时写时以 `glass` 为准 |
 | `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
 | `overlay` | `<paint> [opacity] [blend]` | **仅 Layer**：纯色或渐变叠加，按子树墨迹裁切；默认 opacity `1`、blend `source-over` |
+| `grade` | 见 7.1 | **仅 Layer**：调色。子树画完后逐像素调整明暗、颜色和暗角 |
+| `grade-mask` | 同 `fill` | **仅 Layer**：调色强度遮罩，alpha 就是强度 |
 | `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
 | `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
 
@@ -304,7 +306,54 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 `overlay` **只写在 `Layer` 上**（图形 / 文字写了会 warn 并忽略）。`paint` 同 `fill`（纯色或渐变）；可选 `opacity`（`0–1` 或百分比）与混合模式（与 `blend` 同一集合）。示例：`overlay="#00000066"`、`overlay="#ff8800 0.4 multiply"`、`overlay="linear-gradient(to bottom, #ffffff00, #00000088) soft-light"`。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 Layer 子树墨迹裁切。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter`，把阴影到噪点画进离屏再贴回。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 Layer 子树墨迹裁切。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter` / `grade`，把阴影到 overlay 画进离屏，先 `grade`，再 `blur` / `filter`，贴回后再叠 `noise`（写了 `grade` 时颗粒不被染色）。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+
+### 7.1 调色 grade
+
+`grade` 只写在 `Layer` 上，作用于整个子树：文字、图片、色块一起调。图片要调色就外包一层 `Layer`。根 `Layer` 写 `grade` 时连画布底色一起调。写在图形、`img` 或 `style` 里报 `warn`。
+
+```html
+<Layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
+  <img src="street.png" style="width:640px; height:800px; object-fit:cover" />
+</Layer>
+```
+
+`grade` 是逗号分开的几项。第一项可以是预设名，后面可跟整体强度 0–1（和原图混合）。后面的项覆盖预设里的同名参数，没写的参数保持预设值。
+
+| 参数 | 写法 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `shadows` | `<颜色> [强度]` | 不染色 | 暗部颜色。只取颜色的色相和浓淡，不改亮度。强度 0–1，默认 1 |
+| `midtones` | 同上 | 不染色 | 中间调颜色 |
+| `highlights` | 同上 | 不染色 | 高光颜色 |
+| `contrast` | `0`–`2` | `1` | 大于 1 更硬，小于 1 更软 |
+| `fade` | `0`–`1` | `0` | 抬高黑位，胶片的发灰感 |
+| `saturate` | `0`–`2` | `1` | `0` 是黑白 |
+| `warmth` | `-1`–`1` | `0` | 正数偏暖，负数偏冷 |
+| `vignette` | `<0–1> [颜色]` | `0` | 四角压向该颜色，默认黑色 |
+
+| 预设 | 效果 | 展开后 |
+| --- | --- | --- |
+| `lomo` | 暗部青、高光暖、四角压暗 | `shadows #1f5a6e 0.8, highlights #ffd59a 0.6, contrast 1.2, saturate 1.15, vignette 0.55` |
+| `matte` | 哑光、黑位发灰 | `highlights #fff0d8 0.3, contrast 0.9, fade 0.35, saturate 0.85` |
+| `chrome` | 青橙 | `shadows #1a6a7a 0.8, highlights #ffb070 0.7, contrast 1.1, saturate 1.1` |
+| `bleach` | 低饱和高对比 | `contrast 1.25, fade 0.05, saturate 0.55` |
+| `mono` | 黑白 | `contrast 1.1, saturate 0` |
+
+计算在 OKLab 里进行，顺序是：`contrast` → `fade` → `saturate` → `warmth` → 三段染色 → `vignette` → 按强度和原图混合。染色排在 `saturate` 之后，所以 `mono, shadows #1f5a6e 0.4` 是冷调黑白。暗角的中心和遮罩都按这个 Layer 的盒子计算，和渐变的坐标一样。
+
+`grade-mask` 写法同 `fill`：纯色、`linear-gradient`、`radial-gradient` 或 `gradient()`。alpha 是强度：不透明处满强度，透明处保持原图。只写 `grade-mask` 不写 `grade` 时报 `warn`。
+
+不同区域用不同效果：内外两层 `Layer` 各写一个 `grade`，各自用遮罩只盖自己那一块。
+
+```html
+<Layer grade="mono" grade-mask="linear-gradient(to right, #fff0 50%, #fff 50%)">
+  <Layer grade="lomo" grade-mask="linear-gradient(to right, #fff 50%, #fff0 50%)">
+    <img src="street.png" style="width:640px; height:400px" />
+  </Layer>
+</Layer>
+```
+
+报告里的 `grade` 是预设展开后的完整参数，下一轮可以只改其中一项。
 
 ## 8. 布局报告
 

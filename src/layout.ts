@@ -8,6 +8,8 @@ import {
   type Node as YogaNode,
 } from 'yoga-layout/load'
 import { attachDrawTags } from './draw-tag.js'
+import { parseGrade } from './grade.js'
+import { parseColor } from './gradientField.js'
 import { imageInk, loadLayerImage, parseObjectFit, parseObjectPosition } from './image.js'
 import type { FvgNode } from './parse.js'
 import { parseFvg } from './parse.js'
@@ -57,6 +59,7 @@ import type {
   ColorFilterSpec,
   GlassSpec,
   GlowSpec,
+  GradeSpec,
   LineGeometry,
   LineLayoutNode,
   NoiseSpec,
@@ -293,6 +296,37 @@ function readLayerOverlay(attrs: Record<string, string>, ctx: LayoutContext): Ov
     }
   }
   return parsed
+}
+
+/** 仅 Layer：解析 grade 与 grade-mask。 */
+function readLayerGrade(attrs: Record<string, string>, ctx: LayoutContext): { grade?: GradeSpec; gradeMask?: string } {
+  const parsed = parseGrade(attrs.grade)
+  const maskRaw = attrs['grade-mask']?.trim()
+  if (parsed && 'error' in parsed) {
+    warnInvalid(
+      ctx,
+      'grade',
+      attrs.grade!,
+      `${parsed.error}。写成 lomo 0.8, fade 0.1，或 shadows #2a6080, highlights #ffd8a8, contrast 1.1, vignette 0.4`,
+    )
+  }
+  const grade = parsed && 'spec' in parsed ? parsed.spec : undefined
+  if (!maskRaw || maskRaw === 'none') return grade ? { grade } : {}
+  if (!grade) {
+    ctx.issues.push({
+      level: 'warn',
+      code: 'invalid-attr',
+      path: ctx.pathPrefix,
+      message: '写了 grade-mask 但没有可用的 grade',
+      hint: '和 grade 一起写，例如 <Layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
+    })
+    return {}
+  }
+  if (isGradient(maskRaw) ? !parseGradient(maskRaw) : !parseColor(maskRaw)) {
+    warnInvalid(ctx, 'grade-mask', maskRaw, '写成 linear-gradient(to right, #fff, #fff0)、radial-gradient(#fff0 30%, #fff) 或 gradient(...)；alpha 是强度')
+    return { grade }
+  }
+  return { grade, gradeMask: maskRaw }
 }
 
 function readPaint(raw: string, fallback: string, ctx: LayoutContext, label: string): string {
@@ -1311,6 +1345,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   })
 
   const overlay = readLayerOverlay(node.attrs, ctx)
+  const grade = readLayerGrade(node.attrs, ctx)
   return {
     kind: 'layer',
     path: ctx.pathPrefix,
@@ -1326,6 +1361,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
     ...readEffects(node.attrs, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...(overlay ? { overlay } : {}),
+    ...grade,
     ...layoutDrawMeta(node, ctx),
   }
 }

@@ -15,10 +15,11 @@
 | `overlay` | **仅 Layer**：纯色 / 渐变叠加，`paint [opacity] [blend]`，按子树墨迹裁切 |
 | `filter` | 色彩滤镜（brightness / contrast / saturate / grayscale / hue-rotate / sepia / invert） |
 | `blend` | 混合模式子集 |
+| `grade` / `grade-mask` | **仅 Layer**：调色（六参数 + `warmth` 或预设），遮罩 alpha 控制各处强度 |
 
-归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay` 例外：只允许写在 `Layer` 上。**
+归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay`、`grade`、`grade-mask` 例外：只允许写在 `Layer` 上。**
 
-绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` 或 `filter`，阴影到噪点先画进离屏再贴回。
+绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur`、`filter` 或 `grade`，阴影到 overlay 先画进离屏，依次做 `grade`、`blur` / `filter`，贴回后再叠 `noise`。
 
 ## 墨迹原则
 
@@ -56,6 +57,25 @@
 | `thick` | 36 | 0.5 | 0.2 | 0 | `#ffffff2a` |
 
 做不到：设备姿态实时高光、多层玻璃互相折射、系统级自适应明暗。
+
+## `grade` 调色
+
+给 AI 的入口只有三样：六个参数（`shadows`、`highlights`、`contrast`、`fade`、`saturate`、`vignette`，加上可选的 `midtones`、`warmth`）、一个预设名、一个遮罩。预设只是参数的一套固定值（`src/grade.ts` `GRADE_PRESETS`），没有单独的算法；报告回显展开后的值。
+
+实现（`src/grade.ts` `applyGrade`，在 `paintWithLayerFilter` 的离屏缓冲上原地改像素）：
+
+1. 像素转 OKLab。
+2. `contrast`：以 L=0.5 为支点缩放 L。`fade`：`L = f + L·(1-f)`，`f = fade × 0.3`。
+3. `saturate`：a、b 乘系数。排在染色之前，黑白也能再染冷暖。
+4. `warmth`：a、b 沿 (0.02, 0.06) 方向平移。
+5. 三段染色：权重 `(1-L)²`、`2L(1-L)`、`L²`，各加一个 a/b 偏移。偏移方向取颜色的色相，大小 = `0.1 × 强度 × 鲜艳度`，鲜艳度 = `min(1, C / L / 0.25)`。这样深色（如 `#1a3040`）和浅色写同一色相时偏得差不多，不会因为颜色暗就失效；L 不变，颜色只管色相和浓淡。
+6. `vignette`：到盒子中心的椭圆距离（角上为 1），`smoothstep(0.35, 1)` × 强度，混向暗角颜色。
+7. 与原图按 `整体强度 × 遮罩 alpha` 混合；遮罩透明处像素原样保留。
+
+- 遮罩用 `paintOf` 画到同尺寸离屏后取 alpha，所以纯色、CSS 渐变、`gradient()` 都能用，坐标按 Layer 盒子。
+- 根 Layer 不走离屏：整幅画布画完后直接调色，画布底色也一起调。
+- 预设名不用 `fade`，避免和参数 `fade 0.2` 撞名；哑光预设叫 `matte`。
+- 按颜色选区（只调天空）和位置不对称的漏光不在 `grade` 里做：前者需要按色相取遮罩，后者用 `grade-mask` 或 `overlay`。
 
 ## 取舍
 

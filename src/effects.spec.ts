@@ -168,6 +168,60 @@ describe('绘制', () => {
     expect(layer?.overlay?.paint).toContain('linear-gradient')
   })
 
+  it('Layer grade 调整子树颜色，报告里有展开后的参数', async () => {
+    const { png, report } = await renderFvg(
+      `<Layer width="80" height="80" background="#000000">
+        <Layer width="60" height="60" cx="40" cy="40" grade="mono, contrast 1">
+          <Rect cx="30" cy="30" width="60" height="60" fill="#e04020" />
+        </Layer>
+      </Layer>`,
+    )
+    const { at } = await pixels(png)
+    const [r, g, b] = at(40, 40)
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThanOrEqual(3)
+    const layer = report.elements.find((e) => e.grade)
+    expect(layer?.grade).toMatchObject({ preset: 'mono', saturate: 0, contrast: 1, amount: 1 })
+  })
+
+  it('grade-mask 透明处保持原图', async () => {
+    const { png } = await renderFvg(
+      `<Layer width="100" height="40" background="#000000">
+        <Layer width="100" height="40" cx="50" cy="20" grade="mono" grade-mask="linear-gradient(to right, #fff0 50%, #fff 50%)">
+          <Rect cx="50" cy="20" width="100" height="40" fill="#e04020" />
+        </Layer>
+      </Layer>`,
+    )
+    const { at } = await pixels(png)
+    const left = at(10, 20)
+    const right = at(90, 20)
+    expect(left[0]).toBeGreaterThan(left[2] + 100)
+    expect(Math.max(...right.slice(0, 3)) - Math.min(...right.slice(0, 3))).toBeLessThanOrEqual(3)
+  })
+
+  it('根 Layer 的 grade 作用到画布底色', async () => {
+    const { png } = await renderFvg(`<Layer width="40" height="40" background="#e04020" grade="mono"></Layer>`)
+    const [r, g, b] = (await pixels(png)).at(20, 20)
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThanOrEqual(3)
+  })
+
+  it('grade 之后再叠 noise，颗粒不被染色', async () => {
+    const scene = (grade: string) =>
+      `<Layer width="60" height="60" background="#808080">
+        <Layer width="40" height="40" cx="30" cy="30" border="40px solid #808080" noise="0.6 #ff0000" ${grade}>
+          <Rect cx="20" cy="20" width="40" height="40" fill="#808080" />
+        </Layer>
+      </Layer>`
+    const graded = await pixels((await renderFvg(scene('grade="mono"'))).png)
+    let redder = 0
+    for (let y = 12; y < 48; y++) {
+      for (let x = 12; x < 48; x++) {
+        const [r, g] = graded.at(x, y)
+        if (r > g + 20) redder++
+      }
+    }
+    expect(redder).toBeGreaterThan(20)
+  })
+
   it('Rect 上的 overlay 不生效', async () => {
     const { png, report } = await renderFvg(
       `<Layer width="60" height="60" background="#000000">

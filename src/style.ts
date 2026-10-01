@@ -55,7 +55,7 @@ export function parseBorder(value: string | undefined): Border | undefined {
 }
 
 /** 按空白拆分，但保留括号内的空白（如 `rgb(1, 2, 3)`） */
-function splitCssTokens(value: string): string[] {
+export function splitCssTokens(value: string): string[] {
   const tokens: string[] = []
   let depth = 0
   let cur = ''

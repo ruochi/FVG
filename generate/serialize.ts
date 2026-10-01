@@ -47,6 +47,8 @@ const ATTR_ORDER = [
   'backdrop-blur',
   'noise',
   'overlay',
+  'grade',
+  'grade-mask',
   'glass',
   'filter',
   'blend',
