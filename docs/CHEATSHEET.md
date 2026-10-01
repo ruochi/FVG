@@ -6,11 +6,11 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 
 | 标签 | 做什么 |
 | --- | --- |
-| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景**。纯色/渐变叠加用 `overlay`（仅 Layer） |
+| `Layer` | 根画布兼定位容器。根上写 `width` `height` `background`（画布底色）`color` `safe`；定位用 `cx` `cy` `anchor`，`anchor-box="ink"` 改为按笔画外接矩形定位。还有 `opacity` `rotate` `scale` `origin`。可嵌套。**嵌套 Layer 不填背景**。纯色/渐变叠加用 `overlay`（仅 Layer） |
 | `draw` | 子标签。正文是 JS（`ctx`、`el`），画在父元素内容之后。程序侧也可用 `draw={fn}` |
 | `div` 写 `display:flex` | 排布。默认横向；竖排加 `flex-direction:column`。`gap` `align-items` `justify-content` `padding` `flex` 都在 `style` 里 |
 
-要定位一组 HTML，包一层 `Layer`，把 `cx` `cy` `anchor` 写在 `Layer` 上。
+要定位一组 HTML，包一层 `Layer`，把 `cx` `cy` `anchor` 写在 `Layer` 上。大字要和页边、分割线贴齐笔画时，加 `anchor-box="ink"`。`use` 同样可以写。
 
 ## 叶子怎么定位
 

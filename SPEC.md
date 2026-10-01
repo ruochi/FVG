@@ -61,6 +61,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | `id` | 报告里用来指认元素 |
 | `cx`、`cy` | 只写在 `Layer` 上，默认是该层中心（见 `anchor`） |
 | `anchor` | 定位点在元素上的哪个位置，九宫格：`center`（默认）、`top`、`bottom`、`left`、`right`、`top-left`、`top-right`、`bottom-left`、`bottom-right` |
+| `anchor-box` | `box`（默认）或 `ink`。写在 `Layer` / `use` 上。`ink` 时 `cx`、`cy`、`anchor` 对准这一层子树的着墨外接矩形，而不是布局盒子 |
 | `opacity` | 0 到 1。嵌套时逐层相乘 |
 | `rotate` | 绕 `origin` 旋转，单位度，顺时针为正。对文字、线条、形状和 Layer 都生效；Layer 上的旋转作用到整棵子树 |
 | `scale` | 绕 `origin` 缩放，同样作用到整棵子树 |
@@ -72,7 +73,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 | 属性 | 写在哪 |
 | --- | --- |
-| `cx`、`cy`、`anchor`、`width`、`height`、`opacity`、`rotate`、`scale`、`origin` | `Layer` 的属性。HTML 上写了报 `warn` |
+| `cx`、`cy`、`anchor`、`anchor-box`、`width`、`height`、`opacity`、`rotate`、`scale`、`origin` | `Layer` 的属性。HTML 上写了报 `warn` |
 | `flex`、`gap`、`align-items`、字号、颜色、背景 | HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn` |
 | `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `Layer` 的局部坐标 |
 | `src`、`alt` | 只写在 `img` 上。宽高仍放进 `style` |
@@ -89,6 +90,10 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
 
 `anchor` 示例：`<Layer cx="60" cy="120" anchor="top-left"><h1>标题</h1></Layer>` 表示这一层的左上角在 (60, 120)。
+
+`anchor-box="ink"` 让这个点对准**着墨**而不是盒子。大字有侧边距和行高留白，笔画比盒子靠里；写成 `<Layer cx="76" cy="560" anchor="top-left" anchor-box="ink">` 时，笔画左上角就在 (76, 560)。做法是：先按盒子排好子树，再取子树着墨的并集（文字用字形真实边界；取这一层自己的 `rotate` / `scale` 之前的范围；`overflow="hidden"` 先按盒子裁剪），用着墨矩形上的同一个九宫格点算出平移量，把整层平移过去。内部排布不变。`origin` 仍按布局盒子计算。同时写了 `rotate` 时报告 `info`，说明对齐点是旋转前的着墨。子树没有着墨（空文字、全透明）时退回 `box`，并报告 `info`。
+
+没写 `anchor-box`、锚点在左侧或右侧，且着墨比盒子缩进不少于字号的 4%（四舍五入后至少 2px）时，报告 `info` `ink-inset`，提示改成 `anchor-box="ink"`。24px 正文常见的 1px 侧边距不提示。
 
 ## 4. 容器
 
@@ -383,7 +388,8 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 ```
 
 - `box`：布局盒子（含 padding 和 border），只累加平移，不受 `rotate`、`scale` 影响。
-- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 Layer 求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。
+- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 Layer 求过交集。文字是字形的真实边界（每个字用 `actualBoundingBox` 的左、右、上、下，行首行尾的空格不算），形状是布局盒子变换后的范围。
+- `anchorBox`、`inkOffset`：只在 `anchor-box="ink"` 生效时出现。`inkOffset` 是着墨相对布局盒子的四边内缩 `{ left, top, right, bottom }`，取旋转和缩放之前的值；笔画伸出盒子时为负。`box` 仍是平移后的布局盒子。
 - `opacity`：从根到该元素逐层相乘后的透明度。
 
 `opacity` 小于 0.01 的元素仍会出现在 `elements` 里，但不参与下面的越界、安全区、重叠和最小字号检查。最小字号按声明的 `font-size` 判断，不乘 `scale`。
@@ -393,7 +399,10 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | code | 级别 | 含义 |
 | --- | --- | --- |
 | `overflow-canvas` | error | 着墨超出画布 |
-| `outside-safe` | warn | 文字超出安全区 |
+| `outside-safe` | warn | 文字超出安全区，按字形真实着墨判断 |
+| `ink-inset` | info | 左或右对齐时，字形比盒子缩进不少于字号的 4%，且四舍五入后至少 2px。`hint` 是改成 `anchor-box="ink"` |
+| `ink-anchor-rotate` | info | 同时写了 `anchor-box="ink"` 和 `rotate`，对齐点是旋转前的着墨 |
+| `ink-anchor-empty` | info | `anchor-box="ink"` 但子树没有着墨，已按布局盒子定位 |
 | `text-overflow` | error | 文字超出了写死的宽度或高度 |
 | `flex-overflow` | warn | 子元素超出了写死尺寸的 flex 容器 |
 | `text-overlap` | warn | 两段文字的着墨区域重叠 |
@@ -517,7 +526,7 @@ const { frames, contactSheet } = await renderComposition(scene)
 ## 12. 预留（后续版本）
 
 - 把帧序列编码成视频，以及时间轴预览。
-- 墨迹布局：按着墨范围计算间距、居中、包裹。
+- 墨迹布局的其余部分：flex 子元素按着墨计算间距和对齐；按着墨包裹（Layer 的盒子收到子树着墨上）。按着墨定位已由 `anchor-box="ink"` 实现。
 - `Icon`、`Image`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
 - 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。

@@ -18,6 +18,7 @@ const ATTR_ORDER = [
   'cx',
   'cy',
   'anchor',
+  'anchor-box',
   'x1',
   'y1',
   'x2',

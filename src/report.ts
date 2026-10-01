@@ -1,4 +1,5 @@
 import { applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
+import { alignLineOffset } from './text.js'
 import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode } from './types.js'
 import { boxToRect, translateBox, unionBoxes } from './types.js'
 
@@ -62,13 +63,23 @@ function walk(
   if (node.blend) entry.blend = node.blend
   if (node.grade) entry.grade = node.grade
   if (node.gradeMask) entry.gradeMask = node.gradeMask
+  if (node.anchorBox === 'ink') {
+    entry.anchorBox = 'ink'
+    entry.inkOffset = node.inkOffset
+  }
   if (node.kind === 'text') {
     const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
     const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
+    const innerW = node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2
     entry.fontSize = node.textLayout.fontSize
     entry.lines = node.textLayout.lines.map((line) => ({
       text: line.segments.map((s) => s.text).join(''),
-      box: boxToRect(clipInk(applyToBox(matrix, translateBox(line.ink, contentX, contentY)), clip)),
+      box: boxToRect(
+        clipInk(
+          applyToBox(matrix, translateBox(line.ink, contentX + alignLineOffset(node.textAlign, innerW, line.width), contentY)),
+          clip,
+        ),
+      ),
     }))
   }
   elements.push(entry)

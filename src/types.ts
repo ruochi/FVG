@@ -140,6 +140,14 @@ export type BlendMode =
   | 'lighten'
   | 'darken'
 
+/** 着墨相对布局盒子的四边内缩。伸出盒子时为负。 */
+export type InkOffset = {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
 export type ElementReport = {
   path: string
   id?: string
@@ -147,6 +155,10 @@ export type ElementReport = {
   box: Rect
   /** 变换并裁剪后的着墨外接矩形。 */
   ink: Rect
+  /** anchor-box="ink" 生效时为 ink。 */
+  anchorBox?: 'box' | 'ink'
+  /** 着墨相对布局盒子的四边内缩，取旋转和缩放之前的值。 */
+  inkOffset?: InkOffset
   /** 逐层相乘后的有效透明度。 */
   opacity: number
   fontSize?: number
@@ -225,6 +237,10 @@ export type LayoutNodeBase = {
   width: number
   height: number
   ink: Box
+  /** anchor-box="ink" 生效时为 ink。 */
+  anchorBox?: 'box' | 'ink'
+  /** 着墨相对布局盒子的四边内缩，取旋转和缩放之前的值。 */
+  inkOffset?: InkOffset
   opacity: number
   rotate: number
   scale: number
