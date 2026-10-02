@@ -23,12 +23,15 @@ HTML 用 `style`，其余标签用属性。数字都是像素，y 轴向下。�
 | `circle` | `cx cy r`（圆心） | 同上 |
 | `line` `arrow` `polyline` `polygon` `path` `curve` | `x1 y1 x2 y2` / `points` / `d`，就是局部坐标。`curve` 用 `points`，闭合加 `closed` | 不渲染。包一层 `<layer>` |
 | `symbol` / `use` | `symbol` 不画。`use href="#id"` 用 `cx cy` 摆放，可加 `rotate` `scale` | `use` 按它的宽高排进去 |
+| `mask` | 只作为 `layer` 的直接子元素。里面写 `rect` `circle` `ellipse` `polygon` `path` 或 `img`。省略 `fill` 为 `#fff`，只看 alpha | 不排进去，会 `warn` |
 
 形状和自定义元素不用 `anchor`，也不写 `style`。色块、圆点、分隔线用 div：`<div style="width:28px; height:28px; border-radius:14px; background:#3ecfc4">`，分隔线用 `flex:1; height:4px`。
 
 `fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`、`gradient(#f00 #0f0 / #00f #fff)`。效果：`shadow` / `inner-shadow`（`0 8 16 #00000055`）、`glow` / `inner-glow`（`56 #f3ead4`）、`blur` / `backdrop-blur`（单个像素）、`glass="clear"`（零模糊边缘折射玻璃；`thick` 为毛玻璃）、`noise="0.08"`、`filter="saturate(1.1)"`、`blend="multiply"`。**仅 layer**：`overlay="#00000066"` / `overlay="#ff8800 0.4 multiply"` / `overlay="linear-gradient(to bottom, #fff0, #0008) soft-light"`。图形写属性，文字写在 `style` 里。
 
 调色只写在 `layer` 上：`<layer grade="lomo 0.8, fade 0.1">`。参数有 `shadows #色 [强度]`、`highlights #色 [强度]`、`contrast`、`fade`、`saturate`、`warmth`、`vignette`；预设有 `lomo`、`matte`、`chrome`、`bleach`、`mono`。只想调某一块就加 `grade-mask="radial-gradient(#fff0 30%, #fff)"`，alpha 是强度。图片要调色就外包 `layer`。
+
+整层裁切用 `<mask>`，和内容并列写在 `layer` 里：`<mask><circle cx="160" cy="90" r="90" /></mask>`。实心是硬边，`fill="linear-gradient(to bottom, #fff, #fff0)"` 是软边。`overflow="hidden"` 只裁子元素，不管阴影。
 
 竖排：`style="writing-mode:vertical-rl"`。字体名 `Song`、`Kai`、`Brush` 不用自带字体文件。
 

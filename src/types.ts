@@ -260,6 +260,11 @@ export type LayerLayoutNode = LayoutNodeBase & {
   children: LayoutNode[]
   /** 缺省为 visible。hidden 时按盒子裁剪子元素。 */
   overflow?: 'visible' | 'hidden'
+  /**
+   * 蒙版内容，坐标系是这一层的局部像素。
+   * 绘制时只取 alpha，不进入 children，不参与布局。
+   */
+  mask?: LayoutNode[]
 }
 
 export type FlexLayoutNode = LayoutNodeBase & {

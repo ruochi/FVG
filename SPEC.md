@@ -49,6 +49,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | 形状 | `rect`、`circle`、`ellipse` |
 | 线条 | `line`、`arrow`、`polyline`、`polygon`、`path`、`curve` |
 | 复用 | `symbol`、`use` |
+| 蒙版 | `mask`（只作为 `layer` 的直接子元素） |
 
 - 标签一律小写，和 HTML、SVG 一样：`<layer>`、`<rect>`、`<circle>`、`<div>`、`<h1>`。HTML 只写 `style`，`layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。旧的大写写法（`<Layer>`、`<Circle>`）仍会渲染，并报 `info`，提示改成小写。
 - 后写的元素画在上面。
@@ -99,7 +100,30 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 - 写了 `width`、`height`：layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
 - 没写：宽高等于从原点到内容右下角的距离，没写 `cx`、`cy` 的子元素放在这个盒子的中心。坐标在负方向的子元素会画到盒子外面，但不会把其他子元素一起平移。
 
-`overflow="hidden"` 按 layer 的盒子裁剪子元素。默认 `visible`。
+`overflow="hidden"` 按 layer 的盒子裁剪子元素。默认 `visible`。被裁掉的是子元素；阴影、模糊仍可以画到盒子外面。
+
+`<mask>` 裁的是这一层合成完的画面，包括阴影、模糊、调色和颗粒。它写在 `layer` 里面，和要裁的内容并列。自己不画出来，不占布局，不把层撑大，不出现在报告里，也不触发 `overflow-canvas`。一层最多一个，多出来的 `warn` 并忽略。坐标和同层的图形一样，原点在 layer 左上角。
+
+里面直接写 `rect`、`circle`、`ellipse`、`polygon`、`path`，也可以放 `img`（用图片自己的 alpha；JPEG 没有透明，等于一块实心矩形）。`line`、`arrow`、`polyline`、`curve`、文字、`div`、嵌套 `layer` 会 `warn` 并忽略。空的 `mask` 报 `empty-mask`，并且不生效。
+
+没写 `fill` 时按 `#fff` 画满。实心形状是硬边；`fill` 的 alpha 和渐变里的透明处是软边。颜色不算，只看 alpha。没画到的像素藏起来。多个形状按书写顺序叠上，后写的盖住先写的；半透明不会把底下挖空。要挖洞，用带洞的 `path`。形状自己的 `rotate`、`scale` 仍然有效。
+
+画布底色先铺好，不进 `mask`。根 `layer` 的 `grade` 仍作用整幅画布，包括底色。`grade-mask` 只控制调色强度，不是这一层的遮罩。`mask` 放进 flex、写在图形或 HTML 上、写成属性或写进 `style`，都会 `warn` 并忽略。
+
+```html
+<layer width="320" height="180">
+  <mask>
+    <circle cx="160" cy="90" r="90" />
+  </mask>
+  <img src="street.png" style="width:320px; height:180px" />
+</layer>
+```
+
+```html
+<mask>
+  <rect x1="0" y1="0" x2="320" y2="180" fill="linear-gradient(to bottom, #fff, #fff0)" />
+</mask>
+```
 
 `border`、`border-radius`、`overflow` 写在 `layer` 的属性上，不写 `style`。**`layer` 不填背景**：它只合成子元素画出来的内容。色块用 `rect` 的 `fill`、HTML 的 `style="background: …"`，或子标签 `<draw>` 自己画。`layer` / `use` 上写 `background` 会警告并忽略。画布底色只写在根节点 `<layer background>`。
 
@@ -402,7 +426,8 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `non-canonical` | info | 含义明确，但不是规范写法。照常渲染，`hint` 里是规范写法 |
 | `unknown-tag` | warn | 不认识的标签 |
 | `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
-| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，文字盒子里放了 `h1`–`h3`、`p`、`div` 或图片 |
+| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，文字盒子里放了 `h1`–`h3`、`p`、`div` 或图片，`mask` 放错位置或一层写了多个 |
+| `empty-mask` | warn | `mask` 里没有可用的形状或图片，不生效 |
 | `invalid-draw` | error / warn | `<draw>` 语法错误（error）或内容为空（warn） |
 | `missing-image` | warn | `img` 的 `src` 读不到 |
 | `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |

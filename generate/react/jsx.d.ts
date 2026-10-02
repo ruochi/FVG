@@ -83,6 +83,11 @@ declare global {
       /** 子标签：正文 JS，可用 ctx、el；不参与布局 */
       draw: FvgCommon
       symbol: FvgCommon & { width?: number | string; height?: number | string }
+      /**
+       * 蒙版。只作为 layer 的直接子元素。
+       * 里面写 rect / circle / ellipse / polygon / path / img；省略 fill 为 #fff，只取 alpha。
+       */
+      mask: FvgCommon
       use: FvgPositioned & {
         href?: string
         rotate?: number | string

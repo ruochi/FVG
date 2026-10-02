@@ -135,6 +135,7 @@ flowchart TD
 | 文字的 `cx` 写在外包的 `layer` 上 | 写在 `h1` / `p` 上会 `warn` |
 | 图片用 `<img src="…" style="width:…; height:…">` | `img` 是 HTML：`src` 是属性，尺寸在 `style`。`image` 同样可用 |
 | 调色写 `<layer grade="lomo, fade 0.1">`，先选预设再改一两项 | `grade` 只在 layer 上生效；报告里有展开后的参数，照着改 |
+| 整层裁切写 `<mask>`，里面直接放形状或 `<img>` | 省略 `fill` 为不透明白，只看 alpha。`grade-mask` 只控制调色强度。`overflow="hidden"` 只裁子元素 |
 | 多段文字用 flex，别在 `p` 里嵌 `div` | 文字盒子里只能放行内标签 |
 | 验证时先读 **`issues` 和 `report.json`** | 数字比压缩图更适合改 markup |
 

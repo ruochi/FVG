@@ -16,10 +16,11 @@
 | `filter` | 色彩滤镜（brightness / contrast / saturate / grayscale / hue-rotate / sepia / invert） |
 | `blend` | 混合模式子集 |
 | `grade` / `grade-mask` | **仅 layer**：调色（六参数 + `warmth` 或预设），遮罩 alpha 控制各处强度 |
+| `<mask>` | **仅 layer 的直接子元素**：用里面形状 / `img` 的 alpha 裁整层合成结果。`grade-mask` 不是这个 |
 
-归属：layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay`、`grade`、`grade-mask` 例外：只允许写在 `layer` 上。**
+归属：layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay`、`grade`、`grade-mask` 例外：只允许写在 `layer` 上。** `<mask>` 是标签，不是属性。
 
-绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur`、`filter` 或 `grade`，阴影到 overlay 先画进离屏，依次做 `grade`、`blur` / `filter`，贴回后再叠 `noise`。
+绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体（`overflow="hidden"` 在这里裁子元素）→ `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur`、`filter`、`grade` 或 `<mask>`，先画进离屏，依次做 `grade`、`blur` / `filter`，有 `grade` 时再叠 `noise`，然后按 `<mask>` 的 alpha 裁掉，再贴回。画布底色不进 `<mask>`。
 
 ## 墨迹原则
 

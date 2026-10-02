@@ -10,7 +10,7 @@
 
 组件是一段可复用的生成代码，用来补上默认值，或把反复出现的几行标签收成一个名字。
 
-- 基本标签一律小写：`<layer>`、`<rect>`、`<circle>`、`<line>`、`<arrow>`、`<div>`、`<h1>`。组件名用 PascalCase，展开后不再留下。
+- 基本标签一律小写：`<layer>`、`<rect>`、`<circle>`、`<line>`、`<arrow>`、`<mask>`、`<div>`、`<h1>`。组件名用 PascalCase，展开后不再留下。
 - `Arrow` 组件展开成渲染器的 `<arrow>` 标签。组件名和标签名不是同一个东西。
 - 一张海报只用一种生成器。用 Vue 就注册 Vue 外壳，用 React 就调用 React 外壳。
 - 默认值只写一次。Vue / React 外壳只负责把参数交进去。

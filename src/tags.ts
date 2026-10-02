@@ -14,6 +14,7 @@ const KNOWN_TAGS = new Set([
   'draw',
   'symbol',
   'use',
+  'mask',
   'div',
   'h1',
   'h2',
@@ -58,6 +59,14 @@ export function isLineTag(tag: string): boolean {
 
 export function isShapeTag(tag: string): boolean {
   return SHAPE_TAGS.has(canonicalTag(tag))
+}
+
+/** mask 里允许的内容：有面积的形状，以及带 alpha 的图片。 */
+const MASK_CONTENT_TAGS = new Set(['rect', 'circle', 'ellipse', 'polygon', 'path'])
+
+export function isMaskContentTag(tag: string): boolean {
+  const canonical = canonicalTag(tag)
+  return MASK_CONTENT_TAGS.has(canonical) || isImageTag(canonical)
 }
 
 /** 旧根标签 fvg 归一成 layer */

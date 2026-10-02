@@ -22,7 +22,7 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  �
 | 要定位的文字 | 外包 `<layer cx cy anchor>`，文字上不写 `cx` |
 | 可复用块 | **PascalCase 组件名**，展开后只剩 Flex Layer 标签 |
 
-标签一律小写：`<layer>`、`<rect>`、`<circle>`、`<div>`、`<symbol>`、`<use>`、`<draw>`。**嵌套 `layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
+标签一律小写：`<layer>`、`<rect>`、`<circle>`、`<div>`、`<symbol>`、`<use>`、`<mask>`、`<draw>`。**嵌套 `layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
 
 生成完成后交给现有渲染器：
 

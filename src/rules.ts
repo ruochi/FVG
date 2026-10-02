@@ -283,6 +283,30 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
       ),
     )
   }
+  if (node.tag !== 'layer' && present(attrs, 'mask')) {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        '遮罩要写成 <mask> 标签，不要写成属性',
+        '在 layer 里写 <mask><circle cx="160" cy="90" r="90" /></mask>',
+      ),
+    )
+  }
+  const styleMask = parseStyle(attrs.style).mask
+  if (node.tag !== 'layer' && styleMask != null && styleMask.trim() !== '') {
+    out.push(
+      flagged(
+        'warn',
+        'invalid-attr',
+        path,
+        'mask 不要写在 style 里',
+        '在 layer 里写 <mask>…</mask>，不要写进 style',
+      ),
+    )
+  }
+
   const gradeInStyle = Object.keys(parseStyle(attrs.style)).filter((key) => key === 'grade' || key === 'grade-mask')
   if (gradeInStyle.length > 0) {
     out.push(
