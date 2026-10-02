@@ -23,7 +23,9 @@
     "test": "vitest run",
     "test:generate": "vitest run --config generate/vitest.config.ts",
     "pythagoras": "tsx examples/render-pythagoras.ts",
-    "flexlayer": "tsx src/cli.ts"
+    "flexlayer": "tsx src/cli.ts",
+    "docs:attrs": "tsx scripts/gen-attr-docs.ts",
+    "gallery": "tsx scripts/render-gallery.ts"
   },
   "license": "MIT",
   "dependencies": {

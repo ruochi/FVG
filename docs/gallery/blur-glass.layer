@@ -1,0 +1,38 @@
+<Layer width="1080" height="1280" background="#0a0e14" color="#f4f1ea" font-family="Kai">
+  <Rect x1="0" y1="0" x2="1080" y2="1280" fill="linear-gradient(to bottom, #121826, #1a3348 50%, #243c38)" />
+  <Rect x1="0" y1="220" x2="1080" y2="236" fill="#ffffff" opacity="0.9" />
+  <Rect x1="0" y1="280" x2="1080" y2="296" fill="#f5c16c" />
+  <Rect x1="0" y1="340" x2="1080" y2="356" fill="#7b6cff" />
+  <Rect x1="0" y1="620" x2="1080" y2="636" fill="#ffffff" opacity="0.9" />
+  <Rect x1="0" y1="680" x2="1080" y2="696" fill="#ff9f1c" />
+  <Rect x1="0" y1="740" x2="1080" y2="756" fill="#3ecfc4" />
+  <Rect x1="0" y1="980" x2="1080" y2="996" fill="#ffffff" opacity="0.85" />
+  <Rect x1="0" y1="1040" x2="1080" y2="1056" fill="#ff5aa5" />
+
+  <Layer cx="64" cy="40" anchor="top-left">
+    <h1 style="font-size:48px; color:#f7f2e8">模糊与玻璃</h1>
+  </Layer>
+
+  <Rect cx="200" cy="360" width="240" height="150" rx="20" fill="#f7931a" blur="6" />
+  <Layer cx="200" cy="460" anchor="top"><p style="font-size:26px; color:#9aa7b5">blur</p></Layer>
+
+  <Rect cx="540" cy="360" width="240" height="150" rx="20" fill="#ffffff22" backdrop-blur="16" />
+  <Layer cx="540" cy="460" anchor="top"><p style="font-size:26px; color:#9aa7b5">backdrop-blur</p></Layer>
+
+  <Rect cx="860" cy="360" width="240" height="150" rx="24" fill="#ffffff18" glass="clear" />
+  <Layer cx="860" cy="460" anchor="top"><p style="font-size:26px; color:#9aa7b5">glass clear</p></Layer>
+
+  <Rect cx="200" cy="760" width="240" height="150" rx="24" fill="#ffffff18" glass="regular" />
+  <Layer cx="200" cy="860" anchor="top"><p style="font-size:26px; color:#9aa7b5">glass regular</p></Layer>
+
+  <Rect cx="540" cy="760" width="240" height="150" rx="24" fill="#ffffff20" glass="thick" />
+  <Layer cx="540" cy="860" anchor="top"><p style="font-size:26px; color:#9aa7b5">glass thick</p></Layer>
+
+  <Rect cx="860" cy="760" width="240" height="150" rx="24" fill="#ffffff14" glass="clear, blur 8, tint #a8c8ff55" />
+  <Layer cx="860" cy="860" anchor="top"><p style="font-size:26px; color:#9aa7b5">glass 逗号写法</p></Layer>
+
+  <Rect cx="540" cy="1120" width="640" height="120" rx="28" fill="#ffffff18" glass="clear" />
+  <Layer cx="540" cy="1120" anchor="center">
+    <p style="font-size:32px; color:#ffffff">边缘折射，中心不变形</p>
+  </Layer>
+</Layer>

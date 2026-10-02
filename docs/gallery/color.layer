@@ -1,0 +1,62 @@
+<Layer width="1080" height="1500" background="#12161c" color="#e8e4dc" font-family="Kai">
+  <Rect x1="0" y1="0" x2="1080" y2="1500" fill="#12161c" />
+  <Layer cx="80" cy="40" anchor="top-left">
+    <h1 style="font-size:48px; color:#f2ebe0">调色</h1>
+  </Layer>
+
+  <Rect cx="220" cy="240" width="260" height="150" rx="16" fill="#e85d4c" filter="grayscale(1)" />
+  <Rect cx="540" cy="240" width="260" height="150" rx="16" fill="#3ecfc4" filter="saturate(1.8) contrast(1.15)" />
+  <Layer cx="220" cy="340" anchor="top"><p style="font-size:24px; color:#9aa7b5">filter grayscale</p></Layer>
+  <Layer cx="540" cy="340" anchor="top"><p style="font-size:24px; color:#9aa7b5">filter saturate</p></Layer>
+
+  <Layer width="260" height="150" cx="220" cy="520" overlay="#00000066">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="#f4efe4" />
+  </Layer>
+  <Layer width="260" height="150" cx="540" cy="520" overlay="#ff8800 0.45 multiply">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="#3ecfc4" />
+  </Layer>
+  <Layer width="260" height="150" cx="860" cy="520" overlay="linear-gradient(to bottom, #ffffff00, #1a2430cc) soft-light">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="#6aa1ff" />
+  </Layer>
+  <Layer cx="220" cy="620" anchor="top"><p style="font-size:24px; color:#9aa7b5">overlay 纯色</p></Layer>
+  <Layer cx="540" cy="620" anchor="top"><p style="font-size:24px; color:#9aa7b5">overlay multiply</p></Layer>
+  <Layer cx="860" cy="620" anchor="top"><p style="font-size:24px; color:#9aa7b5">overlay 渐变</p></Layer>
+
+  <Layer width="260" height="150" cx="200" cy="860" grade="lomo">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer width="260" height="150" cx="540" cy="860" grade="matte">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer width="260" height="150" cx="880" cy="860" grade="chrome">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer cx="200" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade lomo</p></Layer>
+  <Layer cx="540" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade matte</p></Layer>
+  <Layer cx="880" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade chrome</p></Layer>
+
+  <Layer width="260" height="150" cx="200" cy="1200" grade="bleach">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer width="260" height="150" cx="540" cy="1200" grade="mono">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer width="260" height="150" cx="880" cy="1200" grade="lomo" grade-mask="radial-gradient(#fff0 35%, #fff)">
+    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
+    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
+    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+  </Layer>
+  <Layer cx="200" cy="1300" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade bleach</p></Layer>
+  <Layer cx="540" cy="1300" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade mono</p></Layer>
+  <Layer cx="880" cy="1300" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade-mask</p></Layer>
+</Layer>

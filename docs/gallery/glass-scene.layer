@@ -1,9 +1,9 @@
 <Layer width="780" height="1400" background="#0b0f1a" color="#ffffff" font-family="Kai">
   <!-- 壁纸：大色块 + 大字 + 细条，给折射一些细节 -->
   <Rect x1="0" y1="0" x2="780" y2="1400" fill="linear-gradient(160deg, #1d2b64, #5b2a86 45%, #f0765a 80%, #ffcf7a)" />
-  <Circle cx="600" cy="300" r="220" fill="#ff5aa5" opacity="0.85" />
-  <Circle cx="140" cy="720" r="200" fill="#2ec4ff" opacity="0.85" />
-  <Circle cx="620" cy="1080" r="240" fill="#3ecf8e" opacity="0.8" />
+  <Circle cx="580" cy="280" r="170" fill="#ff5aa5" opacity="0.85" />
+  <Circle cx="200" cy="720" r="160" fill="#2ec4ff" opacity="0.85" />
+  <Circle cx="560" cy="1080" r="180" fill="#3ecf8e" opacity="0.8" />
   <Rect x1="0" y1="560" x2="780" y2="572" fill="#ffffff" opacity="0.8" />
   <Rect x1="0" y1="600" x2="780" y2="612" fill="#ffd23f" />
   <Rect x1="0" y1="640" x2="780" y2="652" fill="#ffffff" opacity="0.8" />

@@ -1,0 +1,27 @@
+<Layer width="1080" height="1100" background="#12161c" color="#e8e4dc" font-family="Kai">
+  <Rect x1="0" y1="0" x2="1080" y2="1100" fill="linear-gradient(to bottom, #0e1218, #1a2430 55%, #2a3540)" />
+  <Layer cx="80" cy="48" anchor="top-left">
+    <h1 style="font-size:48px; color:#f2ebe0">投影与发光</h1>
+  </Layer>
+
+  <Rect cx="220" cy="280" width="260" height="160" rx="20" fill="#3ecfc4" shadow="0 12 20 #00000088" />
+  <Circle cx="540" cy="280" r="64" fill="#f4efe4" glow="36 #f4efe4" />
+  <Rect cx="860" cy="280" width="260" height="160" rx="20" fill="#1e3a5f" shadow="0 10 16 #00000066" glow="22 #5b8fd4" />
+  <Layer cx="220" cy="390" anchor="top"><p style="font-size:26px; color:#9aa7b5">shadow</p></Layer>
+  <Layer cx="540" cy="390" anchor="top"><p style="font-size:26px; color:#9aa7b5">glow</p></Layer>
+  <Layer cx="860" cy="390" anchor="top"><p style="font-size:26px; color:#9aa7b5">shadow + glow</p></Layer>
+
+  <Rect cx="220" cy="580" width="260" height="160" rx="20" fill="#6aa1ff" inner-shadow="0 10 16 #00000099" />
+  <Rect cx="540" cy="580" width="260" height="160" rx="20" fill="#142033" inner-glow="28 #7ec8ff" />
+  <Rect cx="860" cy="580" width="260" height="160" rx="20" fill="#3ecfc4" noise="0.35 #ffffff" />
+  <Layer cx="220" cy="690" anchor="top"><p style="font-size:26px; color:#9aa7b5">inner-shadow</p></Layer>
+  <Layer cx="540" cy="690" anchor="top"><p style="font-size:26px; color:#9aa7b5">inner-glow</p></Layer>
+  <Layer cx="860" cy="690" anchor="top"><p style="font-size:26px; color:#9aa7b5">noise</p></Layer>
+
+  <Circle cx="400" cy="900" r="56" fill="#ff6b6b" />
+  <Circle cx="460" cy="900" r="56" fill="#4ecdc4" blend="multiply" />
+  <Circle cx="700" cy="900" r="56" fill="#ffe66d" />
+  <Circle cx="760" cy="900" r="56" fill="#ff6b6b" blend="screen" />
+  <Layer cx="430" cy="990" anchor="top"><p style="font-size:26px; color:#9aa7b5">blend multiply</p></Layer>
+  <Layer cx="730" cy="990" anchor="top"><p style="font-size:26px; color:#9aa7b5">blend screen</p></Layer>
+</Layer>

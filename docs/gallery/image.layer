@@ -1,0 +1,21 @@
+<Layer width="1080" height="520" background="#12161c" color="#e8e4dc" font-family="Kai">
+  <Layer cx="80" cy="36" anchor="top-left">
+    <h1 style="font-size:48px; color:#f2ebe0">图片 object-fit</h1>
+  </Layer>
+  <Layer cx="150" cy="220" anchor="center">
+    <img src="swatch.png" alt="色块" style="width:200px; height:160px; object-fit:fill; background:#222" />
+  </Layer>
+  <Layer cx="410" cy="220" anchor="center">
+    <img src="swatch.png" alt="色块" style="width:200px; height:160px; object-fit:contain; background:#222" />
+  </Layer>
+  <Layer cx="670" cy="220" anchor="center">
+    <img src="swatch.png" alt="色块" style="width:200px; height:160px; object-fit:cover; background:#222" />
+  </Layer>
+  <Layer cx="930" cy="220" anchor="center">
+    <img src="swatch.png" alt="色块" style="width:200px; height:160px; object-fit:none; background:#222" />
+  </Layer>
+  <Layer cx="150" cy="360" anchor="top"><p style="font-size:26px; color:#9aa7b5">fill</p></Layer>
+  <Layer cx="410" cy="360" anchor="top"><p style="font-size:26px; color:#9aa7b5">contain</p></Layer>
+  <Layer cx="670" cy="360" anchor="top"><p style="font-size:26px; color:#9aa7b5">cover</p></Layer>
+  <Layer cx="930" cy="360" anchor="top"><p style="font-size:26px; color:#9aa7b5">none</p></Layer>
+</Layer>

@@ -23,6 +23,7 @@ type FvgEffects = {
   blur?: number | string
   'backdrop-blur'?: number | string
   noise?: string
+  /** 空格 `clear` / `regular 8 #fff2`，或逗号 `clear, blur 8, tint #fff2` */
   glass?: string
   filter?: string
   blend?: string
