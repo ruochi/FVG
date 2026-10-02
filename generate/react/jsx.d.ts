@@ -16,27 +16,46 @@ type FvgPositioned = FvgCommon & {
 }
 
 type FvgEffects = {
+  // jsx-effects:begin
+  /** 0 8 16 #00000055 */
   shadow?: string
+  /** 56 #f3ead4 */
   glow?: string
+  /** 0 8 16 #00000055 */
   'inner-shadow'?: string
+  /** 28 #7ec8ff */
   'inner-glow'?: string
+  /** 6 */
   blur?: number | string
+  /** 16 */
   'backdrop-blur'?: number | string
-  noise?: string
+  /** clear */
   glass?: string
+  /** 0.08 */
+  noise?: string
+  /** saturate(1.1) */
   filter?: string
+  /** multiply */
   blend?: string
+// jsx-effects:end
 }
 
 /** 仅 Layer：纯色/渐变叠加 */
 type FvgLayerOverlay = {
+  // jsx-overlay:begin
+  /** #00000066 */
   overlay?: string
+// jsx-overlay:end
 }
 
-/** 仅 Layer：调色。例如 grade="lomo 0.8, fade 0.1"，grade-mask 的 alpha 是强度 */
+/** 仅 Layer：调色 */
 type FvgLayerGrade = {
+  // jsx-grade:begin
+  /** lomo 0.8, fade 0.1 */
   grade?: string
+  /** radial-gradient(#fff0 30%, #fff) */
   'grade-mask'?: string
+// jsx-grade:end
 }
 
 type FvgShape = FvgPositioned &

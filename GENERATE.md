@@ -3,36 +3,25 @@
 Flex Layer 的**生成**和**画图**是两层。可复用块的写法见 [generate/COMPONENTS.md](generate/COMPONENTS.md)。
 
 ```text
-Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  →  PNG
+Vue 模板 / React JSX  →  .layer 文本  →  renderLayer / flexlayer render  →  PNG
 ```
 
-生成层只产出 `.layer` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。
+生成层只产出 `.layer` 字符串，不调用 canvas。标签和属性以 [SPEC.md](SPEC.md) 为准，必须遵守的写法见 [AGENTS.md](AGENTS.md)。
 
-## 规则（AI 必守）
+生成层特有的两件事：
 
-| 写什么 | 放哪里 |
-| --- | --- |
-| 根 `<Layer>` 的 `width`、`height`、`background`（画布底色）、`color`、`safe` | 根元素**属性** |
-| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
-| 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
-| 图片 | `<img src="…" alt="…">`，宽高和 `object-fit` 写 **`style`**。`image` 同样可用 |
-| 调色 | 外包 `<Layer grade="lomo 0.8" grade-mask="…">`，两者都是 **Layer 属性** |
-| 嵌套 Layer 的色块 | `<Rect fill>`、HTML `background`，或子标签 **`<draw>`**（正文 JS：`ctx`、`el`） |
-| 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
-| 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
-| 可复用块 | **PascalCase 组件名**，展开后只剩 Flex Layer 标签 |
+- Vue 模板会压空白。`<draw>` 里多句 JS 写在一行，用 `;` 分隔。
+- React 把大写 JSX 当成变量。`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入；`div`、`h1`、`draw` 小写，不用 import。
 
-根与定位容器都是大写 `<Layer>`；图形首字母大写。文字和 `div`、`symbol`、`use`、`draw` 小写。**嵌套 `Layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
-
-生成完成后交给现有渲染器：
+生成完成后交给渲染器：
 
 ```ts
 import { writeFileSync } from 'node:fs'
-import { renderFvg } from '@dc/flexlayer'
+import { renderLayer } from '@dc/flexlayer'
 
 const source = '...' // 下面 Vue 或 React 的输出
 writeFileSync('out.layer', source)
-const { png } = await renderFvg(source, { baseDir: process.cwd() })
+const { png } = await renderLayer(source, { baseDir: process.cwd() })
 ```
 
 或 CLI：`npx tsx src/cli.ts render out.layer -o out.png`
