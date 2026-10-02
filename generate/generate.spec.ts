@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { initFontsForMeasure } from '../src/fonts.js'
 import { layoutSource } from '../src/layout.js'
+import { createHostElement, createHostText, serializeFvgDocument } from './serialize.js'
 import { renderDrawPanelReact } from './react/draw-example.tsx'
 import { renderStarsPosterReact } from './react/example.tsx'
 import { renderDrawPanelVue } from './vue/draw-example.ts'
@@ -86,5 +87,30 @@ describe('serialize + 生成器', () => {
       const unknown = doc.issues.filter((issue) => issue.code === 'unknown-tag')
       expect(unknown, poster.id).toEqual([])
     }
+  })
+
+  it('行内文字和 span 一起写出，空格与不换行空格都留着', async () => {
+    const root = createHostElement('Layer')
+    root.props = { width: 800, height: 160 }
+    const p = createHostElement('p')
+    p.props = { style: 'font-size:32px; white-space:nowrap' }
+    const keyword = createHostElement('span')
+    keyword.props = { style: 'color:#5eead4' }
+    keyword.children = [createHostText('const ')]
+    const name = createHostElement('span')
+    name.props = { style: 'color:#c084fc' }
+    name.children = [createHostText('x')]
+    p.children = [keyword, createHostText('\u00A0'), name]
+    root.children = [p]
+
+    const source = serializeFvgDocument(root)
+    expect(source).toContain('<span style="color: #5eead4">const </span>&nbsp;<span style="color: #c084fc">x</span>')
+    expect(source).not.toContain('<span />')
+
+    const doc = await layoutSource(source, process.cwd())
+    const node = doc.root.children[0]
+    expect(node?.kind).toBe('text')
+    if (!node || node.kind !== 'text') return
+    expect(node.textLayout.lines.map((line) => line.segments.map((seg) => seg.text).join('')).join('')).toBe('const \u00A0x')
   })
 })

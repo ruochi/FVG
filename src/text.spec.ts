@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { initFontsForMeasure } from './fonts.js'
+import { layoutSource } from './layout.js'
 import { layoutText } from './text.js'
 import type { TextSegment } from './types.js'
 
@@ -71,5 +72,66 @@ describe('layoutText', () => {
     const segments: TextSegment[] = [{ text: '比特币', style: baseStyle }]
     const r = layoutText({ segments, maxWidth: 1000, lineHeightRatio: 1.2, fontSize: 40 })
     expect(r.minWidth).toBeGreaterThan(0)
+  })
+
+  it('不换行空格不被当成可折叠空白', () => {
+    if (!hasFont) return
+    const r = layoutText({
+      segments: [{ text: '\u00A0\u00A0if', style: baseStyle }],
+      nowrap: true,
+      lineHeightRatio: 1.2,
+      fontSize: 40,
+    })
+    expect(r.lines[0]!.segments.map((seg) => seg.text).join('')).toBe('\u00A0\u00A0if')
+  })
+})
+
+async function inlineText(body: string) {
+  const doc = await layoutSource(
+    `<Layer width="800" height="160"><p style="font-size:32px; white-space:nowrap">${body}</p></Layer>`,
+    process.cwd(),
+  )
+  const node = doc.root.children[0]
+  if (!node || node.kind !== 'text') throw new Error('expected text')
+  return {
+    text: node.textLayout.lines.map((line) => line.segments.map((seg) => seg.text).join('')).join('\n'),
+    width: node.width,
+    colors: node.textLayout.lines.flatMap((line) => line.segments.map((seg) => `${seg.text}:${seg.style.color}`)),
+  }
+}
+
+describe('行内空白', () => {
+  it('span 交界、span 内和单独的空格都保留', async () => {
+    if (!hasFont) return
+    const spaced = await inlineText('A <span style="color:#00ffff">B</span> C')
+    const glued = await inlineText('ABC')
+    expect(spaced.text).toBe('A B C')
+    expect(spaced.width).toBeGreaterThan(glued.width)
+
+    expect((await inlineText('A<span style="color:#00ffff">B </span>C')).text).toBe('AB C')
+    expect((await inlineText('A<span> </span>B')).text).toBe('A B')
+    expect((await inlineText('A  B')).text).toBe('A B')
+    expect((await inlineText('  A B  ')).text).toBe('A B')
+  })
+
+  it('不换行空格留在高亮片段里', async () => {
+    if (!hasFont) return
+    const between = await inlineText('A<span style="color:#c084fc">&nbsp;</span>B')
+    expect(between.text).toBe('A\u00A0B')
+    expect(between.colors).toContain('\u00A0:#c084fc')
+    expect(between.width).toBeGreaterThan((await inlineText('AB')).width)
+
+    const indent = await inlineText('<span style="color:#f5c16c">&nbsp;&nbsp;</span><span>if</span>')
+    expect(indent.text).toBe('\u00A0\u00A0if')
+
+    const tail = await inlineText('<span style="color:#5eead4">const&nbsp;</span><span>x</span>')
+    expect(tail.text).toBe('const\u00A0x')
+    expect(tail.colors[0]).toBe('const:#5eead4')
+  })
+
+  it('换行折成一个空格，br 两侧空格不进正文', async () => {
+    if (!hasFont) return
+    expect((await inlineText('A\n<span>B</span>')).text).toBe('A B')
+    expect((await inlineText('A <br/> B')).text).toBe('A\nB')
   })
 })

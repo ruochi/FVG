@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -249,6 +249,30 @@ describe('layoutSource', () => {
     )
     expect(GlobalFonts.has(nested)).toBe(false)
     expect(nestedDoc.issues.some((issue) => issue.code === 'invalid-child' && issue.message.includes('<font>'))).toBe(true)
+  })
+
+  it('根 Layer 里的 font 会改变字宽', async () => {
+    const src = ['/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', '/usr/share/fonts/truetype/croscore/Cousine-Regular.ttf'].find(
+      (path) => existsSync(path),
+    )
+    if (!src) return
+    const family = 'Probe Mono'
+    const sample = '0123456789'
+    const textWidth = (source: string) =>
+      layoutSource(source, process.cwd()).then((doc) => {
+        const node = doc.root.children.find((child) => child.kind === 'text')
+        return { width: node && node.kind === 'text' ? node.width : 0, issues: doc.issues }
+      })
+    const inside = await textWidth(
+      `<Layer width="1080" height="80"><font family="${family}" src="${src}" /><p style="font-family:${family}; font-size:32px">${sample}</p></Layer>`,
+    )
+    const outside = await textWidth(
+      `<font family="${family}" src="${src}" /><Layer width="1080" height="80"><p style="font-family:${family}; font-size:32px">${sample}</p></Layer>`,
+    )
+    const plain = await textWidth(`<Layer width="1080" height="80"><p style="font-size:32px">${sample}</p></Layer>`)
+    expect(inside.issues.filter((issue) => issue.code === 'unknown-tag' || issue.code === 'invalid-child')).toEqual([])
+    expect(inside.width).toBeCloseTo(outside.width, 1)
+    expect(Math.abs(inside.width - plain.width)).toBeGreaterThan(1)
   })
 
   it('invalid-child 线条进 flex', async () => {

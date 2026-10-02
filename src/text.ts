@@ -79,8 +79,38 @@ function parseStyleAttr(raw: string | undefined): Record<string, string> {
   return out
 }
 
-function collapseWhitespace(text: string): string {
-  return text.replace(/\s+/g, ' ').trim()
+const COLLAPSIBLE_WS = /[ \t\n\r\f\v]+/g
+
+function isCollapsibleSpaceChar(ch: string): boolean {
+  return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v'
+}
+
+function hasVisibleText(text: string): boolean {
+  for (const ch of text) {
+    if (!isCollapsibleSpaceChar(ch)) return true
+  }
+  return false
+}
+
+/**
+ * 换行和连续空格折成一个空格。标签交界处的空格留下。
+ * 整段行首行尾，以及硬换行两侧的空格去掉。U+00A0 不折叠、不去掉。
+ */
+function normalizeInlineSegments(segs: TextSegment[]): TextSegment[] {
+  const next = segs.map((seg) => ({ ...seg, text: seg.text.replace(COLLAPSIBLE_WS, ' ') }))
+  for (let i = 0; i < next.length; i++) {
+    const seg = next[i]!
+    if (!seg.hardBreakBefore) continue
+    seg.text = seg.text.replace(/^[ \t\n\r\f\v]+/, '')
+    const prev = next[i - 1]
+    if (prev) prev.text = prev.text.replace(/[ \t\n\r\f\v]+$/, '')
+  }
+  if (next.length > 0) {
+    next[0]!.text = next[0]!.text.replace(/^[ \t\n\r\f\v]+/, '')
+    const last = next[next.length - 1]!
+    last.text = last.text.replace(/[ \t\n\r\f\v]+$/, '')
+  }
+  return next.filter((seg) => seg.text.length > 0)
 }
 
 function walkInline(
@@ -92,8 +122,7 @@ function walkInline(
   let breakNext = hardBreakNext
   for (const child of nodes) {
     if (typeof child === 'string') {
-      const t = collapseWhitespace(child)
-      if (t) out.push({ text: t, style, hardBreakBefore: breakNext })
+      if (child) out.push({ text: child, style, hardBreakBefore: breakNext })
       breakNext = false
       continue
     }
@@ -123,7 +152,7 @@ export function extractTextSegments(node: FvgNode, defaults: TextBoxDefaults): T
   const style = mergeStyle(base, parseStyleAttr(node.attrs.style))
   const segs: TextSegment[] = []
   walkInline(node.children, style, segs, false)
-  return segs
+  return normalizeInlineSegments(segs)
 }
 
 type Unit = {
@@ -180,7 +209,7 @@ function segmentsToUnits(segments: TextSegment[]): Unit[] {
     const s = seg.text
     while (i < s.length) {
       const ch = s[i]!
-      if (/\s/.test(ch)) {
+      if (isCollapsibleSpaceChar(ch)) {
         units.push({
           text: ' ',
           style: seg.style,
@@ -472,7 +501,7 @@ function layoutVertical(opts: LayoutTextOptions): TextLayoutResult {
 }
 
 export function layoutText(opts: LayoutTextOptions): TextLayoutResult {
-  if (!opts.segments.some((segment) => segment.text.trim().length > 0)) return emptyTextLayout(opts.fontSize)
+  if (!opts.segments.some((segment) => hasVisibleText(segment.text))) return emptyTextLayout(opts.fontSize)
   if (opts.writingMode === 'vertical-rl') return layoutVertical(opts)
   const unitsRaw = segmentsToUnits(opts.segments)
   const paragraphGroups = bindLineBreakUnits(unitsRaw)
