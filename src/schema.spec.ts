@@ -1,15 +1,27 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { ATTR_ORDER, EFFECT_ATTRS, HTML_STYLE_ATTRS, effectCheatLine, ownershipTableBody } from './schema.js'
+import {
+  ATTRS,
+  ATTR_ORDER,
+  EFFECT_ATTRS,
+  HTML_STYLE_ATTRS,
+  JSX_EFFECT_NAMES,
+  JSX_GRADE_NAMES,
+  JSX_OVERLAY_NAMES,
+  effectCheatLine,
+  issueFor,
+  jsxFieldBlock,
+  ownershipTableBody,
+} from './schema.js'
 
-function between(text: string, marker: string): string {
-  const begin = `<!-- ${marker}:begin -->`
-  const end = `<!-- ${marker}:end -->`
+function between(text: string, marker: string, kind: 'html' | 'line' = 'html'): string {
+  const begin = kind === 'html' ? `<!-- ${marker}:begin -->` : `// ${marker}:begin`
+  const end = kind === 'html' ? `<!-- ${marker}:end -->` : `// ${marker}:end`
   const start = text.indexOf(begin)
   const stop = text.indexOf(end)
   expect(start).toBeGreaterThanOrEqual(0)
   expect(stop).toBeGreaterThan(start)
-  return text.slice(start + begin.length, stop).trim()
+  return text.slice(start + begin.length, stop).replace(/^\n/, '').replace(/\s+$/, '')
 }
 
 describe('属性注册表', () => {
@@ -62,8 +74,16 @@ describe('属性注册表', () => {
       expect(ATTR_ORDER).toContain(name)
     }
     const jsx = readFileSync(new URL('../generate/react/jsx.d.ts', import.meta.url), 'utf8')
-    for (const name of EFFECT_ATTRS) {
-      expect(jsx).toContain(name)
+    expect(between(jsx, 'jsx-effects', 'line')).toBe(jsxFieldBlock(JSX_EFFECT_NAMES))
+    expect(between(jsx, 'jsx-overlay', 'line')).toBe(jsxFieldBlock(JSX_OVERLAY_NAMES))
+    expect(between(jsx, 'jsx-grade', 'line')).toBe(jsxFieldBlock(JSX_GRADE_NAMES))
+  })
+
+  it('效果属性都有语法、示例和问题码', () => {
+    for (const attr of ATTRS.filter((item) => item.effect)) {
+      expect(attr.syntax, attr.name).toBeTruthy()
+      expect(attr.example, attr.name).toBeTruthy()
+      expect(issueFor(attr), attr.name).toBe('invalid-attr')
     }
   })
 })

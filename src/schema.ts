@@ -16,10 +16,22 @@ export type AttrDef = {
   /** 只在 HTML 的 style 里出现时才报（overlay） */
   forbidInHtmlStyle?: boolean
   docGroup?: DocGroup
-  /** 速查里的一行示例，只有效果属性 */
-  cheat?: string
   /** 图库覆盖率要检查的效果名 */
   effect?: boolean
+  /** 语法，效果属性必填 */
+  syntax?: string
+  /** 不写某段时的默认，写进速查 */
+  defaultValue?: string
+  /** 最小示例，不含引号 */
+  example?: string
+  /** 放错位置时的问题码 */
+  issue?: 'invalid-attr'
+  /** JSX 字段类型，默认 string */
+  jsxType?: string
+  /** 写在非 Layer 上时的 hint */
+  misplacedHint?: string
+  /** 写进 style 时的 hint */
+  styleHint?: string
 }
 
 /** 和 serialize 的属性顺序一致，改顺序会改变生成的 .layer。 */
@@ -112,23 +124,115 @@ export const ATTRS: AttrDef[] = [
   { name: 'stroke', docGroup: 'graphic' },
   { name: 'src', docGroup: 'image' },
   { name: 'alt', docGroup: 'image' },
-  { name: 'shadow', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`0 8 16 #00000055`' },
-  { name: 'glow', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`56 #f3ead4`' },
-  { name: 'inner-shadow', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '同 shadow' },
-  { name: 'inner-glow', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '同 glow' },
-  { name: 'blur', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '单个像素' },
-  { name: 'backdrop-blur', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '单个像素' },
-  { name: 'glass', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`clear` 或 `clear, blur 8, tint #fff2`' },
-  { name: 'noise', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`0.08`' },
-  { name: 'filter', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`saturate(1.1)`' },
-  { name: 'blend', warnOnHtmlAttr: true, docGroup: 'effect', effect: true, cheat: '`multiply`' },
+  {
+    name: 'shadow',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: 'x y [blur] [spread] [color]',
+    defaultValue: '颜色 `#00000066`',
+    example: '0 8 16 #00000055',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'glow',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: 'blur [spread] [color]',
+    defaultValue: '颜色取本体',
+    example: '56 #f3ead4',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'inner-shadow',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: '同 shadow',
+    defaultValue: '同 shadow',
+    example: '0 8 16 #00000055',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'inner-glow',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: '同 glow',
+    defaultValue: '同 glow',
+    example: '28 #7ec8ff',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'blur',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: '单个非负像素',
+    example: '6',
+    issue: 'invalid-attr',
+    jsxType: 'number | string',
+  },
+  {
+    name: 'backdrop-blur',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: '单个非负像素',
+    example: '16',
+    issue: 'invalid-attr',
+    jsxType: 'number | string',
+  },
+  {
+    name: 'glass',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: 'clear | regular | thick，或 clear, blur 8, tint #fff2',
+    example: 'clear',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'noise',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: '强度，或强度加颜色',
+    example: '0.08',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'filter',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: 'brightness() contrast() saturate() grayscale() sepia() invert() hue-rotate()',
+    example: 'saturate(1.1)',
+    issue: 'invalid-attr',
+  },
+  {
+    name: 'blend',
+    warnOnHtmlAttr: true,
+    docGroup: 'effect',
+    effect: true,
+    syntax: 'source-over | multiply | screen | overlay | soft-light | lighten | darken',
+    defaultValue: '`source-over`',
+    example: 'multiply',
+    issue: 'invalid-attr',
+  },
   {
     name: 'overlay',
     layerOnlyAttr: true,
     forbidInHtmlStyle: true,
     docGroup: 'layer-only',
     effect: true,
-    cheat: '`#00000066` 或 `linear-gradient(...) soft-light`',
+    syntax: '<paint> [opacity] [blend]',
+    defaultValue: '透明度 1，`source-over`',
+    example: '#00000066',
+    issue: 'invalid-attr',
+    misplacedHint: '外包一层 Layer，例如 <Layer overlay="#00000066"><Rect …/></Layer>',
+    styleHint: '不要写在 HTML style 里；外包 <Layer overlay="…">',
   },
   {
     name: 'grade',
@@ -136,7 +240,12 @@ export const ATTRS: AttrDef[] = [
     forbidInStyle: true,
     docGroup: 'layer-only',
     effect: true,
-    cheat: '`lomo 0.8, fade 0.1`',
+    syntax: '预设 [强度], 参数 值',
+    defaultValue: '强度 1',
+    example: 'lomo 0.8, fade 0.1',
+    issue: 'invalid-attr',
+    misplacedHint: '外包一层 Layer，例如 <Layer grade="lomo"><img src="…" style="width:320px" /></Layer>',
+    styleHint: '不要写进 style；外包 <Layer grade="…">',
   },
   {
     name: 'grade-mask',
@@ -144,9 +253,24 @@ export const ATTRS: AttrDef[] = [
     forbidInStyle: true,
     docGroup: 'layer-only',
     effect: true,
-    cheat: '同 fill，alpha 是强度',
+    syntax: '同 fill，alpha 是强度',
+    example: 'radial-gradient(#fff0 30%, #fff)',
+    issue: 'invalid-attr',
+    misplacedHint: '外包一层 Layer，例如 <Layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
+    styleHint: '不要写进 style；外包 <Layer grade="…">',
   },
 ]
+
+export function attrByName(name: string): AttrDef | undefined {
+  return ATTRS.find((attr) => attr.name === name)
+}
+
+/** 放错位置时的问题码。没单写的，归属类检查都是 invalid-attr。 */
+export function issueFor(attr: AttrDef): 'invalid-attr' | undefined {
+  if (attr.issue) return attr.issue
+  if (attr.warnOnHtmlAttr || attr.layerOnlyAttr || attr.forbidInStyle || attr.forbidInHtmlStyle) return 'invalid-attr'
+  return undefined
+}
 
 /** 这些属性在 HTML 上应写进 style。顺序与历史检查一致。 */
 export const HTML_STYLE_ATTRS: string[] = ATTRS.filter((attr) => attr.warnOnHtmlAttr).map((attr) => attr.name)
@@ -180,8 +304,29 @@ export function ownershipTableBody(): string {
   return ['| 属性 | 写在哪 |', '| --- | --- |', ...rows].join('\n')
 }
 
-/** CHEATSHEET 里的效果一行。 */
+/** CHEATSHEET 里的效果一行。示例和默认值来自注册表。 */
 export function effectCheatLine(): string {
-  const parts = ATTRS.filter((attr) => attr.cheat).map((attr) => `\`${attr.name}\` ${attr.cheat}`)
+  const parts = ATTRS.filter((attr) => attr.effect).map((attr) => {
+    const sample = attr.example ? `\`${attr.example}\`` : ''
+    const def = attr.defaultValue ? `（默认 ${attr.defaultValue}）` : ''
+    return `\`${attr.name}\` ${sample}${def}`.trim()
+  })
   return `效果：${parts.join('、')}。作用于整棵子树的 \`overlay\`、\`grade\`、\`grade-mask\` 只写在 \`Layer\` 上。`
 }
+
+/** JSX 效果字段。`names` 决定写进哪一个类型。 */
+export function jsxFieldBlock(names: readonly string[]): string {
+  return names
+    .map((name) => {
+      const attr = attrByName(name)
+      if (!attr) throw new Error(`注册表没有 ${name}`)
+      const key = name.includes('-') ? `'${name}'` : name
+      const note = attr.example ? `  /** ${attr.example} */\n` : ''
+      return `${note}  ${key}?: ${attr.jsxType ?? 'string'}`
+    })
+    .join('\n')
+}
+
+export const JSX_EFFECT_NAMES = ATTRS.filter((attr) => attr.effect && attr.docGroup === 'effect').map((attr) => attr.name)
+export const JSX_OVERLAY_NAMES = ['overlay'] as const
+export const JSX_GRADE_NAMES = ['grade', 'grade-mask'] as const

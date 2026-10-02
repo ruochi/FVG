@@ -29,7 +29,7 @@
 `fill` 可以写 `linear-gradient(to bottom, #0c1424, #6e7c72)`、`radial-gradient(at 40% 35%, #fff, #fff0)`，或 `gradient(#000, #fff)`。
 
 <!-- attrs:effects:begin -->
-效果：`shadow` `0 8 16 #00000055`、`glow` `56 #f3ead4`、`inner-shadow` 同 shadow、`inner-glow` 同 glow、`blur` 单个像素、`backdrop-blur` 单个像素、`glass` `clear` 或 `clear, blur 8, tint #fff2`、`noise` `0.08`、`filter` `saturate(1.1)`、`blend` `multiply`、`overlay` `#00000066` 或 `linear-gradient(...) soft-light`、`grade` `lomo 0.8, fade 0.1`、`grade-mask` 同 fill，alpha 是强度。作用于整棵子树的 `overlay`、`grade`、`grade-mask` 只写在 `Layer` 上。
+效果：`shadow` `0 8 16 #00000055`（默认 颜色 `#00000066`）、`glow` `56 #f3ead4`（默认 颜色取本体）、`inner-shadow` `0 8 16 #00000055`（默认 同 shadow）、`inner-glow` `28 #7ec8ff`（默认 同 glow）、`blur` `6`、`backdrop-blur` `16`、`glass` `clear`、`noise` `0.08`、`filter` `saturate(1.1)`、`blend` `multiply`（默认 `source-over`）、`overlay` `#00000066`（默认 透明度 1，`source-over`）、`grade` `lomo 0.8, fade 0.1`（默认 强度 1）、`grade-mask` `radial-gradient(#fff0 30%, #fff)`。作用于整棵子树的 `overlay`、`grade`、`grade-mask` 只写在 `Layer` 上。
 <!-- attrs:effects:end -->
 
 竖排：`style="writing-mode:vertical-rl"`。字体名 `Song`、`Kai`、`Brush` 不用自带字体文件。

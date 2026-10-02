@@ -1,5 +1,5 @@
 import type { FvgNode } from './parse.js'
-import { ATTRS, HTML_STYLE_ATTRS } from './schema.js'
+import { ATTRS, HTML_STYLE_ATTRS, attrByName, issueFor } from './schema.js'
 import { parseStyle } from './style.js'
 import { isTextBoxTag } from './text.js'
 import type { Issue, IssueLevel } from './types.js'
@@ -215,16 +215,14 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
 
   const layerOnlyKeys = LAYER_ONLY_ATTR_NAMES.filter((key) => present(attrs, key))
   if (node.tag !== 'Layer' && layerOnlyKeys.length > 0) {
-    const hint = layerOnlyKeys.includes('overlay')
-      ? '外包一层 Layer，例如 <Layer overlay="#00000066"><Rect …/></Layer>'
-      : '外包一层 Layer，例如 <Layer grade="lomo"><img src="…" style="width:320px" /></Layer>'
+    const first = attrByName(layerOnlyKeys[0]!)
     out.push(
       flagged(
         'warn',
-        'invalid-attr',
+        first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
         path,
         `${layerOnlyKeys.join('、')} 只写在 Layer 上`,
-        hint,
+        first?.misplacedHint ?? '外包一层 Layer',
       ),
     )
   }
@@ -232,26 +230,28 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
   const styleKeys = Object.keys(styleMap)
   const forbiddenStyle = styleKeys.filter((key) => FORBID_IN_STYLE.has(key))
   if (forbiddenStyle.length > 0) {
+    const first = attrByName(forbiddenStyle[0]!)
     out.push(
       flagged(
         'warn',
-        'invalid-attr',
+        first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
         path,
         `${forbiddenStyle.join('、')} 只写在 Layer 的属性上`,
-        '不要写进 style；外包 <Layer grade="…">',
+        first?.styleHint ?? '不要写进 style；外包 <Layer grade="…">',
       ),
     )
   }
   if (html) {
     const htmlStyleForbidden = styleKeys.filter((key) => FORBID_IN_HTML_STYLE.has(key))
     if (htmlStyleForbidden.length > 0) {
+      const first = attrByName(htmlStyleForbidden[0]!)
       out.push(
         flagged(
           'warn',
-          'invalid-attr',
+          first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
           path,
           `${htmlStyleForbidden.join('、')} 只写在 Layer 上`,
-          '不要写在 HTML style 里；外包 <Layer overlay="…">',
+          first?.styleHint ?? '不要写在 HTML style 里；外包 <Layer overlay="…">',
         ),
       )
     }

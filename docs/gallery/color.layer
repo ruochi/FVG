@@ -23,38 +23,26 @@
   <Layer cx="860" cy="620" anchor="top"><p style="font-size:24px; color:#9aa7b5">overlay 渐变</p></Layer>
 
   <Layer width="260" height="150" cx="200" cy="860" grade="lomo">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer width="260" height="150" cx="540" cy="860" grade="matte">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer width="260" height="150" cx="880" cy="860" grade="chrome">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer cx="200" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade lomo</p></Layer>
   <Layer cx="540" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade matte</p></Layer>
   <Layer cx="880" cy="960" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade chrome</p></Layer>
 
   <Layer width="260" height="150" cx="200" cy="1200" grade="bleach">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer width="260" height="150" cx="540" cy="1200" grade="mono">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer width="260" height="150" cx="880" cy="1200" grade="lomo" grade-mask="radial-gradient(#fff0 35%, #fff)">
-    <Rect cx="130" cy="75" width="260" height="150" rx="16" fill="linear-gradient(to bottom, #243044, #e8a05a)" />
-    <Circle cx="70" cy="55" r="26" fill="#f4efe4" />
-    <Circle cx="190" cy="100" r="18" fill="#3ecfc4" />
+    <img src="scene.png" alt="风景" style="width:260px; height:150px; object-fit:cover; border-radius:16px" />
   </Layer>
   <Layer cx="200" cy="1300" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade bleach</p></Layer>
   <Layer cx="540" cy="1300" anchor="top"><p style="font-size:24px; color:#9aa7b5">grade mono</p></Layer>

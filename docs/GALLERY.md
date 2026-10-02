@@ -5,9 +5,9 @@
 | 图 | 格子 |
 | --- | --- |
 | [shadow-glow.png](gallery/shadow-glow.png) | `shadow`、`glow`、`inner-shadow`、`inner-glow`、`noise`、`blend` |
-| [blur-glass.png](gallery/blur-glass.png) | `blur`、`backdrop-blur`、`glass="clear"`、`regular`、`thick`、逗号写法 `clear, blur 8, tint #a8c8ff55` |
+| [blur-glass.png](gallery/blur-glass.png) | 同一组条纹上对比 `glass="clear"`、`regular`、`thick`；另有 `blur`、`backdrop-blur`、逗号写法 |
 | [glass-scene.png](gallery/glass-scene.png) | `glass="clear"` 放在锁屏式背景上 |
-| [color.png](gallery/color.png) | `filter`、`overlay`（纯色 / multiply / 渐变）、`grade` 五档预设、`grade-mask` |
+| [color.png](gallery/color.png) | `filter`、`overlay`；`grade` 五档预设和 `grade-mask` 用同一张 `scene.png` |
 | [paint.png](gallery/paint.png) | `linear-gradient`、`radial-gradient`、`gradient()` 矩阵与锥形 |
 | [image.png](gallery/image.png) | `object-fit` 的 `fill`、`contain`、`cover`、`none` |
 | [text.png](gallery/text.png) | 标题字号、`max-width` 换行、flex 间距、`writing-mode:vertical-rl` |
