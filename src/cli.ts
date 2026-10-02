@@ -48,7 +48,7 @@ async function main() {
   if (cmd !== 'render') usage()
 
   const { png, report: rep } = await renderFvg(source, { baseDir, scale, debug })
-  const outPath = out ?? abs.replace(/\.(layer|fvg)$/i, '.png')
+  const outPath = out ?? abs.replace(/\.layer$/i, '.png')
   await writeFile(outPath, png)
   for (const issue of rep.issues) console.log(formatIssueLine(issue))
   console.log(`✓ ${outPath}  ${rep.width}×${rep.height}  ${rep.elements.length} 个元素`)

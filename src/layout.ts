@@ -43,7 +43,7 @@ import {
   layoutText,
 } from './text.js'
 import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint, isDisplayFlex, isHtmlTag, rowColumnHint } from './rules.js'
-import { FONT_TAG, isImageTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { FONT_TAG, isImageTag, isLineTag, isShapeTag } from './tags.js'
 import type {
   Anchor,
   Box,
@@ -1021,7 +1021,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       isText: false,
     }
   }
-  if (ROOT_TAGS.has(node.tag) || node.tag === 'Layer') {
+  if (node.tag === 'Layer') {
     const nested = await layoutLayer(node, ctx)
     return {
       node: nested,
@@ -1277,7 +1277,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     else if (isImageTag(ch.tag)) laid = await layoutImage(ch, subCtx)
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
-    else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
+    else if (ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
     else {
       laid = layoutUnknownOrCustom(ch, subCtx)
     }
@@ -1438,15 +1438,10 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       hint: '把 width、opacity 写成属性。色块用 Rect / HTML / <draw>',
     })
   }
-  // 根必须是 Layer；旧写法 <fvg> 归一成 Layer
-  const rootForLayout = {
-    ...rootNode,
-    tag: rootNode.tag.toLowerCase() === 'fvg' ? 'Layer' : rootNode.tag,
-  }
-  if (rootForLayout.tag !== 'Layer') {
+  if (rootNode.tag !== 'Layer') {
     throw new Error(`Flex Layer 根元素必须是 <Layer>，收到 <${rootNode.tag}>`)
   }
-  attachDrawTags(rootForLayout, issues, 'Layer')
+  attachDrawTags(rootNode, issues, 'Layer')
   const paintCtx: LayoutContext = {
     color,
     fontFamily,
@@ -1459,7 +1454,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   }
   const hadBackground = attrs.background != null && attrs.background.trim() !== ''
   const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'
-  const root = await layoutLayer(rootForLayout, paintCtx)
+  const root = await layoutLayer(rootNode, paintCtx)
 
   root.width = width
   root.height = height
