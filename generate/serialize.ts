@@ -147,11 +147,10 @@ function serializeElement(el: FvgHostElement, indent: number): string {
 
 /** 把 `<Layer>` 根序列化为 Flex Layer 文本（末尾换行）。 */
 export function serializeFvgDocument(root: FvgHostElement): string {
-  const tag = root.tag.toLowerCase() === 'fvg' ? 'Layer' : root.tag
-  if (tag !== 'Layer') {
+  if (root.tag !== 'Layer') {
     throw new Error('根节点必须是 <Layer>')
   }
-  return `${serializeElement({ ...root, tag: 'Layer' }, 0)}\n`
+  return `${serializeElement(root, 0)}\n`
 }
 
 export function createHostElement(tag: string): FvgHostElement {

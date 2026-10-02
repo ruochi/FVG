@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { GlobalFonts } from '@napi-rs/canvas'
 
 export const DEFAULT_FONT_FAMILY = 'ChillDuanSans'
@@ -207,8 +206,4 @@ export async function initFontsForMeasure(options?: { fontsCacheDir?: string }):
   } catch {
     return false
   }
-}
-
-export function packageDir(): string {
-  return dirname(fileURLToPath(import.meta.url))
 }

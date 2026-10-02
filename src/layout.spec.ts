@@ -15,6 +15,10 @@ beforeAll(async () => {
 })
 
 describe('layoutSource', () => {
+  it('旧根标签 fvg 不再接受', async () => {
+    await expect(layoutSource(`<fvg width="40" height="40"></fvg>`, process.cwd())).rejects.toThrow('<Layer>')
+  })
+
   it('Layer anchor top-left', async () => {
     const doc = await layoutSource(
       `<Layer width="400" height="300" background="#fff"><Layer cx="10" cy="10" anchor="top-left"><h1>A</h1></Layer></Layer>`,
