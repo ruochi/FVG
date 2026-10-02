@@ -1,41 +1,41 @@
-<Layer width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
-  <Rect x1="0" y1="0" x2="900" y2="1100" fill="linear-gradient(to bottom, #101828, #16324a 55%, #1a4038)" />
+<layer width="900" height="1100" background="#0c1018" color="#f4f1ea" font-family="Kai">
+  <rect x1="0" y1="0" x2="900" y2="1100" fill="linear-gradient(to bottom, #101828, #16324a 55%, #1a4038)" />
 
   <!-- 细密条纹：折射时边缘会被放大/弯折 -->
-  <Circle cx="240" cy="340" r="150" fill="#ff5aa5" />
-  <Circle cx="700" cy="420" r="170" fill="#3ecfc4" />
-  <Circle cx="480" cy="820" r="190" fill="#f5c16c" />
-  <Rect x1="0" y1="300" x2="900" y2="312" fill="#ffffff" />
-  <Rect x1="0" y1="340" x2="900" y2="352" fill="#ff9f1c" />
-  <Rect x1="0" y1="380" x2="900" y2="392" fill="#7b6cff" />
-  <Rect x1="0" y1="420" x2="900" y2="432" fill="#ffffff" />
-  <Rect x1="0" y1="460" x2="900" y2="472" fill="#3ecfc4" />
-  <Rect x1="0" y1="500" x2="900" y2="512" fill="#ff5aa5" />
-  <Rect x1="0" y1="540" x2="900" y2="552" fill="#ffffff" />
-  <Rect x1="0" y1="580" x2="900" y2="592" fill="#f5c16c" />
-  <Rect x1="0" y1="620" x2="900" y2="632" fill="#7b6cff" />
-  <Rect x1="0" y1="660" x2="900" y2="672" fill="#ffffff" />
-  <Rect x1="200" y1="180" x2="220" y2="980" fill="#ffffff" />
-  <Rect x1="260" y1="180" x2="280" y2="980" fill="#ff9f1c" />
-  <Rect x1="320" y1="180" x2="340" y2="980" fill="#3ecfc4" />
+  <circle cx="240" cy="340" r="150" fill="#ff5aa5" />
+  <circle cx="700" cy="420" r="170" fill="#3ecfc4" />
+  <circle cx="480" cy="820" r="190" fill="#f5c16c" />
+  <rect x1="0" y1="300" x2="900" y2="312" fill="#ffffff" />
+  <rect x1="0" y1="340" x2="900" y2="352" fill="#ff9f1c" />
+  <rect x1="0" y1="380" x2="900" y2="392" fill="#7b6cff" />
+  <rect x1="0" y1="420" x2="900" y2="432" fill="#ffffff" />
+  <rect x1="0" y1="460" x2="900" y2="472" fill="#3ecfc4" />
+  <rect x1="0" y1="500" x2="900" y2="512" fill="#ff5aa5" />
+  <rect x1="0" y1="540" x2="900" y2="552" fill="#ffffff" />
+  <rect x1="0" y1="580" x2="900" y2="592" fill="#f5c16c" />
+  <rect x1="0" y1="620" x2="900" y2="632" fill="#7b6cff" />
+  <rect x1="0" y1="660" x2="900" y2="672" fill="#ffffff" />
+  <rect x1="200" y1="180" x2="220" y2="980" fill="#ffffff" />
+  <rect x1="260" y1="180" x2="280" y2="980" fill="#ff9f1c" />
+  <rect x1="320" y1="180" x2="340" y2="980" fill="#3ecfc4" />
 
-  <Layer cx="64" cy="56" anchor="top-left">
+  <layer cx="64" cy="56" anchor="top-left">
     <h1 style="font-size:52px; color:#f7f2e8">透明玻璃</h1>
-  </Layer>
-  <Layer cx="64" cy="120" anchor="top-left">
+  </layer>
+  <layer cx="64" cy="120" anchor="top-left">
     <p style="font-size:28px; color:#aeb8c4">glass="clear" · 零模糊 · 边缘透镜折射</p>
-  </Layer>
+  </layer>
 
-  <Rect cx="450" cy="560" width="620" height="420" rx="40"
+  <rect cx="450" cy="560" width="620" height="420" rx="40"
         fill="#ffffff12" glass="clear" border="1.5 #ffffff88" />
 
-  <Layer cx="450" cy="500" anchor="center">
+  <layer cx="450" cy="500" anchor="center">
     <h2 style="font-size:56px; color:#ffffff; shadow:0 2 10 #00000055">透镜面板</h2>
-  </Layer>
-  <Layer cx="450" cy="590" anchor="center">
+  </layer>
+  <layer cx="450" cy="590" anchor="center">
     <p style="font-size:30px; color:#e8eef4">边缘条纹被放大弯折</p>
-  </Layer>
-  <Layer cx="450" cy="660" anchor="center">
+  </layer>
+  <layer cx="450" cy="660" anchor="center">
     <p style="font-size:26px; color:#c5d0da">中心原样透出 · 边缘放大弯折</p>
-  </Layer>
-</Layer>
+  </layer>
+</layer>

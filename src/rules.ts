@@ -75,7 +75,7 @@ export function isHtmlTag(tag: string): boolean {
 
 function usesAttributes(node: FvgNode): boolean {
   return (
-    node.tag === 'Layer' ||
+    node.tag === 'layer' ||
     node.tag === 'symbol' ||
     node.tag === 'use' ||
     isShapeTag(node.tag) ||
@@ -98,8 +98,8 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
           'warn',
           'invalid-attr',
           path,
-          'cx、cy、anchor 只写在 Layer 上',
-          '外包一层 Layer，例如 <Layer cx="120" cy="64" anchor="top-left"><div style="display:flex">…</div></Layer>',
+          'cx、cy、anchor 只写在 layer 上',
+          '外包一层 layer，例如 <layer cx="120" cy="64" anchor="top-left"><div style="display:flex">…</div></layer>',
         ),
       )
     }
@@ -123,22 +123,22 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         'warn',
         'invalid-attr',
         path,
-        'cx、cy、anchor 只写在 Layer 上',
-        '定位写在外层 Layer 上，flex 子元素跟着排布走',
+          'cx、cy、anchor 只写在 layer 上',
+          '定位写在外层 layer 上，flex 子元素跟着排布走',
       ),
     )
   }
 
   if (parent === 'flex' && isShapeTag(node.tag)) {
-    const circlePoints = node.tag === 'Circle' && (present(attrs, 'x1') || present(attrs, 'y1'))
+    const circlePoints = node.tag === 'circle' && (present(attrs, 'x1') || present(attrs, 'y1'))
     if (hasTwoPoint(attrs) || circlePoints) {
       out.push(
         flagged(
           'warn',
           'invalid-attr',
           path,
-          '形状的坐标只能写在 Layer 里',
-          '包一层 <Layer width height>，或改用 <div style="width:…; height:…; background:…">',
+          '形状的坐标只能写在 layer 里',
+          '包一层 <layer width height>，或改用 <div style="width:…; height:…; background:…">',
         ),
       )
     } else if (!positioned) {
@@ -148,7 +148,7 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
           'non-canonical',
           path,
           '形状放在 flex 里不是规范写法',
-          '包一层 <Layer width height>，或改用 div 盒子',
+          '包一层 <layer width height>，或改用 div 盒子',
         ),
       )
     }
@@ -188,18 +188,18 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         ),
       )
     }
-    if (node.tag === 'Rect' && (present(attrs, 'x') || present(attrs, 'y')) && !hasTwoPoint(attrs)) {
+    if (node.tag === 'rect' && (present(attrs, 'x') || present(attrs, 'y')) && !hasTwoPoint(attrs)) {
       out.push(
         flagged(
           'info',
           'non-canonical',
           path,
-          'Rect 的 x、y 按左上角理解',
+          'rect 的 x、y 按左上角理解',
           '改成 cx、cy，或 x1、y1、x2、y2',
         ),
       )
     }
-    if ((node.tag === 'Rect' || node.tag === 'Ellipse') && hasTwoPoint(attrs)) {
+    if ((node.tag === 'rect' || node.tag === 'ellipse') && hasTwoPoint(attrs)) {
       const mixed =
         present(attrs, 'width') ||
         present(attrs, 'height') ||
@@ -219,40 +219,40 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         )
       }
     }
-    if (node.tag === 'Circle' && (present(attrs, 'x1') || present(attrs, 'y1') || present(attrs, 'x2') || present(attrs, 'y2'))) {
+    if (node.tag === 'circle' && (present(attrs, 'x1') || present(attrs, 'y1') || present(attrs, 'x2') || present(attrs, 'y2'))) {
       out.push(
         flagged(
           'warn',
           'invalid-attr',
           path,
-          'Circle 只支持 cx、cy、r',
+          'circle 只支持 cx、cy、r',
           '删掉 x1、y1、x2、y2',
         ),
       )
     }
   }
 
-  if ((node.tag === 'Layer' || node.tag === 'use') && present(attrs, 'background')) {
+  if ((node.tag === 'layer' || node.tag === 'use') && present(attrs, 'background')) {
     out.push(
       flagged(
         'warn',
         'invalid-attr',
         path,
-        'Layer 不使用 background',
-        '色块用 <Rect fill="...">、HTML 的 style="background:..."，或 <draw> 自己画。画布底色只写在根 <Layer background>',
+        'layer 不使用 background',
+        '色块用 <rect fill="...">、HTML 的 style="background:..."，或 <draw> 自己画。画布底色只写在根 <layer background>',
       ),
     )
   }
 
-  // overlay 仅 Layer；use / 图形 / HTML 误写都警告
-  if (node.tag !== 'Layer' && present(attrs, 'overlay')) {
+  // overlay 仅 layer；use / 图形 / HTML 误写都警告
+  if (node.tag !== 'layer' && present(attrs, 'overlay')) {
     out.push(
       flagged(
         'warn',
         'invalid-attr',
         path,
-        'overlay 只写在 Layer 上',
-        '外包一层 Layer，例如 <Layer overlay="#00000066"><Rect …/></Layer>',
+        'overlay 只写在 layer 上',
+        '外包一层 layer，例如 <layer overlay="#00000066"><rect …/></layer>',
       ),
     )
   }
@@ -264,22 +264,22 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
           'warn',
           'invalid-attr',
           path,
-          'overlay 只写在 Layer 上',
-          '不要写在 HTML style 里；外包 <Layer overlay="…">',
+          'overlay 只写在 layer 上',
+          '不要写在 HTML style 里；外包 <layer overlay="…">',
         ),
       )
     }
   }
 
   const gradeKeys = ['grade', 'grade-mask'].filter((key) => present(attrs, key))
-  if (node.tag !== 'Layer' && gradeKeys.length > 0) {
+  if (node.tag !== 'layer' && gradeKeys.length > 0) {
     out.push(
       flagged(
         'warn',
         'invalid-attr',
         path,
-        `${gradeKeys.join('、')} 只写在 Layer 上`,
-        '外包一层 Layer，例如 <Layer grade="lomo"><img src="…" style="width:320px" /></Layer>',
+        `${gradeKeys.join('、')} 只写在 layer 上`,
+        '外包一层 layer，例如 <layer grade="lomo"><img src="…" style="width:320px" /></layer>',
       ),
     )
   }
@@ -290,8 +290,8 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         'warn',
         'invalid-attr',
         path,
-        `${gradeInStyle.join('、')} 只写在 Layer 的属性上`,
-        '不要写进 style；外包 <Layer grade="…">',
+        `${gradeInStyle.join('、')} 只写在 layer 的属性上`,
+        '不要写进 style；外包 <layer grade="…">',
       ),
     )
   }
@@ -302,8 +302,8 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         'warn',
         'invalid-attr',
         path,
-        'Layer 和图形不使用 style',
-        '把 width、opacity 写成属性。色块用 Rect / HTML / <draw>',
+        'layer 和图形不使用 style',
+        '把 width、opacity 写成属性。色块用 rect / HTML / <draw>',
       ),
     )
   }

@@ -443,7 +443,7 @@ function paintGlow(ctx: CanvasRenderingContext2D, state: PaintState, node: Layou
 
 /**
  * 效果用的着墨轮廓：跟真实画出来的像素走，不跟布局盒子。
- * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；Layer/flex = 仅自身背景/边框。
+ * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；layer/flex = 仅自身背景/边框。
  */
 function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
   if (node.kind === 'line') {
@@ -475,7 +475,7 @@ function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: nu
   }
 }
 
-/** Layer overlay：自身 chrome + 子树着墨（子元素局部坐标）。 */
+/** layer overlay：自身 chrome + 子树着墨（子元素局部坐标）。 */
 function drawSubtreeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
   drawNodeInk(ctx, node, spread, ink)
   if (node.kind !== 'layer' && node.kind !== 'flex') return
@@ -546,7 +546,7 @@ function paintInnerEffect(
   ctx.restore()
 }
 
-/** Layer 专用：按子树墨迹裁切后叠加纯色/渐变。 */
+/** layer 专用：按子树墨迹裁切后叠加纯色/渐变。 */
 function paintOverlay(ctx: PaintCtx, node: LayoutNode, overlay: OverlaySpec) {
   if (node.width <= 0 || node.height <= 0 || overlay.opacity <= 0) return
   const w = Math.max(1, Math.ceil(node.width))
@@ -1131,7 +1131,7 @@ export function paintDocument(
       ctx.fillRect(0, 0, w, h)
     }
   }
-  // 根 Layer 的 grade 作用于整幅画布，连同画布底色
+  // 根 layer 的 grade 作用于整幅画布，连同画布底色
   const rootGrade = root.grade
   const body: LayerLayoutNode = rootGrade ? { ...root, grade: undefined, gradeMask: undefined, noise: undefined } : root
   ctx.save()

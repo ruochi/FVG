@@ -43,7 +43,7 @@ import {
   layoutText,
 } from './text.js'
 import { checkChildAttrs, checkTextBoxChildren, hasTwoPoint, isDisplayFlex, isHtmlTag, rowColumnHint } from './rules.js'
-import { FONT_TAG, isImageTag, isLineTag, isShapeTag, ROOT_TAGS } from './tags.js'
+import { canonicalTag, FONT_TAG, isImageTag, isLineTag, isShapeTag } from './tags.js'
 import type {
   Anchor,
   Box,
@@ -270,7 +270,7 @@ function readEffects(src: EffectSource, ctx: LayoutContext, glowColor: string): 
   return out
 }
 
-/** 仅 Layer：解析 overlay，校验 paint。 */
+/** 仅 layer：解析 overlay，校验 paint。 */
 function readLayerOverlay(attrs: Record<string, string>, ctx: LayoutContext): OverlaySpec | undefined {
   const raw = attrs.overlay
   if (raw == null || raw.trim() === '' || raw.trim() === 'none') return undefined
@@ -280,7 +280,7 @@ function readLayerOverlay(attrs: Record<string, string>, ctx: LayoutContext): Ov
       ctx,
       'overlay',
       raw,
-      '写成 #00000066、#ff8800 0.4 multiply，或 linear-gradient(...) soft-light。仅 Layer 可用',
+      '写成 #00000066、#ff8800 0.4 multiply，或 linear-gradient(...) soft-light。仅 layer 可用',
     )
     return undefined
   }
@@ -298,7 +298,7 @@ function readLayerOverlay(attrs: Record<string, string>, ctx: LayoutContext): Ov
   return parsed
 }
 
-/** 仅 Layer：解析 grade 与 grade-mask。 */
+/** 仅 layer：解析 grade 与 grade-mask。 */
 function readLayerGrade(attrs: Record<string, string>, ctx: LayoutContext): { grade?: GradeSpec; gradeMask?: string } {
   const parsed = parseGrade(attrs.grade)
   const maskRaw = attrs['grade-mask']?.trim()
@@ -318,7 +318,7 @@ function readLayerGrade(attrs: Record<string, string>, ctx: LayoutContext): { gr
       code: 'invalid-attr',
       path: ctx.pathPrefix,
       message: '写了 grade-mask 但没有可用的 grade',
-      hint: '和 grade 一起写，例如 <Layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
+      hint: '和 grade 一起写，例如 <layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
     })
     return {}
   }
@@ -563,7 +563,7 @@ function lineInk(geom: LineGeometry, box: Box, strokeWidth: number, head?: numbe
 function usesOwnCoords(node: FvgNode, kind: LayoutNode['kind']): boolean {
   if (kind === 'line') return true
   if (kind !== 'shape' && kind !== 'custom') return false
-  if (node.tag === 'Circle') return false
+  if (node.tag === 'circle') return false
   if (hasTwoPoint(node.attrs)) return true
   return node.attrs.x != null || node.attrs.y != null
 }
@@ -813,7 +813,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
   let y = 0
   let w = parseNumber(node.attrs.width) ?? 0
   let h = parseNumber(node.attrs.height) ?? 0
-  const twoPoint = hasTwoPoint(node.attrs) && node.tag !== 'Circle'
+  const twoPoint = hasTwoPoint(node.attrs) && node.tag !== 'circle'
   if (twoPoint) {
     const x1 = parseNumber(node.attrs.x1) ?? 0
     const y1 = parseNumber(node.attrs.y1) ?? 0
@@ -823,21 +823,21 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     y = Math.min(y1, y2)
     w = Math.abs(x2 - x1)
     h = Math.abs(y2 - y1)
-  } else if (node.tag === 'Rect' && (node.attrs.x != null || node.attrs.y != null)) {
+  } else if (node.tag === 'rect' && (node.attrs.x != null || node.attrs.y != null)) {
     x = parseNumber(node.attrs.x) ?? 0
     y = parseNumber(node.attrs.y) ?? 0
     w = parseNumber(node.attrs.width) ?? w
     h = parseNumber(node.attrs.height) ?? h
   } else {
-    if (node.tag === 'Circle') {
+    if (node.tag === 'circle') {
       const r = parseNumber(node.attrs.r) ?? 0
       w = h = r * 2
     }
-    if (node.tag === 'Ellipse') {
+    if (node.tag === 'ellipse') {
       w = (parseNumber(node.attrs.rx) ?? 0) * 2
       h = (parseNumber(node.attrs.ry) ?? 0) * 2
     }
-    if (node.tag === 'Rect') {
+    if (node.tag === 'rect') {
       w = parseNumber(node.attrs.width) ?? w
       h = parseNumber(node.attrs.height) ?? h
     }
@@ -857,7 +857,7 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
     height: h,
     ink,
     ...appearance,
-    shape: node.tag === 'Rect' ? 'rect' : node.tag === 'Circle' ? 'circle' : 'ellipse',
+    shape: node.tag === 'rect' ? 'rect' : node.tag === 'circle' ? 'circle' : 'ellipse',
     fill,
     stroke,
     strokeWidth,
@@ -872,16 +872,16 @@ function layoutShape(node: FvgNode, ctx: LayoutContext, defaultStroke: string): 
 
 function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string): LineLayoutNode {
   let geom: LineGeometry
-  if (node.tag === 'Line' || node.tag === 'Arrow') {
+  if (node.tag === 'line' || node.tag === 'arrow') {
     geom = {
-      kind: node.tag === 'Arrow' ? 'arrow' : 'line',
+      kind: node.tag === 'arrow' ? 'arrow' : 'line',
       x1: parseNumber(node.attrs.x1) ?? 0,
       y1: parseNumber(node.attrs.y1) ?? 0,
       x2: parseNumber(node.attrs.x2) ?? 0,
       y2: parseNumber(node.attrs.y2) ?? 0,
       head: parseNumber(node.attrs.head),
     }
-  } else if (node.tag === 'Polyline' || node.tag === 'Polygon' || node.tag === 'Curve') {
+  } else if (node.tag === 'polyline' || node.tag === 'polygon' || node.tag === 'curve') {
     const pts = (node.attrs.points ?? '')
       .trim()
       .split(/\s+/)
@@ -890,11 +890,11 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
         return { x: Number(xs), y: Number(ys) }
       })
       .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    if (node.tag === 'Curve') {
+    if (node.tag === 'curve') {
       const closed = isClosedFlag(node.attrs.closed)
       geom = { kind: 'path', d: catmullRomPath(pts, closed) }
     } else {
-      geom = { kind: node.tag === 'Polygon' ? 'polygon' : 'polyline', points: pts }
+      geom = { kind: node.tag === 'polygon' ? 'polygon' : 'polyline', points: pts }
     }
   } else {
     geom = { kind: 'path', d: node.attrs.d ?? '' }
@@ -902,8 +902,8 @@ function layoutLineNode(node: FvgNode, ctx: LayoutContext, defaultStroke: string
   const strokeWidth = parseNumber(node.attrs['stroke-width']) ?? 4
   const stroke = readPaint(node.attrs.stroke ?? defaultStroke, defaultStroke, ctx, 'stroke')
   let fill = readPaint(node.attrs.fill ?? 'none', 'none', ctx, 'fill')
-  const curveClosed = node.tag === 'Curve' && isClosedFlag(node.attrs.closed)
-  if (node.tag === 'Curve' && !curveClosed && fill !== 'none') {
+  const curveClosed = node.tag === 'curve' && isClosedFlag(node.attrs.closed)
+  if (node.tag === 'curve' && !curveClosed && fill !== 'none') {
     ctx.issues.push({
       level: 'warn',
       code: 'open-curve-fill',
@@ -970,11 +970,11 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       code: 'invalid-child',
       path: ctx.pathPrefix,
       message: '线条不能放在 flex 容器内',
-      hint: `包一层 Layer，例如 <Layer><${node.tag} …/></Layer>`,
+      hint: `包一层 layer，例如 <layer><${node.tag} …/></layer>`,
     })
     return null
   }
-  if (isShapeTag(node.tag) && (hasTwoPoint(node.attrs) || (node.tag === 'Circle' && node.attrs.x1 != null))) {
+  if (isShapeTag(node.tag) && (hasTwoPoint(node.attrs) || (node.tag === 'circle' && node.attrs.x1 != null))) {
     return null
   }
   if (isDisplayFlex(node.attrs.style) && isTextBoxTag(node.tag)) {
@@ -1021,7 +1021,7 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       isText: false,
     }
   }
-  if (ROOT_TAGS.has(node.tag) || node.tag === 'Layer') {
+  if (node.tag === 'layer') {
     const nested = await layoutLayer(node, ctx)
     return {
       node: nested,
@@ -1210,7 +1210,7 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
       code: 'missing-symbol',
       path: ctx.pathPrefix,
       message: `找不到 symbol #${id}`,
-      hint: `在 <Layer> 下写 <symbol id="${id}">…</symbol>`,
+      hint: `在 <layer> 下写 <symbol id="${id}">…</symbol>`,
     })
     return null
   }
@@ -1230,11 +1230,11 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
   if (width != null) attrs.width = String(width)
   if (height != null) attrs.height = String(height)
   const laid = await layoutLayer(
-    { tag: 'Layer', attrs, children: symbol.children },
+    { tag: 'layer', attrs, children: symbol.children },
     { ...ctx, useStack: [...ctx.useStack, id] },
   )
   const appearance = readAttrAppearance(node.attrs)
-  // use 与 Layer 一样不填背景；色块用 Rect / HTML / <draw>
+  // use 与 layer 一样不填背景；色块用 rect / HTML / <draw>
   appearance.background = undefined
   return {
     ...laid,
@@ -1249,7 +1249,7 @@ async function layoutUse(node: FvgNode, ctx: LayoutContext): Promise<LayerLayout
 
 async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayoutNode> {
   const appearance = readAttrAppearance(node.attrs)
-  // 根节点的 background 是画布底色，由 paintDocument 绘制。Layer 自身不填色。
+  // 根节点的 background 是画布底色，由 paintDocument 绘制。layer 自身不填色。
   appearance.background = undefined
   const fixedW = parseNumber(node.attrs.width)
   const fixedH = parseNumber(node.attrs.height)
@@ -1277,7 +1277,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     else if (isImageTag(ch.tag)) laid = await layoutImage(ch, subCtx)
     else if (isTextBoxTag(ch.tag)) laid = layoutTextBox(ch, subCtx, ctx.maxContentWidth)
     else if (isShapeTag(ch.tag)) laid = layoutShape(ch, subCtx, ctx.color)
-    else if (ROOT_TAGS.has(ch.tag) || ch.tag === 'Layer') laid = await layoutLayer(ch, subCtx)
+    else if (ch.tag === 'layer') laid = await layoutLayer(ch, subCtx)
     else {
       laid = layoutUnknownOrCustom(ch, subCtx)
     }
@@ -1401,8 +1401,39 @@ function collectFontFamilies(node: FvgNode, out: Set<string>) {
   }
 }
 
+function canonicalizeTree(node: FvgNode): void {
+  const next = canonicalTag(node.tag)
+  if (next !== node.tag) {
+    node.writtenTag ??= node.tag
+    node.tag = next
+  }
+  for (const child of node.children) {
+    if (typeof child !== 'string') canonicalizeTree(child)
+  }
+}
+
+/** 源码里写了大写标签时记一条 info，渲染仍用规范小写。 */
+function noteTagSpellings(node: FvgNode, path: string, issues: Issue[]): void {
+  if (node.writtenTag && node.writtenTag !== node.tag) {
+    issues.push({
+      level: 'info',
+      code: 'non-canonical',
+      path,
+      message: `标签 <${node.writtenTag}> 应写成 <${node.tag}>`,
+      hint: `改成 <${node.tag}>`,
+    })
+  }
+  let index = 0
+  for (const child of node.children) {
+    if (typeof child === 'string') continue
+    noteTagSpellings(child, `${path}/${child.tag}[${index}]`, issues)
+    index++
+  }
+}
+
 export async function layoutSource(source: string | FvgNode, baseDir: string): Promise<FvgDocument> {
   const nodes = typeof source === 'string' ? parseFvg(source) : [source]
+  for (const node of nodes) canonicalizeTree(node)
   const fontNodes: Array<{ family: string; src: string }> = []
   let rootNode: FvgNode | null = null
   for (const n of nodes) {
@@ -1412,7 +1443,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
       rootNode = n
     }
   }
-  if (!rootNode) throw new Error('Flex Layer 缺少根元素 <Layer>')
+  if (!rootNode) throw new Error('Flex Layer 缺少根元素 <layer>')
   await registerFontsFromDocument(fontNodes.filter((f) => f.family && f.src), baseDir)
 
   const attrs = rootNode.attrs
@@ -1425,7 +1456,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
 
   const issues: Issue[] = []
   const symbols = new Map<string, FvgNode>()
-  collectSymbols(rootNode, symbols, issues, 'Layer')
+  collectSymbols(rootNode, symbols, issues, 'layer')
   const families = new Set<string>([fontFamily])
   collectFontFamilies(rootNode, families)
   await ensureBuiltinFonts(families)
@@ -1433,33 +1464,30 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
     issues.push({
       level: 'warn',
       code: 'invalid-attr',
-      path: 'Layer',
-      message: 'Layer 和图形不使用 style',
-      hint: '把 width、opacity 写成属性。色块用 Rect / HTML / <draw>',
+      path: 'layer',
+      message: 'layer 和图形不使用 style',
+      hint: '把 width、opacity 写成属性。色块用 rect / HTML / <draw>',
     })
   }
-  // 根必须是 Layer；旧写法 <fvg> 归一成 Layer
-  const rootForLayout = {
-    ...rootNode,
-    tag: rootNode.tag.toLowerCase() === 'fvg' ? 'Layer' : rootNode.tag,
+  // 根必须是 layer；旧写法 <fvg> / <layer> 已在解析时归一成 layer
+  if (rootNode.tag !== 'layer') {
+    throw new Error(`Flex Layer 根元素必须是 <layer>，收到 <${rootNode.tag}>`)
   }
-  if (rootForLayout.tag !== 'Layer') {
-    throw new Error(`Flex Layer 根元素必须是 <Layer>，收到 <${rootNode.tag}>`)
-  }
-  attachDrawTags(rootForLayout, issues, 'Layer')
+  noteTagSpellings(rootNode, 'layer', issues)
+  attachDrawTags(rootNode, issues, 'layer')
   const paintCtx: LayoutContext = {
     color,
     fontFamily,
     maxContentWidth,
     issues,
-    pathPrefix: 'Layer',
+    pathPrefix: 'layer',
     symbols,
     useStack: [],
     baseDir,
   }
   const hadBackground = attrs.background != null && attrs.background.trim() !== ''
   const background = hadBackground ? readPaint(attrs.background, '#ffffff', paintCtx, 'background') : '#ffffff'
-  const root = await layoutLayer(rootForLayout, paintCtx)
+  const root = await layoutLayer(rootNode, paintCtx)
 
   root.width = width
   root.height = height

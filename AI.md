@@ -29,11 +29,11 @@ AI 应始终把 **`.layer` 或生成它的脚本**当作可版本化的产物；
 适合海报、单帧、结构不复杂的画面。和 [docs/CHEATSHEET.md](docs/CHEATSHEET.md) 同一条分界：
 
 - **HTML** 用 `style`：字号、颜色、`gap`、`padding`、`background`。排布写 `<div style="display:flex">`。
-- **`Layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`、以及其它效果（见 EFFECTS）。标签首字母大写。
-- **嵌套 `Layer` 不填背景**：色块用 `<Rect fill>`、HTML `style="background:…"`，或子标签 `<draw>…</draw>`（正文是 JS，变量 `ctx`、`el`）。
-- 文字要定位时外包 `<Layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。
+- **`layer` 和图形** 用属性：`cx`、`cy`、`r`、`fill`、`stroke`、`shadow`、`glow`、以及其它效果（见 EFFECTS）。标签一律小写。
+- **嵌套 `layer` 不填背景**：色块用 `<rect fill>`、HTML `style="background:…"`，或子标签 `<draw>…</draw>`（正文是 JS，变量 `ctx`、`el`）。
+- 文字要定位时外包 `<layer cx cy anchor>`，不要把 `cx` 写在 `h1` 或 `p` 上。
 
-根节点是 `<Layer width="…" height="…" background="…">`（这里的 `background` 是**画布底色**）。不要写 `row`、`column`。参考 [examples/](examples/)、[examples/draw-layer.layer](examples/draw-layer.layer)。
+根节点是 `<layer width="…" height="…" background="…">`（这里的 `background` 是**画布底色**）。不要写 `row`、`column`。参考 [examples/](examples/)、[examples/draw-layer.layer](examples/draw-layer.layer)。
 
 ### 2.2 Vue 模板
 
@@ -92,7 +92,7 @@ npx tsx src/cli.ts render scene.layer -o scene.png --report scene.json --debug -
 
 ### 3.4 报告里关键字段
 
-- **`path`**：如 `Layer/Layer[0]/div[0]/h1[0]`，唯一标识节点，与 `issues[].path` 一致。
+- **`path`**：如 `layer/layer[0]/div[0]/h1[0]`，唯一标识节点，与 `issues[].path` 一致。
 - **`box`**：布局盒（含 padding）；flex 的 `gap` 体现在**相邻元素 box 之间的空隙**。
 - **`ink`**：字形或图形真实着墨；核对「字与字间距」应看 **ink 与 ink**，不是 box 与 box（单行文字的 `line-height` 不会撑高 box）。
 - **`effect`**：阴影 / 光晕可能占用的范围；`effect-clipped` 表示光晕被画布裁切。
@@ -116,25 +116,25 @@ flowchart TD
 
 **实践要点：**
 
-1. **先规范、后像素**：`Layer` 和图形用属性，HTML 用 `style`。分界错了，报告里会有 `unknown-tag` 或 `warn`。
+1. **先规范、后像素**：`layer` 和图形用属性，HTML 用 `style`。分界错了，报告里会有 `unknown-tag` 或 `warn`。
 2. **用 `path` 定位**，不要猜「第几个 child」。
 3. **改 gap / padding**：看报告里相邻元素的 box / ink；flex 的 `gap` 写在 `div` 的 `style` 里。
 4. **动态海报**：在 Vue / React 层改数据或组件，**重新生成 `.layer`**，再跑 check；不要手改生成结果里的重复片段。
-5. **字体**：`<font family src>` 写在 `<Layer>` 下；默认寒蝉端黑体首次渲染会下载到 `~/.cache/flexlayer/fonts`。也可以写 `Song`、`Kai`、`Brush`。
+5. **字体**：`<font family src>` 写在 `<layer>` 下；默认寒蝉端黑体首次渲染会下载到 `~/.cache/flexlayer/fonts`。也可以写 `Song`、`Kai`、`Brush`。
 6. **退出码**：`check` / `render` 在存在 **error** 级 `issues` 时退出 1，适合脚本与 CI。
 
 ## 5. 写给 AI 的硬性约定
 
 | 约定 | 原因 |
 | --- | --- |
-| HTML 用 `style`，`Layer` 和图形用属性 | 和渲染器的归属表一致；图形写 `style` 会 `warn` |
-| 根与定位用大写 `Layer`，图形首字母大写，文字小写 | `circle` 和 `Circle` 不是同一个标签，小写会被丢掉 |
-| 嵌套 `Layer` / `use` 不写 `background` | 会 `warn` 并忽略；色块用 `Rect` / HTML / `<draw>` |
+| HTML 用 `style`，`layer` 和图形用属性 | 和渲染器的归属表一致；图形写 `style` 会 `warn` |
+| 标签一律小写：`<layer>`、`<circle>`、`<div>` | 大写 `<Circle>` 会照常渲染并报 `info`，应改成 `<circle>` |
+| 嵌套 `layer` / `use` 不写 `background` | 会 `warn` 并忽略；色块用 `rect` / HTML / `<draw>` |
 | 排布用 `div` 的 `display:flex` | `Row` / `Column` 会 `unknown-tag` |
-| 线条放在 `Layer` 里，用 `x1`…`d` | 直接放进 flex 不渲染 |
-| 文字的 `cx` 写在外包的 `Layer` 上 | 写在 `h1` / `p` 上会 `warn` |
+| 线条放在 `layer` 里，用 `x1`…`d` | 直接放进 flex 不渲染 |
+| 文字的 `cx` 写在外包的 `layer` 上 | 写在 `h1` / `p` 上会 `warn` |
 | 图片用 `<img src="…" style="width:…; height:…">` | `img` 是 HTML：`src` 是属性，尺寸在 `style`。`image` 同样可用 |
-| 调色写 `<Layer grade="lomo, fade 0.1">`，先选预设再改一两项 | `grade` 只在 Layer 上生效；报告里有展开后的参数，照着改 |
+| 调色写 `<layer grade="lomo, fade 0.1">`，先选预设再改一两项 | `grade` 只在 layer 上生效；报告里有展开后的参数，照着改 |
 | 多段文字用 flex，别在 `p` 里嵌 `div` | 文字盒子里只能放行内标签 |
 | 验证时先读 **`issues` 和 `report.json`** | 数字比压缩图更适合改 markup |
 
@@ -147,7 +147,7 @@ flowchart TD
 | 字距和 `gap` 不一致 | 读 SPEC `line-height`；用 debug 看 **ink** 间距 |
 | flex 子项被挤爆 | 加宽 flex 容器或缩小子项 |
 | 阴影/光晕看不见 | 查 `fill`/`stroke`/`glow` 颜色与背景对比；看 `effect` 矩形 |
-| 嵌套 Layer 写了 background 没颜色 | 属预期；改成 `Rect` 或 `<draw>` |
+| 嵌套 layer 写了 background 没颜色 | 属预期；改成 `rect` 或 `<draw>` |
 | 不知道改哪个节点 | 报告里的 `path` |
 
 ## 7. 仓库内文档索引

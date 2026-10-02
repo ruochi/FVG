@@ -47,14 +47,14 @@ async function pixelAt(png: Buffer, x: number, y: number) {
 
 describe('img', () => {
   it('空元素，不吞掉后面的标签', () => {
-    const [layer] = parseFvg('<Layer><img src="a.png"><p>后</p></Layer>')
+    const [layer] = parseFvg('<layer><img src="a.png"><p>后</p></layer>')
     const tags = layer!.children.filter((child) => typeof child !== 'string').map((child) => (child as { tag: string }).tag)
     expect(tags).toEqual(['img', 'p'])
   })
 
   it('只写宽度时按原比例算高度，image 与 img 相同', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><image src="${SPLIT}" style="width:40px" /></Layer>`,
+      `<layer width="200" height="200"><image src="${SPLIT}" style="width:40px" /></layer>`,
       process.cwd(),
     )
     const image = doc.root.children[0] as ImageLayoutNode
@@ -67,11 +67,11 @@ describe('img', () => {
 
   it('contain 留出空白，cover 铺满盒子', async () => {
     const contain = await layoutSource(
-      `<Layer width="80" height="80"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:contain" /></Layer>`,
+      `<layer width="80" height="80"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:contain" /></layer>`,
       process.cwd(),
     )
     const cover = await layoutSource(
-      `<Layer width="80" height="80"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:cover" /></Layer>`,
+      `<layer width="80" height="80"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:cover" /></layer>`,
       process.cwd(),
     )
     const contained = contain.root.children[0] as ImageLayoutNode
@@ -90,7 +90,7 @@ describe('img', () => {
     ctx.fillRect(0, 0, 20, 10)
     await writeFile(file, canvas.toBuffer('image/png'))
     const doc = await layoutSource(
-      `<Layer width="200" height="80"><div style="display:flex; gap:10px"><img src="dot.png" style="width:20px" /><img src="dot.png" style="width:20px" /></div></Layer>`,
+      `<layer width="200" height="80"><div style="display:flex; gap:10px"><img src="dot.png" style="width:20px" /><img src="dot.png" style="width:20px" /></div></layer>`,
       dir,
     )
     const flex = doc.root.children[0] as { children: ImageLayoutNode[] }
@@ -101,7 +101,7 @@ describe('img', () => {
 
   it('缺 src、读不到文件、宽高写成属性都会警告', async () => {
     const missing = await layoutSource(
-      `<Layer width="100" height="100"><img style="width:30px; height:20px" /><img src="no-such-flexlayer.png" style="width:30px; height:20px" /><img src="${RED}" width="80" height="40" /></Layer>`,
+      `<layer width="100" height="100"><img style="width:30px; height:20px" /><img src="no-such-flexlayer.png" style="width:30px; height:20px" /><img src="${RED}" width="80" height="40" /></layer>`,
       process.cwd(),
     )
     expect(missing.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('缺少 src'))).toBe(true)
@@ -116,7 +116,7 @@ describe('img', () => {
 
   it('绘制 contain、cover 和圆角', async () => {
     const fitted = await renderFvg(
-      `<Layer width="80" height="80" background="#000000"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:contain" /></Layer>`,
+      `<layer width="80" height="80" background="#000000"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:contain" /></layer>`,
     )
     const red = await pixelAt(fitted.png, 30, 40)
     const blue = await pixelAt(fitted.png, 50, 40)
@@ -129,13 +129,13 @@ describe('img', () => {
     expect(letterbox[2]).toBeLessThan(20)
 
     const covered = await renderFvg(
-      `<Layer width="80" height="80" background="#000000"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:cover" /></Layer>`,
+      `<layer width="80" height="80" background="#000000"><img src="${SPLIT}" style="width:40px; height:40px; object-fit:cover" /></layer>`,
     )
     const coverTop = await pixelAt(covered.png, 30, 22)
     expect(coverTop[0]).toBeGreaterThan(200)
 
     const rounded = await renderFvg(
-      `<Layer width="100" height="100" background="#000000"><img src="${RED}" style="width:40px; height:40px; border-radius:20px" /></Layer>`,
+      `<layer width="100" height="100" background="#000000"><img src="${RED}" style="width:40px; height:40px; border-radius:20px" /></layer>`,
     )
     const center = await pixelAt(rounded.png, 50, 50)
     const corner = await pixelAt(rounded.png, 31, 31)
@@ -144,7 +144,7 @@ describe('img', () => {
   })
 
   it('序列化时 src 留在属性，尺寸进 style', () => {
-    const root = createHostElement('Layer')
+    const root = createHostElement('layer')
     root.props = { width: 100, height: 80 }
     const img = createHostElement('img')
     img.props = { src: 'a.png', alt: '封面', width: 40, height: 20, objectFit: 'cover' }

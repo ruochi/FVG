@@ -1,4 +1,6 @@
-/** HTML 用 style，Layer 和图形用属性。标签大小写原样保留。 */
+/** HTML 用 style，layer 和图形用属性。已知标签写出小写。 */
+
+import { canonicalTag } from '../src/tags.js'
 
 const HTML_TAGS = new Set(['div', 'h1', 'h2', 'h3', 'p', 'span', 'strong', 'b', 'em', 'br', 'img', 'image'])
 /** 图片仍是 HTML，但 src / alt 不是 CSS，留在属性上。 */
@@ -166,7 +168,7 @@ function formatAttrs(el: FvgHostElement): string {
 
 function serializeElement(el: FvgHostElement, indent: number): string {
   const pad = '  '.repeat(indent)
-  const tag = el.tag
+  const tag = canonicalTag(el.tag)
   const attrs = formatAttrs(el)
   // <draw> 正文是 JS，必须原样写出（含 <），不能做 HTML 转义
   if (tag === 'draw') {
@@ -196,13 +198,13 @@ function serializeElement(el: FvgHostElement, indent: number): string {
   return `${pad}<${tag}${attrs}>\n${inner}\n${pad}</${tag}>`
 }
 
-/** 把 `<Layer>` 根序列化为 Flex Layer 文本（末尾换行）。 */
+/** 把 `<layer>` 根序列化为 Flex Layer 文本（末尾换行）。 */
 export function serializeFvgDocument(root: FvgHostElement): string {
-  const tag = root.tag.toLowerCase() === 'fvg' ? 'Layer' : root.tag
-  if (tag !== 'Layer') {
-    throw new Error('根节点必须是 <Layer>')
+  const tag = canonicalTag(root.tag)
+  if (tag !== 'layer') {
+    throw new Error('根节点必须是 <layer>')
   }
-  return `${serializeElement({ ...root, tag: 'Layer' }, 0)}\n`
+  return `${serializeElement({ ...root, tag }, 0)}\n`
 }
 
 export function createHostElement(tag: string): FvgHostElement {

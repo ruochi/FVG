@@ -1,29 +1,66 @@
-/** 文档根与定位容器都是 Layer；仍接受旧根标签 fvg / FVG。 */
-export const ROOT_TAGS = new Set(['Layer', 'fvg', 'FVG'])
-export const SHAPE_TAGS = new Set(['Rect', 'Circle', 'Ellipse'])
-export const LINE_TAGS = new Set(['Line', 'Arrow', 'Polyline', 'Polygon', 'Path', 'Curve'])
+/** 文档根与定位容器都是 layer；仍接受旧根标签 fvg / FVG，以及大小写不规范的写法。 */
+const KNOWN_TAGS = new Set([
+  'layer',
+  'rect',
+  'circle',
+  'ellipse',
+  'line',
+  'arrow',
+  'polyline',
+  'polygon',
+  'path',
+  'curve',
+  'font',
+  'draw',
+  'symbol',
+  'use',
+  'div',
+  'h1',
+  'h2',
+  'h3',
+  'p',
+  'span',
+  'strong',
+  'b',
+  'em',
+  'br',
+  'img',
+  'image',
+])
+
+export const ROOT_TAGS = new Set(['layer'])
+export const SHAPE_TAGS = new Set(['rect', 'circle', 'ellipse'])
+export const LINE_TAGS = new Set(['line', 'arrow', 'polyline', 'polygon', 'path', 'curve'])
 export const FONT_TAG = 'font'
 
 /** HTML 图片。`image` 与 `img` 是同一个标签。 */
 const IMAGE_TAGS = new Set(['img', 'image'])
+
+/** 已知标签归一成小写。`fvg` 是旧根标签，归一成 `layer`。不认识的标签保持原样。 */
+export function canonicalTag(tag: string): string {
+  const lower = tag.toLowerCase()
+  if (lower === 'fvg') return 'layer'
+  if (KNOWN_TAGS.has(lower)) return lower
+  return tag
+}
 
 export function isImageTag(tag: string): boolean {
   return IMAGE_TAGS.has(tag.toLowerCase())
 }
 
 export function isRootTag(tag: string): boolean {
-  return ROOT_TAGS.has(tag)
+  return canonicalTag(tag) === 'layer'
 }
 
 export function isLineTag(tag: string): boolean {
-  return LINE_TAGS.has(tag)
+  return LINE_TAGS.has(canonicalTag(tag))
 }
 
 export function isShapeTag(tag: string): boolean {
-  return SHAPE_TAGS.has(tag)
+  return SHAPE_TAGS.has(canonicalTag(tag))
 }
 
-/** 旧根标签 fvg 归一成 Layer */
+/** 旧根标签 fvg 归一成 layer */
 export function normalizeRootTag(tag: string): string {
-  return tag.toLowerCase() === 'fvg' ? 'Layer' : tag
+  return canonicalTag(tag) === 'layer' ? 'layer' : tag
 }

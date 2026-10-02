@@ -58,7 +58,7 @@ function equation(parts: EquationPart[], size: number, gap: number, opacity = 1)
 
 function label(content: string, color: string, at: Pt, anchor: string, opacity: number, size = 48) {
   return h(
-    'Layer',
+    'layer',
     { cx: n(at[0]), cy: n(at[1]), anchor, opacity: n(opacity) },
     h('p', { style: `font-size:${size}px; color:${color}` }, content),
   )
@@ -101,7 +101,7 @@ function intro(frame: number) {
   const opacity = 1 - ramp(frame, 80, 98)
   const rise = pop(frame, 0)
   return h(
-    'Layer',
+    'layer',
     { cx: '960', cy: n(540 + (1 - rise) * 40), anchor: 'center', opacity: n(opacity) },
     h(
     'div',
@@ -126,7 +126,7 @@ function header(frame: number) {
   const opacity = ramp(frame, 90, 110)
   const active = stepIndex(frame)
   return h(
-    'Layer',
+    'layer',
     { cx: '120', cy: '64', anchor: 'top-left', opacity: n(opacity) },
     h(
     'div',
@@ -170,7 +170,7 @@ function caption(frame: number) {
   if (!c) return null
   const opacity = envelope(frame, c.from, c.to, 12)
   return h(
-    'Layer',
+    'layer',
     { cx: '120', cy: '260', anchor: 'top-left', opacity: n(opacity) },
     h(
     'div',
@@ -197,7 +197,7 @@ const OUT_C: Pt = [3 * U, -4 * U]
 function edge(from: Pt, to: Pt, progress: number, color: string) {
   if (progress <= 0) return null
   const end = lerp(from, to, progress)
-  return h('Line', {
+  return h('line', {
     x1: n(from[0]),
     y1: n(from[1]),
     x2: n(end[0]),
@@ -210,7 +210,7 @@ function edge(from: Pt, to: Pt, progress: number, color: string) {
 /** 以 p→q 为一边、沿 out 方向长出的正方形；progress 为 0 到 1。 */
 function squareOn(p: Pt, q: Pt, out: Pt, progress: number, color: string, fill: string) {
   if (progress <= 0) return null
-  return h('Polygon', {
+  return h('polygon', {
     points: points([p, q, add(q, out, progress), add(p, out, progress)]),
     fill,
     stroke: color,
@@ -222,7 +222,7 @@ function grid(p: Pt, q: Pt, out: Pt, cells: number, color: string, opacity: numb
   const along: Pt = [(q[0] - p[0]) / cells, (q[1] - p[1]) / cells]
   const across: Pt = [out[0] / cells, out[1] / cells]
   const line = (from: Pt, to: Pt) =>
-    h('Line', {
+    h('line', {
       x1: n(from[0]),
       y1: n(from[1]),
       x2: n(to[0]),
@@ -245,13 +245,13 @@ const squareCenter = (p: Pt, q: Pt, out: Pt): Pt => add(lerp(p, q, 0.5), out, 0.
 
 function dot(at: Pt, scale: number) {
   if (scale <= 0.001) return null
-  return h('Circle', { cx: n(at[0]), cy: n(at[1]), r: '10', fill: INK, scale: n(scale) })
+  return h('circle', { cx: n(at[0]), cy: n(at[1]), r: '10', fill: INK, scale: n(scale) })
 }
 
 function areaTag(content: string, color: string, at: Pt, frame: number, from: number) {
   const opacity = ramp(frame, from, from + 15)
   return h(
-    'Layer',
+    'layer',
     {
       cx: n(at[0]),
       cy: n(at[1] + (1 - opacity) * 18),
@@ -273,9 +273,9 @@ function figure(frame: number) {
   const fillOpacity = ramp(frame, 240, 270)
   const markerOpacity = ramp(frame, 170, 190)
   return h(
-    'Layer',
+    'layer',
     { cx: '500', cy: '400', width: '1000', height: '800', opacity: n(opacity) },
-    h('Polygon', {
+    h('polygon', {
       points: points([P0, P1, P2]),
       fill: 'rgba(122,162,255,0.10)',
       stroke: 'none',
@@ -287,7 +287,7 @@ function figure(frame: number) {
     ...grid(P2, P0, OUT_A, 3, 'rgba(62,207,196,0.55)', gridOpacity),
     ...grid(P0, P1, OUT_B, 4, 'rgba(122,162,255,0.55)', gridOpacity),
     ...grid(P2, P1, OUT_C, 5, 'rgba(245,193,108,0.55)', gridOpacity),
-    h('Polyline', {
+    h('polyline', {
       points: points([
         [P0[0], P0[1] - 28],
         [P0[0] + 28, P0[1] - 28],
@@ -327,7 +327,7 @@ const PIECES: Array<{ corners: Pt[]; enterFrom: Pt; move: Pt; moveAt: number }> 
   { corners: [[PB, PS], [0, PS], [0, PB]], enterFrom: [-1, 1], move: [PA, -PB], moveAt: 770 },
 ]
 
-/** 三角形用固定的局部顶点，平移只改它所在 Layer 的位置。 */
+/** 三角形用固定的局部顶点，平移只改它所在 layer 的位置。 */
 function pieceLayer(piece: (typeof PIECES)[number], index: number, frame: number) {
   const enter = ramp(frame, 560 + 15 * index, 585 + 15 * index)
   const moved = ramp(frame, piece.moveAt, piece.moveAt + 40)
@@ -341,7 +341,7 @@ function pieceLayer(piece: (typeof PIECES)[number], index: number, frame: number
   const width = Math.max(...piece.corners.map((p) => p[0])) - minX
   const height = Math.max(...piece.corners.map((p) => p[1])) - minY
   return h(
-    'Layer',
+    'layer',
     {
       cx: n(minX + offset[0]),
       cy: n(minY + offset[1]),
@@ -350,7 +350,7 @@ function pieceLayer(piece: (typeof PIECES)[number], index: number, frame: number
       height: n(height),
       opacity: n(enter),
     },
-    h('Polygon', {
+    h('polygon', {
       points: points(piece.corners.map(([x, y]) => [x - minX, y - minY])),
       fill: 'rgba(255,138,122,0.30)',
       stroke: TRI,
@@ -371,7 +371,7 @@ function proof(frame: number) {
   const abOpacity = ramp(frame, 805, 830)
   const sideOpacity = ramp(frame, 600, 620)
   const tick = (x: number) =>
-    h('Line', {
+    h('line', {
       x1: n(PO[0] + x),
       y1: n(PO[1] - 30),
       x2: n(PO[0] + x),
@@ -382,10 +382,10 @@ function proof(frame: number) {
     })
 
   return h(
-    'Layer',
+    'layer',
     { cx: '500', cy: '400', width: '1000', height: '800', opacity: n(opacity) },
     h(
-      'Layer',
+      'layer',
       {
         cx: n(PO[0]),
         cy: n(PO[1]),
@@ -394,7 +394,7 @@ function proof(frame: number) {
         height: String(PS),
         scale: n(outlineScale),
       },
-      h('Rect', {
+      h('rect', {
         cx: n(PS / 2),
         cy: n(PS / 2),
         width: String(PS),
@@ -405,7 +405,7 @@ function proof(frame: number) {
       }),
       ...PIECES.map((piece, i) => pieceLayer(piece, i, frame)),
     ),
-    h('Rect', {
+    h('rect', {
       cx: n(PO[0] + PS / 2),
       cy: n(PO[1] + PS / 2),
       width: String(5 * PU),
@@ -416,7 +416,7 @@ function proof(frame: number) {
       'stroke-width': '4',
       opacity: n(cOpacity),
     }),
-    h('Rect', {
+    h('rect', {
       cx: n(PO[0] + PA / 2),
       cy: n(PO[1] + PA / 2),
       width: String(PA),
@@ -426,7 +426,7 @@ function proof(frame: number) {
       'stroke-width': '4',
       opacity: n(abOpacity),
     }),
-    h('Rect', {
+    h('rect', {
       cx: n(PO[0] + PA + PB / 2),
       cy: n(PO[1] + PA + PB / 2),
       width: String(PB),
@@ -450,7 +450,7 @@ function proof(frame: number) {
 function outro(frame: number) {
   const opacity = ramp(frame, 880, 900)
   return h(
-    'Layer',
+    'layer',
     { cx: '960', cy: n(580 + (1 - opacity) * 30), anchor: 'center', opacity: n(opacity) },
     h(
     'div',
@@ -470,13 +470,13 @@ export const pythagoras: Composition = {
   durationInFrames: DURATION,
   component: ({ frame }) =>
     h(
-      'Layer',
+      'layer',
       { width: String(W), height: String(H), background: BG, color: INK },
       h('Dots', { cx: String(W / 2), cy: String(H / 2), width: String(W), height: String(H), draw: drawDots }),
       intro(frame),
       header(frame),
       caption(frame),
-      h('Layer', { cx: '1360', cy: '600', width: '1000', height: '800' }, figure(frame), proof(frame)),
+      h('layer', { cx: '1360', cy: '600', width: '1000', height: '800' }, figure(frame), proof(frame)),
       outro(frame),
       h('Progress', { cx: String(W / 2), cy: '1036', width: '1680', height: '6', draw: drawProgress }),
     ),

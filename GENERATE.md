@@ -12,17 +12,17 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderFvg / flexlayer render  �
 
 | 写什么 | 放哪里 |
 | --- | --- |
-| 根 `<Layer>` 的 `width`、`height`、`background`（画布底色）、`color`、`safe` | 根元素**属性** |
-| `Layer`、`Rect`、`Circle`、`Ellipse`、`Line`、`Arrow`、`Path`、`Curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
+| 根 `<layer>` 的 `width`、`height`、`background`（画布底色）、`color`、`safe` | 根元素**属性** |
+| `layer`、`rect`、`circle`、`ellipse`、`line`、`arrow`、`path`、`curve` 的位置、尺寸、`fill`、`stroke`、效果（`shadow`/`glow`/`blur` 等） | 标签**属性** |
 | 字号、颜色、`gap`、`padding`、`background` | HTML 的 **`style`** |
 | 图片 | `<img src="…" alt="…">`，宽高和 `object-fit` 写 **`style`**。`image` 同样可用 |
-| 调色 | 外包 `<Layer grade="lomo 0.8" grade-mask="…">`，两者都是 **Layer 属性** |
-| 嵌套 Layer 的色块 | `<Rect fill>`、HTML `background`，或子标签 **`<draw>`**（正文 JS：`ctx`、`el`） |
+| 调色 | 外包 `<layer grade="lomo 0.8" grade-mask="…">`，两者都是 **layer 属性** |
+| 嵌套 layer 的色块 | `<rect fill>`、HTML `background`，或子标签 **`<draw>`**（正文 JS：`ctx`、`el`） |
 | 排布 | `<div style="display:flex">`，竖排加 `flex-direction:column` |
-| 要定位的文字 | 外包 `<Layer cx cy anchor>`，文字上不写 `cx` |
+| 要定位的文字 | 外包 `<layer cx cy anchor>`，文字上不写 `cx` |
 | 可复用块 | **PascalCase 组件名**，展开后只剩 Flex Layer 标签 |
 
-根与定位容器都是大写 `<Layer>`；图形首字母大写。文字和 `div`、`symbol`、`use`、`draw` 小写。**嵌套 `Layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
+标签一律小写：`<layer>`、`<rect>`、`<circle>`、`<div>`、`<symbol>`、`<use>`、`<draw>`。**嵌套 `layer` / `use` 不要写 `background`**（会 warn 并忽略）。不要写 `row`、`column`，也不要把图形的 `fill`、`r` 放进 `style`。
 
 生成完成后交给现有渲染器：
 
@@ -62,8 +62,8 @@ import { renderVueFvg } from './generate/vue/renderVueFvg.js'
 
 const source = renderVueFvg({
   template: `
-<Layer width="320" height="200" background="#1a1220">
-  <Circle
+<layer width="320" height="200" background="#1a1220">
+  <circle
     v-for="(s, i) in stars"
     :key="s.name"
     :cx="i * 80 + 40"
@@ -72,7 +72,7 @@ const source = renderVueFvg({
     fill="#fff8e7"
   />
   <Caption :text="title" />
-</Layer>
+</layer>
   `,
   bindings: {
     title: '霜降',
@@ -82,11 +82,11 @@ const source = renderVueFvg({
     Caption: {
       props: ['text'],
       template: `
-        <Layer>
+        <layer>
           <div style="display:flex; flex-direction:column; gap:8px; align-items:start">
             <h1 style="font-size:32px">{{ $props.text }}</h1>
           </div>
-        </Layer>
+        </layer>
       `,
     },
   },
@@ -95,10 +95,10 @@ const source = renderVueFvg({
 
 要点：
 
-- 未注册的标签按模板里的大小写输出。`Circle`、`Layer` 不用注册。
+- 未注册的标签按模板里的大小写输出。`circle`、`layer` 不用注册。
 - `Caption` 这种组件名在 `components` 里注册，展开后文件里不留这个名字。
 - 动态坐标用 `:cx="表达式"`。半径写 `:r="s.r"`，不要放进 `style`。
-- 自定义绘制抄 [`generate/vue/draw-example.ts`](generate/vue/draw-example.ts)：嵌套 Layer 里放 `<draw>`，不要给嵌套 Layer 写 `background`。Vue 模板会压空白，多句 JS 请写在一行并用 `;` 分隔。
+- 自定义绘制抄 [`generate/vue/draw-example.ts`](generate/vue/draw-example.ts)：嵌套 layer 里放 `<draw>`，不要给嵌套 layer 写 `background`。Vue 模板会压空白，多句 JS 请写在一行并用 `;` 分隔。
 
 ---
 
@@ -125,15 +125,14 @@ import { renderStarsPosterReact } from './generate/react/example.js'
 ```tsx
 import React from 'react'
 import { renderReactFvg } from './generate/react/renderReactFvg.js'
-import { Circle, Layer } from './generate/react/tags.js'
 
 function Caption({ text }: { text: string }) {
   return (
-    <Layer>
+    <layer>
       <div style="display:flex; flex-direction:column; gap:8px; align-items:start">
         <h1 style="font-size:32px">{text}</h1>
       </div>
-    </Layer>
+    </layer>
   )
 }
 
@@ -143,19 +142,19 @@ const stars = [
 ]
 
 const source = renderReactFvg(
-  <Layer width="320" height="200" background="#1a1220">
+  <layer width="320" height="200" background="#1a1220">
     {stars.map((s, i) => (
-      <Circle key={s.name} cx={i * 80 + 40} cy={s.y} r={s.r} fill="#fff8e7" />
+      <circle key={s.name} cx={i * 80 + 40} cy={s.y} r={s.r} fill="#fff8e7" />
     ))}
     <Caption text="霜降" />
-  </Layer>,
+  </layer>,
 )
 ```
 
 要点：
 
-- `div`、`h1`、`draw` 小写，不用 import。根与定位都用 `Layer`；`Layer`、`Circle` 从 [`generate/react/tags.ts`](generate/react/tags.ts) 引入：React 会把大写 JSX 当成变量，这些常量的值就是标签名。
-- 循环用 `array.map`；条件用 `{show && <Circle ... />}`。
+- 标签一律小写，`<layer>`、`<circle>`、`<div>`、`<h1>`、`<draw>` 直接写，不用 import。大写开头的才是要展开的函数组件。
+- 循环用 `array.map`；条件用 `{show && <circle ... />}`。
 - 大写函数组件会展开，并且必须返回**单个** Flex Layer 元素。
 - 自定义绘制抄 [`generate/react/draw-example.tsx`](generate/react/draw-example.tsx)：`<draw>{code}</draw>`，正文里的 `<` 会原样写进 `.layer`。
 

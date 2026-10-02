@@ -99,7 +99,7 @@ export type TextLineReport = {
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
 export type NoiseSpec = { amount: number; color?: string }
-/** Layer 专用纯色/渐变叠加 */
+/** layer 专用纯色/渐变叠加 */
 export type OverlaySpec = { paint: string; opacity: number; blend: BlendMode }
 export type GlassSpec = {
   variant: 'regular' | 'clear' | 'thick'
@@ -113,7 +113,7 @@ export type GlassSpec = {
 export type GradePresetName = 'lomo' | 'matte' | 'chrome' | 'bleach' | 'mono'
 /** 只取颜色的色相和浓淡；amount 0 到 1。 */
 export type GradeTone = { color: string; amount: number }
-/** Layer 调色。预设已展开，每一项都是最终生效的值。 */
+/** layer 调色。预设已展开，每一项都是最终生效的值。 */
 export type GradeSpec = {
   preset?: GradePresetName
   /** 整体强度 0 到 1，和原图混合。 */

@@ -13,9 +13,9 @@ beforeAll(async () => {
 })
 
 describe('layoutSource', () => {
-  it('Layer anchor top-left', async () => {
+  it('layer anchor top-left', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="300" background="#fff"><Layer cx="10" cy="10" anchor="top-left"><h1>A</h1></Layer></Layer>`,
+      `<layer width="400" height="300" background="#fff"><layer cx="10" cy="10" anchor="top-left"><h1>A</h1></layer></layer>`,
       process.cwd(),
     )
     const layer = doc.root.children[0]
@@ -25,7 +25,7 @@ describe('layoutSource', () => {
 
   it('线条边界盒', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><Line x1="10" y1="10" x2="100" y2="50" /></Layer>`,
+      `<layer width="200" height="200"><line x1="10" y1="10" x2="100" y2="50" /></layer>`,
       process.cwd(),
     )
     const line = doc.root.children[0]
@@ -33,9 +33,9 @@ describe('layoutSource', () => {
     expect(line!.width).toBeGreaterThan(0)
   })
 
-  it('线条使用 Layer 的局部坐标，不被重新居中', async () => {
+  it('线条使用 layer 的局部坐标，不被重新居中', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="400"><Layer cx="200" cy="200" width="300" height="300"><Line x1="10" y1="10" x2="50" y2="10" stroke-width="4" /><Polygon points="100,100 140,100 100,160" stroke-width="2" /></Layer></Layer>`,
+      `<layer width="400" height="400"><layer cx="200" cy="200" width="300" height="300"><line x1="10" y1="10" x2="50" y2="10" stroke-width="4" /><polygon points="100,100 140,100 100,160" stroke-width="2" /></layer></layer>`,
       process.cwd(),
     )
     const layer = doc.root.children[0]
@@ -54,7 +54,7 @@ describe('layoutSource', () => {
 
   it('Rect 两点写法可以反着写，和尺寸写法同时出现时报错', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="400"><Rect x1="80" y1="60" x2="20" y2="10" fill="#fff" /><Rect x1="0" y1="0" x2="40" y2="20" width="10" height="10" /></Layer>`,
+      `<layer width="400" height="400"><rect x1="80" y1="60" x2="20" y2="10" fill="#fff" /><rect x1="0" y1="0" x2="40" y2="20" width="10" height="10" /></layer>`,
       process.cwd(),
     )
     const [reversed, mixed] = doc.root.children as Array<{ x: number; y: number; width: number; height: number }>
@@ -65,7 +65,7 @@ describe('layoutSource', () => {
 
   it('竖排 flex 把文字排成一列', async () => {
     const doc = await layoutSource(
-      `<Layer width="800" height="400"><div style="display:flex; flex-direction:column; gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></div></Layer>`,
+      `<layer width="800" height="400"><div style="display:flex; flex-direction:column; gap:20px"><p style="font-size:40px">甲</p><p style="font-size:40px">乙</p></div></layer>`,
       process.cwd(),
     )
     const column = doc.root.children[0] as { children: Array<{ y: number }> }
@@ -74,7 +74,7 @@ describe('layoutSource', () => {
 
   it('flex 里带内边距的短文字不被小数宽度挤到换行', async () => {
     const doc = await layoutSource(
-      `<Layer width="1920" height="1080"><div style="display:flex; gap:20px"><div style="padding:2px 29px; font-size:72px">a²</div><div style="padding:4px 22px; border:2px solid #333; font-size:44px">1 三角形</div></div></Layer>`,
+      `<layer width="1920" height="1080"><div style="display:flex; gap:20px"><div style="padding:2px 29px; font-size:72px">a²</div><div style="padding:4px 22px; border:2px solid #333; font-size:44px">1 三角形</div></div></layer>`,
       process.cwd(),
     )
     expect(doc.issues.filter((i) => i.code === 'auto-wrap')).toEqual([])
@@ -82,9 +82,9 @@ describe('layoutSource', () => {
     for (const child of row.children) expect(child.textLayout.lines).toHaveLength(1)
   })
 
-  it('没写宽高的 Layer 原点固定，负坐标不会平移其他子元素', async () => {
+  it('没写宽高的 layer 原点固定，负坐标不会平移其他子元素', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="400"><Layer><Rect cx="10" cy="10" anchor="top-left" width="20" height="20" /><Rect cx="-40" cy="30" anchor="top-left" width="20" height="20" /></Layer></Layer>`,
+      `<layer width="400" height="400"><layer><rect cx="10" cy="10" anchor="top-left" width="20" height="20" /><rect cx="-40" cy="30" anchor="top-left" width="20" height="20" /></layer></layer>`,
       process.cwd(),
     )
     const layer = doc.root.children[0]
@@ -98,7 +98,7 @@ describe('layoutSource', () => {
 
   it('Path 几何减去盒子原点，和折线同一套局部坐标', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><Path d="M 80 90 L 140 90" /><Path d="M 80 90 l 40 0" /></Layer>`,
+      `<layer width="200" height="200"><path d="M 80 90 L 140 90" /><path d="M 80 90 l 40 0" /></layer>`,
       process.cwd(),
     )
     const [absolute, relative] = doc.root.children as Array<{ x: number; y: number; geometry: { kind: string; d: string } }>
@@ -110,11 +110,11 @@ describe('layoutSource', () => {
 
   it('Curve 穿过点，开口不填充', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="300"><Curve points="30,100 100,40 170,100" fill="#ff0000" /><Curve points="40,40 160,40 100,140" closed fill="#00ff00" /></Layer>`,
+      `<layer width="400" height="300"><curve points="30,100 100,40 170,100" fill="#ff0000" /><curve points="40,40 160,40 100,140" closed fill="#00ff00" /></layer>`,
       process.cwd(),
     )
     const [open, closed] = doc.root.children as Array<{ tag: string; fill: string; geometry: { kind: string; d: string } }>
-    expect(open.tag).toBe('Curve')
+    expect(open.tag).toBe('curve')
     expect(open.fill).toBe('none')
     expect(open.geometry.kind).toBe('path')
     expect(open.geometry.d).toContain(' C ')
@@ -125,7 +125,7 @@ describe('layoutSource', () => {
 
   it('symbol 不占位，use 按 cx cy 各放一份', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="120"><symbol id="dot" width="20" height="20"><Circle cx="10" cy="10" r="8" fill="#ff0000" /></symbol><use href="#dot" cx="40" cy="30" /><use href="#dot" cx="80" cy="30" /></Layer>`,
+      `<layer width="200" height="120"><symbol id="dot" width="20" height="20"><circle cx="10" cy="10" r="8" fill="#ff0000" /></symbol><use href="#dot" cx="40" cy="30" /><use href="#dot" cx="80" cy="30" /></layer>`,
       process.cwd(),
     )
     expect(doc.root.children.map((child) => child.tag)).toEqual(['use', 'use'])
@@ -135,7 +135,7 @@ describe('layoutSource', () => {
 
   it('竖排寒露高过宽，字从上到下', async () => {
     const doc = await layoutSource(
-      `<Layer width="400" height="400"><h1 style="writing-mode:vertical-rl; font-size:40px; letter-spacing:8px">寒露</h1></Layer>`,
+      `<layer width="400" height="400"><h1 style="writing-mode:vertical-rl; font-size:40px; letter-spacing:8px">寒露</h1></layer>`,
       process.cwd(),
     )
     const title = doc.root.children[0] as {
@@ -150,7 +150,7 @@ describe('layoutSource', () => {
 
   it('渐变、阴影和光晕写进图形', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><Circle cx="40" cy="40" r="20" fill="radial-gradient(#fff, #fff0)" glow="12 #fff" shadow="0 4 8 #00000055" /></Layer>`,
+      `<layer width="200" height="200"><circle cx="40" cy="40" r="20" fill="radial-gradient(#fff, #fff0)" glow="12 #fff" shadow="0 4 8 #00000055" /></layer>`,
       process.cwd(),
     )
     const circle = doc.root.children[0] as { fill: string; glow?: { blur: number; color: string }; shadow?: { y: number; blur: number } }
@@ -161,7 +161,7 @@ describe('layoutSource', () => {
 
   it('新效果属性写进布局节点', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><Rect cx="40" cy="40" width="40" height="40" fill="#fff" inner-shadow="0 2 4 #00000055" blur="3" backdrop-blur="5" noise="0.1 #fff" filter="brightness(1.1)" blend="screen" /></Layer>`,
+      `<layer width="200" height="200"><rect cx="40" cy="40" width="40" height="40" fill="#fff" inner-shadow="0 2 4 #00000055" blur="3" backdrop-blur="5" noise="0.1 #fff" filter="brightness(1.1)" blend="screen" /></layer>`,
       process.cwd(),
     )
     const rect = doc.root.children[0] as {
@@ -182,7 +182,7 @@ describe('layoutSource', () => {
 
   it('invalid-child 线条进 flex', async () => {
     const doc = await layoutSource(
-      `<Layer width="200" height="200"><div style="display:flex"><Line x1="0" y1="0" x2="10" y2="10" /></div></Layer>`,
+      `<layer width="200" height="200"><div style="display:flex"><line x1="0" y1="0" x2="10" y2="10" /></div></layer>`,
       process.cwd(),
     )
     expect(doc.issues.some((i) => i.code === 'invalid-child')).toBe(true)

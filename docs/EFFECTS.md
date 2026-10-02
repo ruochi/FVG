@@ -8,16 +8,16 @@
 | --- | --- |
 | `shadow` / `glow` | 外阴影 / 外发光 |
 | `inner-shadow` / `inner-glow` | 内阴影 / 内发光（clip + 离屏挖空） |
-| `blur` | 图层模糊（含 Layer 子树合成后再糊） |
+| `blur` | 图层模糊（含 layer 子树合成后再糊） |
 | `backdrop-blur` | 背景模糊（采样主画布已有像素） |
 | `glass` | iOS Liquid Glass：边缘弧面折射 + 色散 + 朝光高光，`clear` 零模糊 |
 | `noise` | 确定性噪点，`soft-light` 叠加 |
-| `overlay` | **仅 Layer**：纯色 / 渐变叠加，`paint [opacity] [blend]`，按子树墨迹裁切 |
+| `overlay` | **仅 layer**：纯色 / 渐变叠加，`paint [opacity] [blend]`，按子树墨迹裁切 |
 | `filter` | 色彩滤镜（brightness / contrast / saturate / grayscale / hue-rotate / sepia / invert） |
 | `blend` | 混合模式子集 |
-| `grade` / `grade-mask` | **仅 Layer**：调色（六参数 + `warmth` 或预设），遮罩 alpha 控制各处强度 |
+| `grade` / `grade-mask` | **仅 layer**：调色（六参数 + `warmth` 或预设），遮罩 alpha 控制各处强度 |
 
-归属：Layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay`、`grade`、`grade-mask` 例外：只允许写在 `Layer` 上。**
+归属：layer / 图形 / 线条 → 属性；文字 / flex HTML → `style`。**`overlay`、`grade`、`grade-mask` 例外：只允许写在 `layer` 上。**
 
 绘制顺序：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur`、`filter` 或 `grade`，阴影到 overlay 先画进离屏，依次做 `grade`、`blur` / `filter`，贴回后再叠 `noise`。
 
@@ -29,7 +29,7 @@
 | --- | --- |
 | 文字 | 字形（若有 `background` 则加上背景块） |
 | 形状 / 线 | 填充与描边几何 |
-| Layer | 自身 `border` / `<draw>` 着墨（**无** `background`；子元素各自算） |
+| layer | 自身 `border` / `<draw>` 着墨（**无** `background`；子元素各自算） |
 | flex | 自身的 `background` / `border`（子元素各自算） |
 | `blur` / `filter` / `blend` | 该节点已绘制像素（含子树合成） |
 
@@ -72,8 +72,8 @@
 6. `vignette`：到盒子中心的椭圆距离（角上为 1），`smoothstep(0.35, 1)` × 强度，混向暗角颜色。
 7. 与原图按 `整体强度 × 遮罩 alpha` 混合；遮罩透明处像素原样保留。
 
-- 遮罩用 `paintOf` 画到同尺寸离屏后取 alpha，所以纯色、CSS 渐变、`gradient()` 都能用，坐标按 Layer 盒子。
-- 根 Layer 不走离屏：整幅画布画完后直接调色，画布底色也一起调。
+- 遮罩用 `paintOf` 画到同尺寸离屏后取 alpha，所以纯色、CSS 渐变、`gradient()` 都能用，坐标按 layer 盒子。
+- 根 layer 不走离屏：整幅画布画完后直接调色，画布底色也一起调。
 - 预设名不用 `fade`，避免和参数 `fade 0.2` 撞名；哑光预设叫 `matte`。
 - 按颜色选区（只调天空）和位置不对称的漏光不在 `grade` 里做：前者需要按色相取遮罩，后者用 `grade-mask` 或 `overlay`。
 

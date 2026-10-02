@@ -1,5 +1,6 @@
 import type { DrawFn } from './types.js'
 import type { FvgChild, FvgNode } from './parse.js'
+import { canonicalTag } from './tags.js'
 
 export type FvgProps = Record<string, unknown> & {
   draw?: DrawFn
@@ -39,5 +40,8 @@ export function h(tag: string, props: FvgProps | null, ...children: unknown[]): 
       ? flattenChildren(children)
       : flattenChildren(Array.isArray(fromProps) ? fromProps : [fromProps])
 
-  return { tag, attrs, children: merged, draw }
+  const name = canonicalTag(tag)
+  const node: FvgNode = { tag: name, attrs, children: merged, draw }
+  if (tag !== name) node.writtenTag = tag
+  return node
 }

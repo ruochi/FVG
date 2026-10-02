@@ -74,7 +74,7 @@ export function splitCssTokens(value: string): string[] {
 export type ShadowValue = { x: number; y: number; blur: number; spread: number; color?: string }
 export type GlowValue = { blur: number; spread: number; color?: string }
 export type NoiseValue = { amount: number; color?: string }
-/** Layer 专用：`overlay="<paint> [opacity] [blend]"` */
+/** layer 专用：`overlay="<paint> [opacity] [blend]"` */
 export type OverlayValue = { paint: string; opacity: number; blend: BlendMode }
 export type ColorFilterFn =
   | { name: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'sepia' | 'invert'; value: number }
@@ -159,7 +159,7 @@ function parseOpacityToken(token: string): number | undefined {
 }
 
 /**
- * Layer 专用叠加：`overlay="<paint> [opacity] [blend]"`。
+ * layer 专用叠加：`overlay="<paint> [opacity] [blend]"`。
  * paint 为纯色或 linear-gradient / radial-gradient / gradient；opacity 与 blend 顺序可互换。
  */
 export function parseOverlay(value: string | undefined): OverlayValue | undefined {
