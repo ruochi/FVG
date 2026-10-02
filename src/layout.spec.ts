@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { initFontsForMeasure } from './fonts.js'
+import { GlobalFonts } from '@napi-rs/canvas'
+import { getFontsCacheDir, initFontsForMeasure } from './fonts.js'
 import { layoutSource } from './layout.js'
 
 const FONT_DIRS = [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']
@@ -178,6 +180,75 @@ describe('layoutSource', () => {
     expect(rect.noise).toMatchObject({ amount: 0.1 })
     expect(rect.colorFilter?.[0]?.name).toBe('brightness')
     expect(rect.blend).toBe('screen')
+  })
+
+  it('align-items 的 flex-start 和 flex-end 按起止对齐', async () => {
+    const place = async (align: string) => {
+      const doc = await layoutSource(
+        `<Layer width="400" height="200"><div style="display:flex; flex-direction:column; width:300px; align-items:${align}"><p style="font-size:40px">甲</p><p style="font-size:40px">甲乙丙丁</p></div></Layer>`,
+        process.cwd(),
+      )
+      const column = doc.root.children[0] as { width: number; children: Array<{ x: number; width: number }> }
+      return column
+    }
+    const atStart = await place('flex-start')
+    expect(atStart.children.map((child) => child.x)).toEqual([0, 0])
+    const atEnd = await place('flex-end')
+    for (const child of atEnd.children) expect(child.x + child.width).toBeCloseTo(atEnd.width, 0)
+    expect(atEnd.children[0]!.x).toBeGreaterThan(0)
+    const named = await place('end')
+    expect(named.children.map((child) => Math.round(child.x))).toEqual(atEnd.children.map((child) => Math.round(child.x)))
+  })
+
+  it('没写宽度的竖排 flex 居中后仍落在定位点上', async () => {
+    const doc = await layoutSource(
+      `<Layer width="800" height="400"><Layer cx="400" cy="120"><div style="display:flex; flex-direction:column; align-items:center; gap:8px"><p style="font-size:40px">甲</p><p style="font-size:40px">甲乙丙丁</p></div></Layer></Layer>`,
+      process.cwd(),
+    )
+    const layer = doc.root.children[0] as { x: number; children: Array<{ x: number; children: Array<{ x: number; width: number }> }> }
+    const column = layer.children[0]!
+    for (const child of column.children) {
+      expect(layer.x + column.x + child.x + child.width / 2).toBeCloseTo(400, 0)
+    }
+    const hello = await layoutSource(readFileSync(join(process.cwd(), 'examples/hello.layer'), 'utf8'), process.cwd())
+    const card = hello.root.children[0] as { x: number; children: Array<{ x: number; children: Array<{ x: number; width: number }> }> }
+    const title = card.children[0]!.children[0]!
+    expect(card.x + card.children[0]!.x + title.x + title.width / 2).toBeCloseTo(540, 0)
+  })
+
+  it('justify-content 的 flex-end 靠右', async () => {
+    const doc = await layoutSource(
+      `<Layer width="400" height="120"><div style="display:flex; width:300px; justify-content:flex-end"><p style="font-size:40px">甲</p></div></Layer>`,
+      process.cwd(),
+    )
+    const row = doc.root.children[0] as { width: number; children: Array<{ x: number; width: number }> }
+    const text = row.children[0]!
+    expect(text.x + text.width).toBeCloseTo(row.width, 0)
+    expect(text.x).toBeGreaterThan(0)
+  })
+
+  it('根 Layer 里的 font 会注册', async () => {
+    const src = join(getFontsCacheDir(), 'ChillDuanSansVF.ttf')
+    const inside = 'ProbeFontInside'
+    const before = 'ProbeFontBefore'
+    const nested = 'ProbeFontNested'
+    const insideDoc = await layoutSource(
+      `<Layer width="200" height="80"><font family="${inside}" src="${src}" /><p style="font-family:${inside}; font-size:32px">字</p></Layer>`,
+      process.cwd(),
+    )
+    expect(GlobalFonts.has(inside)).toBe(true)
+    expect(insideDoc.issues.filter((issue) => issue.code === 'unknown-tag')).toEqual([])
+    await layoutSource(
+      `<font family="${before}" src="${src}" /><Layer width="200" height="80"><p style="font-size:32px">字</p></Layer>`,
+      process.cwd(),
+    )
+    expect(GlobalFonts.has(before)).toBe(true)
+    const nestedDoc = await layoutSource(
+      `<Layer width="200" height="80"><Layer><font family="${nested}" src="${src}" /></Layer></Layer>`,
+      process.cwd(),
+    )
+    expect(GlobalFonts.has(nested)).toBe(false)
+    expect(nestedDoc.issues.some((issue) => issue.code === 'invalid-child' && issue.message.includes('<font>'))).toBe(true)
   })
 
   it('invalid-child 线条进 flex', async () => {
