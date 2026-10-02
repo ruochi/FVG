@@ -1,63 +1,11 @@
 /** HTML 用 style，layer 和图形用属性。已知标签写出小写。 */
 
+import { ATTR_ORDER } from '../src/schema.js'
 import { canonicalTag } from '../src/tags.js'
 
 const HTML_TAGS = new Set(['div', 'h1', 'h2', 'h3', 'p', 'span', 'strong', 'b', 'em', 'br', 'img', 'image'])
 /** 图片仍是 HTML，但 src / alt 不是 CSS，留在属性上。 */
 const IMAGE_ATTRS = new Set(['src', 'alt'])
-
-const ATTR_ORDER = [
-  'id',
-  'family',
-  'src',
-  'href',
-  'width',
-  'height',
-  'background',
-  'color',
-  'font-family',
-  'safe',
-  'cx',
-  'cy',
-  'anchor',
-  'x1',
-  'y1',
-  'x2',
-  'y2',
-  'r',
-  'rx',
-  'ry',
-  'points',
-  'd',
-  'closed',
-  'head',
-  'fill',
-  'stroke',
-  'stroke-width',
-  'stroke-dasharray',
-  'stroke-linecap',
-  'stroke-linejoin',
-  'opacity',
-  'rotate',
-  'scale',
-  'origin',
-  'shadow',
-  'glow',
-  'inner-shadow',
-  'inner-glow',
-  'blur',
-  'backdrop-blur',
-  'noise',
-  'overlay',
-  'grade',
-  'grade-mask',
-  'glass',
-  'filter',
-  'blend',
-  'border',
-  'border-radius',
-  'overflow',
-]
 
 const SKIP_PROP = new Set(['key', 'ref', 'ref_for', 'ref_key', 'class', 'children'])
 

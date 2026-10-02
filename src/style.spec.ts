@@ -55,6 +55,15 @@ describe('style', () => {
     expect(parseGlass('clear 0 #a8c8ff20')).toMatchObject({ variant: 'clear', blur: 0, tint: '#a8c8ff20' })
     expect(parseGlass('0')).toMatchObject({ variant: 'regular', blur: 0 })
     expect(parseGlass('nope')).toBeUndefined()
+    expect(parseGlass('clear, blur 8, tint #fff2')).toMatchObject({
+      variant: 'clear',
+      blur: 8,
+      tint: '#fff2',
+      refraction: 1,
+    })
+    expect(parseGlass('thick, refraction 0.4')).toMatchObject({ variant: 'thick', blur: 36, refraction: 0.4 })
+    expect(parseGlass('clear,')).toBeUndefined()
+    expect(parseGlass('blur 4, nope 1')).toBeUndefined()
   })
 
   it('parseOverlay：纯色 / 渐变 + opacity + blend', () => {

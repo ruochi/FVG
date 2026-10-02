@@ -2,7 +2,7 @@
 
 Flex Layer 用标签描述一帧画面：图形用 SVG 的写法，文字用 HTML 的写法，布局用 CSS flexbox。渲染器读入 `.layer`，输出 PNG 和一份布局报告。
 
-规范见 [SPEC.md](SPEC.md)。给模型用的一页规则见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。当前版本是单帧 v0.1。
+规范见 [SPEC.md](SPEC.md)。给模型的入口见 [AGENTS.md](AGENTS.md)，一页写法见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)。当前版本是单帧 v0.1。
 
 ## 安装
 
@@ -35,12 +35,12 @@ node dist/cli.js render examples/hello.layer -o hello.png
 ## 代码调用
 
 ```ts
-import { renderFvg } from '@dc/flexlayer'
+import { renderLayer } from '@dc/flexlayer'
 
-const { png, report } = await renderFvg(source, { scale: 0.5 })
+const { png, report } = await renderLayer(source, { scale: 0.5 })
 ```
 
-嵌套 `layer` **不填背景**（只合成子元素）。色块用 `rect` / HTML，或 `.layer` 里的 `<draw>` / 程序侧 `draw={fn}`：
+`renderFvg` 与 `renderLayer` 是同一个函数。嵌套 `layer` 不填背景，色块写法见 [AGENTS.md](AGENTS.md)。`.layer` 里可以用 `<draw>`，程序侧用 `draw={fn}`：
 
 ```html
 <layer width="400" height="300" background="#0f1115">
@@ -53,10 +53,10 @@ const { png, report } = await renderFvg(source, { scale: 0.5 })
 </layer>
 ```
 
-用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderFvg(root)`：
+用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderLayer(root)`：
 
 ```ts
-import { h, renderFvg } from '@dc/flexlayer'
+import { h, renderLayer } from '@dc/flexlayer'
 
 const root = h(
   'layer',
@@ -75,7 +75,7 @@ const root = h(
   ),
 )
 
-await renderFvg(root)
+await renderLayer(root)
 ```
 
 按帧生成一组 PNG 和一张联系表：

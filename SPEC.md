@@ -12,6 +12,8 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 5. **没写的由渲染器决定，并写进报告**：比如自动换行。
 6. **写错了要说怎么改**：有歧义或会被忽略的写法报 `warn` 并给出 `hint`；含义明确但不规范的写法照常渲染，报 `info`。不认识的属性名一律保留，给 `draw` 用。
 
+给模型的硬性约定见 [AGENTS.md](AGENTS.md)。效果图见 [docs/GALLERY.md](docs/GALLERY.md)。
+
 ## 1. 文件结构
 
 ```html
@@ -51,11 +53,11 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | 复用 | `symbol`、`use` |
 | 蒙版 | `mask`（只作为 `layer` 的直接子元素） |
 
-- 标签一律小写，和 HTML、SVG 一样：`<layer>`、`<rect>`、`<circle>`、`<div>`、`<h1>`。HTML 只写 `style`，`layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。旧的大写写法（`<Layer>`、`<Circle>`）仍会渲染，并报 `info`，提示改成小写。
+- `layer` 和图形首字母大写，文字和图片标签全部小写（和 HTML 一样）。HTML 只写 `style`，`layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。
 - 后写的元素画在上面。
 - 不认识的标签会被忽略，并在报告里给出警告。
 
-## 3. 通用属性
+## 3. 通用属性与归属
 
 | 属性 | 说明 |
 | --- | --- |
@@ -69,14 +71,18 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 `rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
 
-属性归属：
+属性归属（由 [src/schema.ts](src/schema.ts) 生成，不要手改两行标记之间的表）：
 
+<!-- attrs:ownership:begin -->
 | 属性 | 写在哪 |
 | --- | --- |
-| `cx`、`cy`、`anchor`、`width`、`height`、`opacity`、`rotate`、`scale`、`origin` | `layer` 的属性。HTML 上写了报 `warn` |
-| `flex`、`gap`、`align-items`、字号、颜色、背景 | HTML 的 `style`。`layer` 或图形写了 `style` 报 `warn` |
+| `width`、`height`、`opacity`、`rotate`、`scale`、`origin`、`cx`、`cy`、`anchor` | `layer` 的属性。HTML 上写了报 `warn` |
+| `background`、`padding`、`font-size`、`color`、`flex`、`flex-grow`、`flex-shrink`、`gap`、`border`、`border-radius`、`max-width`、`align-items`、`justify-content`、`writing-mode`、`object-fit`、`object-position` | HTML 的 `style`。`layer` 或图形写了 `style` 报 `warn` |
 | `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `layer` 的局部坐标 |
 | `src`、`alt` | 只写在 `img` 上。宽高仍放进 `style` |
+| `shadow`、`glow`、`inner-shadow`、`inner-glow`、`blur`、`backdrop-blur`、`glass`、`noise`、`filter`、`blend` | 图形和 `layer` 写属性；文字写在 `style`。见第 9 章 |
+| `overlay`、`grade`、`grade-mask` | 只写在 `layer` 上。写在别处或写进 `style` 报 `warn` |
+<!-- attrs:ownership:end -->
 
 叶子的定位：
 
@@ -104,11 +110,11 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 `<mask>` 裁的是这一层合成完的画面，包括阴影、模糊、调色和颗粒。它写在 `layer` 里面，和要裁的内容并列。自己不画出来，不占布局，不把层撑大，不出现在报告里，也不触发 `overflow-canvas`。一层最多一个，多出来的 `warn` 并忽略。坐标和同层的图形一样，原点在 layer 左上角。
 
-里面直接写 `rect`、`circle`、`ellipse`、`polygon`、`path`，也可以放 `img`（用图片自己的 alpha；JPEG 没有透明，等于一块实心矩形）。`line`、`arrow`、`polyline`、`curve`、文字、`div`、嵌套 `layer` 会 `warn` 并忽略。空的 `mask` 报 `empty-mask`，并且不生效。
+里面直接写 `rect`、`circle`、`ellipse`、`polygon`、`path`，也可以放 `img`（用图片自己的 alpha）。`line`、`arrow`、`polyline`、`curve`、文字、`div`、嵌套 `layer` 会 `warn` 并忽略。空的 `mask` 报 `empty-mask`，并且不生效。
 
 没写 `fill` 时按 `#fff` 画满。实心形状是硬边；`fill` 的 alpha 和渐变里的透明处是软边。颜色不算，只看 alpha。没画到的像素藏起来。多个形状按书写顺序叠上，后写的盖住先写的；半透明不会把底下挖空。要挖洞，用带洞的 `path`。形状自己的 `rotate`、`scale` 仍然有效。
 
-画布底色先铺好，不进 `mask`。根 `layer` 的 `grade` 仍作用整幅画布，包括底色。`grade-mask` 只控制调色强度，不是这一层的遮罩。`mask` 放进 flex、写在图形或 HTML 上、写成属性或写进 `style`，都会 `warn` 并忽略。
+画布底色先铺好，不进 `mask`。根 `layer` 的 `grade` 仍作用整幅画布，包括底色。`grade-mask` 只控制调色强度。`mask` 放进 flex、写在图形或 HTML 上、写成属性或写进 `style`，都会 `warn` 并忽略。
 
 ```html
 <layer width="320" height="180">
@@ -211,7 +217,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 5. 避头尾：`，。、；：？！）」』》】…` 等不会出现在行首，`（「『《【` 等不会出现在行尾。
 6. 硬换行只用 `<br>`，源码里的换行和连续空格会被折叠成一个空格。
 
-### 5.4 图片
+## 6. 图片
 
 `img` 是 HTML 标签，不是图形。`image` 和 `img` 是同一个标签。尺寸、圆角、透明度和效果写在 `style` 里；`src` 和 `alt` 写属性。
 
@@ -230,7 +236,9 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 图片可以放进 `display:flex`，默认不缩小。在 layer 里和文字一样默认居中；要指定位置就外包一层 `layer`，把 `cx`、`cy`、`anchor` 写在那一层上。加载失败报 `missing-image`，写了宽高的盒子仍然占位。缺 `src` 报 `invalid-attr`。
 
-## 6. 形状
+## 7. 形状与线条
+
+### 7.1 形状
 
 两种写法只能选一种。两点可以反着写，取最小最大。`circle` 只有中心写法。
 
@@ -244,7 +252,26 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
-`fill`、`stroke` 和文字的 `background` 可以写渐变。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。
+### 7.2 线条
+
+| 标签 | 属性 |
+| --- | --- |
+| `line` | `x1`、`y1`、`x2`、`y2` |
+| `arrow` | `x1`、`y1`、`x2`、`y2`、`head`（箭头长度，默认 `stroke-width` 的 4 倍，最小 12） |
+| `polyline`、`polygon` | `points="x,y x,y …"` |
+| `path` | `d`（SVG 路径语法） |
+| `curve` | `points="x,y x,y …"`，可选 `closed` |
+
+- 线条只能放在 layer 里，坐标是 **layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
+- 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
+- `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
+- `polygon`、`path`、`curve` 的 `fill` 默认 `none`。开口的 `curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
+- `curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
+- 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
+
+## 8. 填充 paint
+
+`fill`、`stroke`、画布 `background`、HTML 的 `background`，以及第 9 章里的 `overlay`、`grade-mask`，共用这一套写法。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。文字的 `color` 仍是纯色。
 
 ```html
 <rect x="0" y="0" width="720" height="960" fill="linear-gradient(to bottom, #0c1424, #1a3352 55%, #6e7c72)" />
@@ -280,61 +307,89 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 锥形的 `u`、径向的 `v` 走到 1 就回到起点。要无缝接上，把第一个颜色或第一行在末尾再写一次。铺满整个盒子用矩阵；多行的 `linear` 只向线段左侧展开。盒子在某个方向上长度为 0 时（比如水平线没有高度），这一维没有变化：沿竖线变色写成两行，不要写成一行。
 
-画布 `background`、HTML 的 `style="background: …"`、形状和线条的 `fill` / `stroke` 都可以用 `gradient()`，也可以用上面的 `linear-gradient` / `radial-gradient`。文字的 `color` 仍是纯色。语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。线条上的渐变坐标相对线条的几何外框。
+语法解析失败时报 `invalid-attr`，并退回该属性的默认纯色。线条上的渐变坐标相对线条的几何外框。
 
-带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<layer>` 的 `draw` / `<draw>` 和其它元素一样，在画布底色和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
+## 9. 效果
 
-## 7. 线条
+图形和 `layer` 把效果写在属性上。文字把同一项写在 `style` 里。**作用于整棵子树的效果只写在 `layer` 上**：`overlay`、`grade`、`grade-mask`。写在图形、文字或 `style` 里报 `invalid-attr` 并忽略。
 
-| 标签 | 属性 |
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，layer / flex 跟自身边框或背景；`blur` / `filter` / `blend` 作用在已绘制像素上。
+
+绘制顺序只此一份：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体（`overflow="hidden"` 在这里裁子元素）→ `inner-shadow` → `inner-glow` → `overlay` → `noise`。若有 `blur`、`filter`、`grade` 或 `<mask>`，先画进离屏，依次做 `grade`、`blur` / `filter`，有 `grade` 时再叠 `noise`，然后按 `<mask>` 的 alpha 裁掉，再贴回。画布底色不进 `<mask>`。写了 `grade` 时颗粒不被染色。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。`glass` 与 `backdrop-blur` 同时出现时以 `glass` 为准，并报 `info`。
+
+每个效果都按同一套字段描述：归属、语法、是否复用 paint、作用范围、在上面这条顺序里的位置、报告与问题码、图格。实现取舍见 [docs/EFFECTS.md](docs/EFFECTS.md)。图在 [docs/GALLERY.md](docs/GALLERY.md)。
+
+不要占用这些名字：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。`filter` 里不要写 `blur()` / `drop-shadow()`。
+
+### 9.1 投影发光
+
+`shadow`、`glow`、`inner-shadow`、`inner-glow` 共用一套长度语法。外发光没有偏移。
+
+| 属性 | 语法 | 默认 | 位置 |
+| --- | --- | --- | --- |
+| `shadow` | `x y [blur] [spread] [color]` | blur 0、spread 0、颜色 `#00000066` | 本体之前，外扩 |
+| `glow` | `blur [spread] [color]` | 颜色取本体，按加光（screen）绘制 | 本体之前，外扩 |
+| `inner-shadow` | 同 `shadow` | 同 shadow | 本体之后，不外扩 |
+| `inner-glow` | 同 `glow` | 同 glow | 本体之后，不外扩 |
+
+| 项 | 说明 |
 | --- | --- |
-| `line` | `x1`、`y1`、`x2`、`y2` |
-| `arrow` | `x1`、`y1`、`x2`、`y2`、`head`（箭头长度，默认 `stroke-width` 的 4 倍，最小 12） |
-| `polyline`、`polygon` | `points="x,y x,y …"` |
-| `path` | `d`（SVG 路径语法） |
-| `curve` | `points="x,y x,y …"`，可选 `closed` |
+| 归属 | 图形、线条、`layer` 写属性；文字写 `style` |
+| paint | 颜色是一个色值，不是渐变 |
+| 作用范围 | 该元素的墨迹 |
+| 报告 | 可能占用的范围在 `effect`；超出画布报 `effect-clipped` |
+| 图 | [docs/gallery/shadow-glow.png](docs/gallery/shadow-glow.png) |
 
-- 线条只能放在 layer 里，坐标是 **layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
-- 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
-- `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
-- `polygon`、`path`、`curve` 的 `fill` 默认 `none`。开口的 `curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
-- `curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
-- 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
-- 图形和 layer 可以写效果属性。文字把同样的项写在 `style` 里。
+### 9.2 模糊与透视
 
-```html
-<circle cx="520" cy="220" r="70" fill="#f4efe4" glow="56 #f3ead4" />
-<rect cx="540" cy="960" width="900" height="280" rx="32" fill="#ffffff22" backdrop-blur="20" inner-shadow="0 8 16 #00000055" />
-<h1 style="shadow:0 8 16 #00000055; filter:saturate(1.1)">寒露</h1>
-```
+| 想要 | 写 |
+| --- | --- |
+| 糊掉这个元素自己 | `blur` |
+| 后面的画面变糊，本体半透明盖在上面 | `backdrop-blur` |
+| 边缘折射的玻璃，中心不变形 | `glass`。`clear` 完全不糊，`thick` 才是毛玻璃 |
 
 | 属性 | 语法 | 说明 |
 | --- | --- | --- |
-| `shadow` | `x y [blur] [spread] [color]` | 外阴影。默认 blur 0、spread 0、颜色 `#00000066` |
-| `glow` | `blur [spread] [color]` | 外发光，无偏移；默认颜色取本体，按加光（screen）绘制 |
-| `inner-shadow` | 同 `shadow` | 内阴影，画在本体之后，不外扩 |
-| `inner-glow` | 同 `glow` | 内发光，画在本体之后，不外扩 |
 | `blur` | 单个非负像素 | 图层模糊：糊本元素（含 layer 子树）已绘制像素；外扩计入 `effect-clipped` |
-| `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见（毛玻璃） |
-| `glass` | 见下 | iOS Liquid Glass：边缘凸弧面**透镜折射** + 色散 + 朝光高光；`clear` 不模糊；与 `backdrop-blur` 同时写时以 `glass` 为准 |
-| `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上 |
-| `overlay` | `<paint> [opacity] [blend]` | **仅 layer**：纯色或渐变叠加，按子树墨迹裁切；默认 opacity `1`、blend `source-over` |
-| `grade` | 见 7.1 | **仅 layer**：调色。子树画完后逐像素调整明暗、颜色和暗角 |
-| `grade-mask` | 同 `fill` | **仅 layer**：调色强度遮罩，alpha 就是强度 |
-| `filter` | 见下 | 色彩滤镜；**不要**写 `blur()` / `drop-shadow()`（用独立的 `blur` / `shadow`） |
-| `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
+| `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见 |
+| `glass` | 见下 | 边缘凸弧面透镜折射 + 色散 + 朝光高光。与 `backdrop-blur` 同时写时以 `glass` 为准 |
 
-`glass` 写法：`clear` / `regular` / `thick`，后可跟模糊像素与色调，如 `clear #a8c8ff20`、`regular 8 #ffffff22`、`0`。三档预设：`clear` 模糊 0（背景完全清晰，只有折射）、`regular` 模糊 6、`thick` 模糊 36（毛玻璃）。折射只发生在墨迹边缘的弧面带（宽约短边 24%，最多 64px）：背景向内取样、在边缘被放大弯折，中心平坦区原样透出。glass 的投影不会透过玻璃被看到。
+`glass` 有两种写法，都有效：
 
-`filter` 允许：`brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`）。`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
+- 空格：`clear` / `regular` / `thick`，后可跟模糊像素与色调，如 `clear #a8c8ff20`、`regular 8 #ffffff22`、`0`。
+- 逗号（和 `grade` 同一套：预设在前，后面按名字覆盖）：`clear, blur 8, tint #fff2`。可覆盖的名字还有 `refraction`、`specular`、`bezel`、`dispersion`。
 
-`overlay` **只写在 `layer` 上**（图形 / 文字写了会 warn 并忽略）。`paint` 同 `fill`（纯色或渐变）；可选 `opacity`（`0–1` 或百分比）与混合模式（与 `blend` 同一集合）。示例：`overlay="#00000066"`、`overlay="#ff8800 0.4 multiply"`、`overlay="linear-gradient(to bottom, #ffffff00, #00000088) soft-light"`。
+三档预设：`clear` 模糊 0（背景完全清晰，只有折射）、`regular` 模糊 6、`thick` 模糊 36（毛玻璃）。折射只发生在墨迹边缘的弧面带（宽约短边 24%，最多 64px）：背景向内取样、在边缘被放大弯折，中心平坦区原样透出。glass 的投影不会透过玻璃被看到。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，layer/flex 跟自身背景或边框；`blur` / `filter` / `blend` 作用在已绘制像素上；`overlay` 按 layer 子树墨迹裁切。绘制顺序：`backdrop-blur` → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`；若有 `blur` / `filter` / `grade`，把阴影到 overlay 画进离屏，先 `grade`，再 `blur` / `filter`，贴回后再叠 `noise`（写了 `grade` 时颗粒不被染色）。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。细节见 [docs/EFFECTS.md](docs/EFFECTS.md)。
+| 项 | 说明 |
+| --- | --- |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
+| paint | `glass` 的色调是一个色值 |
+| 作用范围 | `blur` 作用于已绘制像素；`backdrop-blur` / `glass` 取样背后的画面，再按墨迹贴回 |
+| 图 | [docs/gallery/blur-glass.png](docs/gallery/blur-glass.png)、[docs/gallery/glass-scene.png](docs/gallery/glass-scene.png) |
 
-### 7.1 调色 grade
+### 9.3 调色
 
-`grade` 只写在 `layer` 上，作用于整个子树：文字、图片、色块一起调。图片要调色就外包一层 `layer`。根 `layer` 写 `grade` 时连画布底色一起调。写在图形、`img` 或 `style` 里报 `warn`。
+| 想要 | 写 |
+| --- | --- |
+| 整块提亮、去色、偏色相 | `filter` |
+| 胶片风格：暗部高光分色、发灰、暗角 | `layer` 的 `grade`，局部再加 `grade-mask` |
+| 在画面上罩一层纯色或渐变 | `layer` 的 `overlay` |
+
+#### filter
+
+| 项 | 说明 |
+| --- | --- |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
+| 语法 | `brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`） |
+| paint | 否 |
+| 作用范围 | 已绘制像素 |
+| 位置 | 离屏里，在 `grade` 之后，和 `blur` 一起 |
+| 图 | [docs/gallery/color.png](docs/gallery/color.png) |
+
+#### grade 与 grade-mask
+
+`grade` 只写在 `layer` 上，作用于整个子树：文字、图片、色块一起调。图片要调色就外包一层 `layer`。根 `layer` 写 `grade` 时连画布底色一起调。
 
 ```html
 <layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
@@ -365,7 +420,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 计算在 OKLab 里进行，顺序是：`contrast` → `fade` → `saturate` → `warmth` → 三段染色 → `vignette` → 按强度和原图混合。染色排在 `saturate` 之后，所以 `mono, shadows #1f5a6e 0.4` 是冷调黑白。暗角的中心和遮罩都按这个 layer 的盒子计算，和渐变的坐标一样。
 
-`grade-mask` 写法同 `fill`：纯色、`linear-gradient`、`radial-gradient` 或 `gradient()`。alpha 是强度：不透明处满强度，透明处保持原图。只写 `grade-mask` 不写 `grade` 时报 `warn`。
+`grade-mask` 复用第 8 章的 paint：纯色、`linear-gradient`、`radial-gradient` 或 `gradient()`。alpha 是强度：不透明处满强度，透明处保持原图。只写 `grade-mask` 不写 `grade` 时报 `warn`。
 
 不同区域用不同效果：内外两层 `layer` 各写一个 `grade`，各自用遮罩只盖自己那一块。
 
@@ -377,9 +432,47 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 </layer>
 ```
 
-报告里的 `grade` 是预设展开后的完整参数，下一轮可以只改其中一项。
+| 项 | 说明 |
+| --- | --- |
+| 归属 | 只写在 `layer` 的属性上 |
+| paint | `grade-mask` 复用 paint |
+| 作用范围 | 该 layer 整棵子树的已绘制像素 |
+| 位置 | 离屏里、`blur` / `filter` 之前 |
+| 报告 | `grade` 回显预设展开后的完整参数 |
+| 图 | [docs/gallery/color.png](docs/gallery/color.png) |
 
-## 8. 布局报告
+#### overlay
+
+| 项 | 说明 |
+| --- | --- |
+| 归属 | 只写在 `layer` 上 |
+| 语法 | `<paint> [opacity] [blend]`。opacity 为 `0–1` 或百分比，与混合模式顺序可互换 |
+| paint | 复用第 8 章 |
+| 作用范围 | 按该 layer 子树墨迹裁切 |
+| 位置 | 内发光之后、噪点之前 |
+| 图 | [docs/gallery/color.png](docs/gallery/color.png) |
+
+示例：`overlay="#00000066"`、`overlay="#ff8800 0.4 multiply"`、`overlay="linear-gradient(to bottom, #ffffff00, #00000088) soft-light"`。
+
+`blend` 的取值见 9.4，`overlay` 使用同一集合。
+
+### 9.4 合成与质感
+
+| 属性 | 语法 | 说明 |
+| --- | --- | --- |
+| `blend` | 见下 | 本元素整段绘制与背后的混合模式 |
+| `noise` | `强度` 或 `强度 颜色` | 噪点，强度 0 到 1，叠在本体上。绘制顺序的最后一步 |
+
+`blend` 取值：`source-over`（默认）、`multiply`、`screen`、`overlay`、`soft-light`、`lighten`、`darken`。
+
+| 项 | 说明 |
+| --- | --- |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
+| paint | `noise` 的颜色是一个色值 |
+| 作用范围 | 已绘制像素 / 该元素墨迹 |
+| 图 | [docs/gallery/shadow-glow.png](docs/gallery/shadow-glow.png) 里的 noise、blend 格 |
+
+## 10. 报告与问题码
 
 渲染时同时输出一份 JSON 报告：
 
@@ -437,7 +530,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 
-## 9. 命令行
+## 11. 命令行
 
 ```bash
 flexlayer render scene.layer -o scene.png --report scene.json   # 渲染 PNG + 报告
@@ -448,7 +541,7 @@ flexlayer check scene.layer                                      # 只输出检�
 
 默认字体寒蝉端黑体首次使用时自动下载到 `~/.cache/flexlayer/fonts`。
 
-## 10. 自定义绘制 draw
+## 12. 自定义绘制 draw
 
 程序调用（React / Vue JSX 或 `h()`）时，任意元素可挂 `draw={(ctx, el) => { ... }}`。
 
@@ -481,31 +574,34 @@ flexlayer check scene.layer                                      # 只输出检�
 未知标签若同时带有 `draw` 以及 `width` 与 `height`（属性或 `style`），会当作自定义盒子参与布局，不再报 `unknown-tag`；缺少尺寸时仍警告并跳过。
 
 ```ts
-import { h, renderFvg } from '@dc/flexlayer'
+import { h, renderLayer } from '@dc/flexlayer'
 
 const root = h('layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
-  h('h1', {
-    cx: '540', cy: '700', anchor: 'center',
-    style: 'font-size:96px; color:#f7931a',
-    draw: (ctx, el) => {
-      ctx.strokeStyle = el.computed.color
-      ctx.lineWidth = 8
-      ctx.beginPath()
-      ctx.moveTo(0, el.h - 6)
-      ctx.lineTo(el.w, el.h - 6)
-      ctx.stroke()
-    },
-  }, '比特币减半'),
+  h('layer', { cx: '540', cy: '700', anchor: 'center' },
+    h('h1', {
+      style: 'font-size:96px; color:#f7931a',
+      draw: (ctx, el) => {
+        ctx.strokeStyle = el.computed.color
+        ctx.lineWidth = 8
+        ctx.beginPath()
+        ctx.moveTo(0, el.h - 6)
+        ctx.lineTo(el.w, el.h - 6)
+        ctx.stroke()
+      },
+    }, '比特币减半'),
+  ),
 )
 
-await renderFvg(root)
+await renderLayer(root)
 ```
 
 JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-runtime`。
 
-## 11. 帧序列
+带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<layer>` 的 `draw` / `<draw>` 和其它元素一样，在画布底色和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
 
-动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderFvg` 不传 `t` 时，`el.t` 为 `0`。
+## 13. 帧序列
+
+动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderLayer` 不传 `t` 时，`el.t` 为 `0`。
 
 ```ts
 import { h, renderComposition, type Composition } from '@dc/flexlayer'
@@ -518,14 +614,16 @@ const scene: Composition = {
   durationInFrames: 90,
   component: ({ frame, fps, t }) =>
     h('layer', { width: '1080', height: '1920', background: '#0f1115' },
-      h('h1', { cy: String(700 + Math.sin(t) * 40) }, '比特币减半'),
+      h('layer', { cy: String(700 + Math.sin(t) * 40) },
+        h('h1', {}, '比特币减半'),
+      ),
     ),
 }
 
 const { frames, contactSheet } = await renderComposition(scene)
 ```
 
-`renderComposition` 对 `frame = 0 .. durationInFrames - 1` 调用 `component({ frame, fps, t: frame / fps })`，再 `renderFvg(node, { t })`。`fps` 必须大于 0，`durationInFrames` 为不小于 1 的整数。返回每一帧的 PNG 和布局报告（`frames`、`reports`），以及一张白色底的联系表：列数约为帧数的平方根，单元格按比例缩小、不放大，最长边不超过 480px，整张宽度不超过 3840px。
+`renderComposition` 对 `frame = 0 .. durationInFrames - 1` 调用 `component({ frame, fps, t: frame / fps })`，再 `renderLayer(node, { t })`。`fps` 必须大于 0，`durationInFrames` 为不小于 1 的整数。返回每一帧的 PNG 和布局报告（`frames`、`reports`），以及一张白色底的联系表：列数约为帧数的平方根，单元格按比例缩小、不放大，最长边不超过 480px，整张宽度不超过 3840px。
 
 随时间变化的位置、尺寸和文字写在 `component` 里，布局每一帧重新计算。`draw` 里用 `el.t` 读取同一个秒数。
 
@@ -539,10 +637,10 @@ const { frames, contactSheet } = await renderComposition(scene)
 
 同一 `frame` 调用两次，得到同一张 PNG。命令行仍只渲染 `.layer` 文件。
 
-## 12. 预留（后续版本）
+## 14. 预留
 
 - 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
-- `Icon`、`Image`。
+- `Icon`。
 - 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。
-- 滤镜设计说明与实现备注见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。
+- 滤镜设计说明见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。

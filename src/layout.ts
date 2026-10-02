@@ -477,7 +477,11 @@ function mapJustify(v: string | undefined): Justify {
     case 'center':
       return Justify.Center
     case 'end':
+    case 'flex-end':
       return Justify.FlexEnd
+    case 'start':
+    case 'flex-start':
+      return Justify.FlexStart
     case 'space-between':
       return Justify.SpaceBetween
     case 'space-around':
@@ -492,8 +496,10 @@ function mapJustify(v: string | undefined): Justify {
 function mapAlign(v: string | undefined): Align {
   switch ((v ?? 'center').trim()) {
     case 'start':
+    case 'flex-start':
       return Align.FlexStart
     case 'end':
+    case 'flex-end':
       return Align.FlexEnd
     case 'stretch':
       return Align.Stretch
@@ -972,6 +978,21 @@ type FlexMeasure = {
   isText: boolean
 }
 
+function fontDecl(node: FvgNode): { family: string; src: string } | null {
+  if (node.tag.toLowerCase() !== FONT_TAG) return null
+  return { family: node.attrs.family ?? '', src: node.attrs.src ?? '' }
+}
+
+function warnMisplacedFont(ctx: LayoutContext, path: string) {
+  ctx.issues.push({
+    level: 'warn',
+    code: 'invalid-child',
+    path,
+    message: '<font> 只能写在根 Layer 下',
+    hint: '写成根 <layer> 的直接子元素：<font family="…" src="…" />',
+  })
+}
+
 async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'row' | 'column'): Promise<FlexMeasure | null> {
   if (node.tag === 'symbol' || node.tag === 'draw') return null
   if (node.tag === 'mask') {
@@ -982,6 +1003,10 @@ async function measureFlexChild(node: FvgNode, ctx: LayoutContext, direction: 'r
       message: 'mask 只作为 layer 的直接子元素',
       hint: '把 <mask> 写在 <layer> 里，和要裁的内容并列',
     })
+    return null
+  }
+  if (node.tag.toLowerCase() === FONT_TAG) {
+    warnMisplacedFont(ctx, ctx.pathPrefix)
     return null
   }
   ctx.issues.push(...checkChildAttrs(node, 'flex', ctx.pathPrefix))
@@ -1106,7 +1131,10 @@ async function layoutFlex(node: FvgNode, ctx: LayoutContext): Promise<FlexLayout
         : Math.max(0, ...measures.map((m) => m.preferredCross))
       : fixedW != null
         ? fixedW - appearance.padding.left - appearance.padding.right - (appearance.border?.width ?? 0) * 2
-        : ctx.maxContentWidth
+        : Math.min(
+            ctx.maxContentWidth,
+            Math.max(0, ...measures.map((m) => (Number.isFinite(m.preferredCross) ? m.preferredCross : 0))),
+          )
 
   const Yoga = await ensureYoga()
   const config = Yoga.Config.create()
@@ -1380,6 +1408,10 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
   for (let i = 0; i < childFvg.length; i++) {
     const ch = childFvg[i]!
     if (ch.tag === 'symbol' || ch.tag === 'draw' || ch.tag === 'mask') continue
+    if (ch.tag.toLowerCase() === FONT_TAG) {
+      if (ctx.pathPrefix !== 'layer') warnMisplacedFont(ctx, nodePath(ctx.pathPrefix, ch.tag, i))
+      continue
+    }
     const path = nodePath(ctx.pathPrefix, ch.tag, i)
     ctx.issues.push(...checkChildAttrs(ch, 'layer', path))
     const subCtx = { ...ctx, pathPrefix: path }
@@ -1573,10 +1605,15 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
   const fontNodes: Array<{ family: string; src: string }> = []
   let rootNode: FvgNode | null = null
   for (const n of nodes) {
-    if (n.tag === FONT_TAG) {
-      fontNodes.push({ family: n.attrs.family ?? '', src: n.attrs.src ?? '' })
-    } else if (!rootNode) {
-      rootNode = n
+    const font = fontDecl(n)
+    if (font) fontNodes.push(font)
+    else if (!rootNode) rootNode = n
+  }
+  if (rootNode) {
+    for (const child of rootNode.children) {
+      if (typeof child === 'string') continue
+      const font = fontDecl(child)
+      if (font) fontNodes.push(font)
     }
   }
   if (!rootNode) throw new Error('Flex Layer 缺少根元素 <layer>')

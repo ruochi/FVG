@@ -1,4 +1,5 @@
 import type { FvgNode } from './parse.js'
+import { ATTRS, HTML_STYLE_ATTRS, attrByName, issueFor } from './schema.js'
 import { parseStyle } from './style.js'
 import { isTextBoxTag } from './text.js'
 import type { Issue, IssueLevel } from './types.js'
@@ -6,41 +7,9 @@ import { isImageTag, isLineTag, isShapeTag } from './tags.js'
 
 const BLOCK_IN_TEXT = new Set(['h1', 'h2', 'h3', 'p', 'div'])
 
-/** 这些属性在 HTML 上应写进 style。 */
-const HTML_STYLE_ATTRS = [
-  'width',
-  'height',
-  'opacity',
-  'rotate',
-  'scale',
-  'origin',
-  'background',
-  'padding',
-  'font-size',
-  'color',
-  'flex',
-  'flex-grow',
-  'flex-shrink',
-  'gap',
-  'border',
-  'border-radius',
-  'max-width',
-  'align-items',
-  'justify-content',
-  'shadow',
-  'glow',
-  'inner-shadow',
-  'inner-glow',
-  'blur',
-  'backdrop-blur',
-  'noise',
-  'glass',
-  'filter',
-  'blend',
-  'writing-mode',
-  'object-fit',
-  'object-position',
-]
+const LAYER_ONLY_ATTR_NAMES = ATTRS.filter((attr) => attr.layerOnlyAttr).map((attr) => attr.name)
+const FORBID_IN_STYLE = new Set(ATTRS.filter((attr) => attr.forbidInStyle).map((attr) => attr.name))
+const FORBID_IN_HTML_STYLE = new Set(ATTRS.filter((attr) => attr.forbidInHtmlStyle).map((attr) => attr.name))
 
 function flagged(level: IssueLevel, code: string, path: string, message: string, hint: string): Issue {
   return { level, code, path, message, hint }
@@ -244,45 +213,50 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
     )
   }
 
-  // overlay 仅 layer；use / 图形 / HTML 误写都警告
-  if (node.tag !== 'layer' && present(attrs, 'overlay')) {
+  const layerOnlyKeys = LAYER_ONLY_ATTR_NAMES.filter((key) => present(attrs, key))
+  if (node.tag !== 'layer' && layerOnlyKeys.length > 0) {
+    const first = attrByName(layerOnlyKeys[0]!)
     out.push(
       flagged(
         'warn',
-        'invalid-attr',
+        first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
         path,
-        'overlay 只写在 layer 上',
-        '外包一层 layer，例如 <layer overlay="#00000066"><rect …/></layer>',
+        `${layerOnlyKeys.join('、')} 只写在 layer 上`,
+        first?.misplacedHint ?? '外包一层 layer',
+      ),
+    )
+  }
+  const styleMap = parseStyle(attrs.style)
+  const styleKeys = Object.keys(styleMap)
+  const forbiddenStyle = styleKeys.filter((key) => FORBID_IN_STYLE.has(key))
+  if (forbiddenStyle.length > 0) {
+    const first = attrByName(forbiddenStyle[0]!)
+    out.push(
+      flagged(
+        'warn',
+        first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
+        path,
+        `${forbiddenStyle.join('、')} 只写在 layer 的属性上`,
+        first?.styleHint ?? '不要写进 style；外包 <layer grade="…">',
       ),
     )
   }
   if (html) {
-    const styleMap = parseStyle(attrs.style)
-    if (styleMap.overlay) {
+    const htmlStyleForbidden = styleKeys.filter((key) => FORBID_IN_HTML_STYLE.has(key))
+    if (htmlStyleForbidden.length > 0) {
+      const first = attrByName(htmlStyleForbidden[0]!)
       out.push(
         flagged(
           'warn',
-          'invalid-attr',
+          first ? (issueFor(first) ?? 'invalid-attr') : 'invalid-attr',
           path,
-          'overlay 只写在 layer 上',
-          '不要写在 HTML style 里；外包 <layer overlay="…">',
+          `${htmlStyleForbidden.join('、')} 只写在 layer 上`,
+          first?.styleHint ?? '不要写在 HTML style 里；外包 <layer overlay="…">',
         ),
       )
     }
   }
 
-  const gradeKeys = ['grade', 'grade-mask'].filter((key) => present(attrs, key))
-  if (node.tag !== 'layer' && gradeKeys.length > 0) {
-    out.push(
-      flagged(
-        'warn',
-        'invalid-attr',
-        path,
-        `${gradeKeys.join('、')} 只写在 layer 上`,
-        '外包一层 layer，例如 <layer grade="lomo"><img src="…" style="width:320px" /></layer>',
-      ),
-    )
-  }
   if (node.tag !== 'layer' && present(attrs, 'mask')) {
     out.push(
       flagged(
@@ -294,7 +268,7 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
       ),
     )
   }
-  const styleMask = parseStyle(attrs.style).mask
+  const styleMask = styleMap.mask
   if (node.tag !== 'layer' && styleMask != null && styleMask.trim() !== '') {
     out.push(
       flagged(
@@ -303,19 +277,6 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
         path,
         'mask 不要写在 style 里',
         '在 layer 里写 <mask>…</mask>，不要写进 style',
-      ),
-    )
-  }
-
-  const gradeInStyle = Object.keys(parseStyle(attrs.style)).filter((key) => key === 'grade' || key === 'grade-mask')
-  if (gradeInStyle.length > 0) {
-    out.push(
-      flagged(
-        'warn',
-        'invalid-attr',
-        path,
-        `${gradeInStyle.join('、')} 只写在 layer 的属性上`,
-        '不要写进 style；外包 <layer grade="…">',
       ),
     )
   }
