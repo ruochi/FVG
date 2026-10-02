@@ -98,6 +98,7 @@ flowchart TD
 3. 改 `gap` / `padding` 时看相邻元素的 box / ink。
 4. 动态海报在 Vue / React 里改数据，重新生成 `.layer`，再跑 check。
 5. 字体用根上的 `<font family src>`，或内置名 `Song`、`Kai`、`Brush`。
+6. 合并进 `main` 时，把根 `package.json` 和 `package-lock.json` 的 `version` 补丁号加一（`0.1.1` → `0.1.2`）。每次合并都加。
 
 ## 6. 现象怎么查
 

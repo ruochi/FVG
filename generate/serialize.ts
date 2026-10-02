@@ -66,8 +66,14 @@ function flattenStyle(value: unknown, out: Record<string, string>): void {
   }
 }
 
+const INLINE_TAGS = new Set(['span', 'strong', 'b', 'em', 'br'])
+
 function escapeText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\u00A0/g, '&nbsp;')
+}
+
+function isFormattingBlank(text: string): boolean {
+  return text.replace(/[ \t\n\r\f\v]/g, '') === ''
 }
 
 function escapeAttr(value: string): string {
@@ -132,18 +138,38 @@ function serializeElement(el: FvgHostElement, indent: number): string {
       .join('\n')
     return `${pad}<draw${attrs}>\n${indented}\n${pad}</draw>`
   }
-  const meaningful = el.children.filter((child) => child.kind !== 'text' || child.text.trim() !== '')
-  const elements = meaningful.filter((child): child is FvgHostElement => child.kind === 'el')
-  if (elements.length === 0) {
-    const text = meaningful
-      .filter((child): child is FvgHostText => child.kind === 'text')
-      .map((child) => child.text)
-      .join('')
-    if (!text) return `${pad}<${tag}${attrs} />`
-    return `${pad}<${tag}${attrs}>${escapeText(text)}</${tag}>`
-  }
+  const hasBlock = el.children.some((child) => child.kind === 'el' && !INLINE_TAGS.has(child.tag.toLowerCase()))
+  if (!hasBlock) return serializeInlineFlow(el, pad, tag, attrs)
+  const elements = el.children.filter((child): child is FvgHostElement => child.kind === 'el')
   const inner = elements.map((child) => serializeElement(child, indent + 1)).join('\n')
   return `${pad}<${tag}${attrs}>\n${inner}\n${pad}</${tag}>`
+}
+
+function serializeInlineElement(el: FvgHostElement): string {
+  const attrs = formatAttrs(el)
+  const tag = canonicalTag(el.tag)
+  if (tag === 'br') return '<br />'
+  const inner = el.children
+    .filter((child) => child.kind === 'el' || child.text.length > 0)
+    .map((child) => (child.kind === 'text' ? escapeText(child.text) : serializeInlineElement(child)))
+    .join('')
+  if (!inner) return `<${tag}${attrs} />`
+  return `<${tag}${attrs}>${inner}</${tag}>`
+}
+
+function serializeInlineFlow(el: FvgHostElement, pad: string, tag: string, attrs: string): string {
+  const parts = el.children.filter((child) => child.kind === 'el' || child.text.length > 0)
+  if (parts.length === 0) return `${pad}<${tag}${attrs} />`
+  if (parts.every((child) => child.kind === 'text')) {
+    const text = parts.map((child) => (child.kind === 'text' ? child.text : '')).join('')
+    if (!text || (isFormattingBlank(text) && !INLINE_TAGS.has(tag.toLowerCase()))) return `${pad}<${tag}${attrs} />`
+    return `${pad}<${tag}${attrs}>${escapeText(text)}</${tag}>`
+  }
+  const inner = parts
+    .map((child) => (child.kind === 'text' ? escapeText(child.text) : serializeInlineElement(child)))
+    .join('')
+  if (!inner) return `${pad}<${tag}${attrs} />`
+  return `${pad}<${tag}${attrs}>${inner}</${tag}>`
 }
 
 /** 把 `<layer>` 根序列化为 Flex Layer 文本（末尾换行）。 */
