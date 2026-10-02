@@ -17,7 +17,7 @@ Vue 模板 / React JSX  →  .layer 文本  →  renderLayer / flexlayer render 
 
 ```ts
 import { writeFileSync } from 'node:fs'
-import { renderLayer } from '@dc/flexlayer'
+import { renderLayer } from 'flexlayer'
 
 const source = '...' // 下面 Vue 或 React 的输出
 writeFileSync('out.layer', source)

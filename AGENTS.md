@@ -44,7 +44,7 @@ Flex Layer 把**生成**和**渲染**分开，中间只交接一份 **`.layer` �
 - React：抄 [generate/react/example.tsx](generate/react/example.tsx)。大写标签从 `generate/react/tags.ts` 引入，因为 React 会把大写 JSX 当成变量。
 
 ```ts
-import { renderLayer } from '@dc/flexlayer'
+import { renderLayer } from 'flexlayer'
 const { png, report } = await renderLayer(source, { baseDir: process.cwd() })
 ```
 
