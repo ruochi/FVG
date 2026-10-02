@@ -9,7 +9,7 @@ export type AttrDef = {
   name: string
   /** 写在 HTML 标签的属性位（而不是 style）时报 invalid-attr */
   warnOnHtmlAttr?: boolean
-  /** 只允许写在 Layer 的属性上；写在别的标签上报 invalid-attr */
+  /** 只允许写在 layer 的属性上；写在别的标签上报 invalid-attr */
   layerOnlyAttr?: boolean
   /** 写进任何标签的 style 都报 invalid-attr（grade / grade-mask） */
   forbidInStyle?: boolean
@@ -28,7 +28,7 @@ export type AttrDef = {
   issue?: 'invalid-attr'
   /** JSX 字段类型，默认 string */
   jsxType?: string
-  /** 写在非 Layer 上时的 hint */
+  /** 写在非 layer 上时的 hint */
   misplacedHint?: string
   /** 写进 style 时的 hint */
   styleHint?: string
@@ -231,8 +231,8 @@ export const ATTRS: AttrDef[] = [
     defaultValue: '透明度 1，`source-over`',
     example: '#00000066',
     issue: 'invalid-attr',
-    misplacedHint: '外包一层 Layer，例如 <Layer overlay="#00000066"><Rect …/></Layer>',
-    styleHint: '不要写在 HTML style 里；外包 <Layer overlay="…">',
+    misplacedHint: '外包一层 layer，例如 <layer overlay="#00000066"><rect …/></layer>',
+    styleHint: '不要写在 HTML style 里；外包 <layer overlay="…">',
   },
   {
     name: 'grade',
@@ -244,8 +244,8 @@ export const ATTRS: AttrDef[] = [
     defaultValue: '强度 1',
     example: 'lomo 0.8, fade 0.1',
     issue: 'invalid-attr',
-    misplacedHint: '外包一层 Layer，例如 <Layer grade="lomo"><img src="…" style="width:320px" /></Layer>',
-    styleHint: '不要写进 style；外包 <Layer grade="…">',
+    misplacedHint: '外包一层 layer，例如 <layer grade="lomo"><img src="…" style="width:320px" /></layer>',
+    styleHint: '不要写进 style；外包 <layer grade="…">',
   },
   {
     name: 'grade-mask',
@@ -256,8 +256,8 @@ export const ATTRS: AttrDef[] = [
     syntax: '同 fill，alpha 是强度',
     example: 'radial-gradient(#fff0 30%, #fff)',
     issue: 'invalid-attr',
-    misplacedHint: '外包一层 Layer，例如 <Layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
-    styleHint: '不要写进 style；外包 <Layer grade="…">',
+    misplacedHint: '外包一层 layer，例如 <layer grade="lomo" grade-mask="radial-gradient(#fff0 30%, #fff)">',
+    styleHint: '不要写进 style；外包 <layer grade="…">',
   },
 ]
 
@@ -282,12 +282,12 @@ export const EFFECT_ATTRS: string[] = ATTRS.filter((attr) => attr.effect).map((a
 const DOC_GROUP_ORDER: DocGroup[] = ['layer', 'html', 'graphic', 'image', 'effect', 'layer-only']
 
 const DOC_GROUP_LABEL: Record<DocGroup, string> = {
-  layer: '`Layer` 的属性。HTML 上写了报 `warn`',
-  html: 'HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn`',
-  graphic: '图形属性，坐标是所在 `Layer` 的局部坐标',
+  layer: '`layer` 的属性。HTML 上写了报 `warn`',
+  html: 'HTML 的 `style`。`layer` 或图形写了 `style` 报 `warn`',
+  graphic: '图形属性，坐标是所在 `layer` 的局部坐标',
   image: '只写在 `img` 上。宽高仍放进 `style`',
-  effect: '图形和 `Layer` 写属性；文字写在 `style`。见第 9 章',
-  'layer-only': '只写在 `Layer` 上。写在别处或写进 `style` 报 `warn`',
+  effect: '图形和 `layer` 写属性；文字写在 `style`。见第 9 章',
+  'layer-only': '只写在 `layer` 上。写在别处或写进 `style` 报 `warn`',
 }
 
 function namesIn(group: DocGroup): string {
@@ -311,7 +311,7 @@ export function effectCheatLine(): string {
     const def = attr.defaultValue ? `（默认 ${attr.defaultValue}）` : ''
     return `\`${attr.name}\` ${sample}${def}`.trim()
   })
-  return `效果：${parts.join('、')}。作用于整棵子树的 \`overlay\`、\`grade\`、\`grade-mask\` 只写在 \`Layer\` 上。`
+  return `效果：${parts.join('、')}。作用于整棵子树的 \`overlay\`、\`grade\`、\`grade-mask\` 只写在 \`layer\` 上。`
 }
 
 /** JSX 效果字段。`names` 决定写进哪一个类型。 */

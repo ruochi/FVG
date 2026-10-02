@@ -25,7 +25,7 @@ dc 仓库 `packages/douchart-core/src/htmlBox/math/`：
 
 `map.ts` 输出的是 htmlBox 自己的盒子树 `HtmlBoxNode`，不是 Flex Layer 节点。根号拉高和分数线笔画绑着 htmlBox 的测量，以及旧管线的全局间距。
 
-Flex Layer 只复用规则，自己画。建议抽一个两边都能用的小模块：输入 MathML，输出中性结构（横向组、纵向组、文字、分数线、根号）。dc 再把它转成 `HtmlBoxNode`，Flex Layer 把它画成 `Layer` 里的 flex、文字和线条。规则只留一份。`.layer` 里不要出现 `row`、`column` 标签。
+Flex Layer 只复用规则，自己画。建议抽一个两边都能用的小模块：输入 MathML，输出中性结构（横向组、纵向组、文字、分数线、根号）。dc 再把它转成 `HtmlBoxNode`，Flex Layer 把它画成 `layer` 里的 flex、文字和线条。规则只留一份。`.layer` 里不要出现 `row`、`column` 标签。
 
 ## 标签子集
 
@@ -46,10 +46,10 @@ Flex Layer 只复用规则，自己画。建议抽一个两边都能用的小模
 
 ## 在 Flex Layer 里怎么写
 
-Flex Layer 的文字盒子里不能再套布局。公式实现之后，`<math>` 是布局节点，放在 `Layer` 里，或放进 `display:flex` 的 `div`。和正文同一行时：
+Flex Layer 的文字盒子里不能再套布局。公式实现之后，`<math>` 是布局节点，放在 `layer` 里，或放进 `display:flex` 的 `div`。和正文同一行时：
 
 ```html
-<Layer cx="80" cy="120" anchor="top-left">
+<layer cx="80" cy="120" anchor="top-left">
   <div style="display:flex; gap:8px; align-items:center">
     <span>因此</span>
     <math>
@@ -57,7 +57,7 @@ Flex Layer 的文字盒子里不能再套布局。公式实现之后，`<math>` 
       <mfrac><mi>N</mi><mi>M</mi></mfrac>
     </math>
   </div>
-</Layer>
+</layer>
 ```
 
 ## 至少要覆盖的用例

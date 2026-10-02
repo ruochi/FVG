@@ -15,11 +15,11 @@
 最小写法：
 
 ```html
-<Rect cx="120" cy="80" width="200" height="120" rx="16" fill="#3ecfc4" shadow="0 12 20 #00000088" />
-<Rect cx="120" cy="80" width="200" height="120" rx="16" fill="#ffffff18" glass="clear, blur 8, tint #a8c8ff55" />
-<Layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
+<rect cx="120" cy="80" width="200" height="120" rx="16" fill="#3ecfc4" shadow="0 12 20 #00000088" />
+<rect cx="120" cy="80" width="200" height="120" rx="16" fill="#ffffff18" glass="clear, blur 8, tint #a8c8ff55" />
+<layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
   <img src="cover.png" style="width:320px; height:200px; object-fit:cover" />
-</Layer>
+</layer>
 ```
 
 语法以 [SPEC.md 第 8、9 章](../SPEC.md) 为准。

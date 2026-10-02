@@ -26,7 +26,7 @@ import { fitImageRect } from './image.js'
 import { applyGrade } from './grade.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
-import { originOffset } from './matrix.js'
+import { invert, multiply, originOffset } from './matrix.js'
 import { colorFilterToCss } from './style.js'
 import type {
   GlassSpec,
@@ -443,7 +443,7 @@ function paintGlow(ctx: CanvasRenderingContext2D, state: PaintState, node: Layou
 
 /**
  * 效果用的着墨轮廓：跟真实画出来的像素走，不跟布局盒子。
- * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；Layer/flex = 仅自身背景/边框。
+ * 文字 = 背景 chrome（若有）+ 字形；形状/线 = 几何墨迹；layer/flex = 仅自身背景/边框。
  */
 function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
   if (node.kind === 'line') {
@@ -475,7 +475,7 @@ function drawNodeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: nu
   }
 }
 
-/** Layer overlay：自身 chrome + 子树着墨（子元素局部坐标）。 */
+/** layer overlay：自身 chrome + 子树着墨（子元素局部坐标）。 */
 function drawSubtreeInk(ctx: CanvasRenderingContext2D, node: LayoutNode, spread: number, ink = SILHOUETTE) {
   drawNodeInk(ctx, node, spread, ink)
   if (node.kind !== 'layer' && node.kind !== 'flex') return
@@ -546,7 +546,7 @@ function paintInnerEffect(
   ctx.restore()
 }
 
-/** Layer 专用：按子树墨迹裁切后叠加纯色/渐变。 */
+/** layer 专用：按子树墨迹裁切后叠加纯色/渐变。 */
 function paintOverlay(ctx: PaintCtx, node: LayoutNode, overlay: OverlaySpec) {
   if (node.width <= 0 || node.height <= 0 || overlay.opacity <= 0) return
   const w = Math.max(1, Math.ceil(node.width))
@@ -575,7 +575,7 @@ function paintOverlay(ctx: PaintCtx, node: LayoutNode, overlay: OverlaySpec) {
   ctx.restore()
 }
 
-function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
+function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec, composite: 'soft-light' | 'source-over' = 'soft-light') {
   const w = Math.max(1, Math.ceil(node.width))
   const h = Math.max(1, Math.ceil(node.height))
   if (node.width <= 0 || node.height <= 0 || noise.amount <= 0) return
@@ -627,9 +627,43 @@ function paintNoise(ctx: PaintCtx, node: LayoutNode, noise: NoiseSpec) {
   octx.globalCompositeOperation = 'destination-in'
   octx.drawImage(clip, 0, 0)
   ctx.save()
-  ctx.globalCompositeOperation = 'soft-light'
+  ctx.globalCompositeOperation = composite
   ctx.drawImage(off, node.x, node.y, node.width, node.height)
   ctx.restore()
+}
+
+function layerMaskOf(node: LayoutNode): LayoutNode[] | undefined {
+  if (node.kind !== 'layer' || !node.mask || node.mask.length === 0) return undefined
+  return node.mask
+}
+
+/** 把父画布已有像素拷进当前离屏，供 glass / backdrop-blur 取样。 */
+function copyParentUnderlay(parent: PaintCtx, dest: PaintCtx) {
+  const inv = invert(parent.getTransform())
+  if (!inv) return
+  const combined = multiply(dest.getTransform(), inv)
+  dest.save()
+  dest.setTransform(combined.a, combined.b, combined.c, combined.d, combined.e, combined.f)
+  dest.drawImage(parent.canvas, 0, 0)
+  dest.restore()
+}
+
+/** 形状和图片按书写顺序画进透明缓冲，再用 destination-in 只保留 alpha。 */
+function applyLayerMask(canvas: Canvas, shapes: LayoutNode[], k: number, origin: number, t: number, state: PaintState) {
+  const pw = canvas.width
+  const ph = canvas.height
+  if (pw <= 0 || ph <= 0) return
+  const mask = createCanvas(pw, ph)
+  const mctx = mask.getContext('2d') as PaintCtx
+  mctx.setTransform(k, 0, 0, k, origin * k, origin * k)
+  for (const shape of shapes) paintNode(mctx, shape, false, t, state)
+  const cctx = canvas.getContext('2d') as PaintCtx
+  cctx.save()
+  cctx.setTransform(1, 0, 0, 1, 0, 0)
+  cctx.globalAlpha = 1
+  cctx.globalCompositeOperation = 'destination-in'
+  cctx.drawImage(mask, 0, 0)
+  cctx.restore()
 }
 
 function nodeDeviceBounds(ctx: PaintCtx, node: LayoutNode, padDevice: number) {
@@ -1052,12 +1086,15 @@ function gradeCanvas(
 function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
   const blur = node.blur ?? 0
   const filterCss = node.colorFilter?.length ? colorFilterToCss(node.colorFilter) : ''
+  const masks = layerMaskOf(node)
   const pad = Math.ceil(blur * 2 + 4)
   const shadowPad = node.shadow
     ? node.shadow.blur * 2 + node.shadow.spread + Math.max(Math.abs(node.shadow.x), Math.abs(node.shadow.y))
     : 0
   const glowPad = node.glow ? node.glow.blur * 2 + node.glow.spread : 0
-  const effectPad = Math.max(pad, Math.ceil(shadowPad), Math.ceil(glowPad))
+  let effectPad = Math.max(pad, Math.ceil(shadowPad), Math.ceil(glowPad))
+  if (masks && node.glass) effectPad = Math.max(effectPad, Math.ceil(node.glass.blur * 2 + 8))
+  if (masks && node.backdropBlur) effectPad = Math.max(effectPad, Math.ceil(node.backdropBlur * 2 + 4))
   const tw = Math.max(1, Math.ceil(node.width + effectPad * 2))
   const th = Math.max(1, Math.ceil(node.height + effectPad * 2))
   const k = transformScale(ctx)
@@ -1065,18 +1102,47 @@ function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t
   const octx = off.getContext('2d') as PaintCtx
   octx.setTransform(k, 0, 0, k, 0, 0)
   octx.translate(-node.x + effectPad, -node.y + effectPad)
+  // 有 mask 时玻璃必须画进离屏，采样仍来自主画布，最后和阴影、模糊一起被裁掉
+  const sampleHere = masks != null && (node.glass != null || node.backdropBlur != null)
+  if (sampleHere) copyParentUnderlay(ctx, octx)
   // 有 grade 时颗粒在调色之后再叠，不被染色
-  paintNodeEffectsAndBody(octx, node, debug, t, state, { sampleBackdrop: false, skipNoise: node.grade != null })
+  paintNodeEffectsAndBody(octx, node, debug, t, state, { sampleBackdrop: sampleHere, skipNoise: node.grade != null })
   if (node.grade) gradeCanvas(off, node.grade, node.gradeMask, k, effectPad, effectPad, node.width, node.height)
   const parts: string[] = []
   if (blur > 0) parts.push(`blur(${blur}px)`)
   if (filterCss) parts.push(filterCss)
+  const filter = parts.join(' ')
+  if (!masks) {
+    ctx.save()
+    ctx.filter = filter || 'none'
+    ctx.drawImage(off, node.x - effectPad, node.y - effectPad, tw, th)
+    ctx.filter = 'none'
+    ctx.restore()
+    if (node.grade && node.noise) paintNoise(ctx, node, node.noise)
+    return
+  }
+  let target = off
+  if (filter) {
+    target = createCanvas(off.width, off.height)
+    const fctx = target.getContext('2d') as PaintCtx
+    fctx.setTransform(k, 0, 0, k, 0, 0)
+    fctx.filter = filter
+    fctx.drawImage(off, 0, 0, tw, th)
+    fctx.filter = 'none'
+  }
+  if (node.grade && node.noise) {
+    const nctx = target.getContext('2d') as PaintCtx
+    nctx.save()
+    nctx.setTransform(k, 0, 0, k, 0, 0)
+    nctx.translate(-node.x + effectPad, -node.y + effectPad)
+    paintNoise(nctx, node, node.noise)
+    nctx.restore()
+  }
+  applyLayerMask(target, masks, k, effectPad, t, state)
   ctx.save()
-  ctx.filter = parts.join(' ') || 'none'
-  ctx.drawImage(off, node.x - effectPad, node.y - effectPad, tw, th)
   ctx.filter = 'none'
+  ctx.drawImage(target, node.x - effectPad, node.y - effectPad, tw, th)
   ctx.restore()
-  if (node.grade && node.noise) paintNoise(ctx, node, node.noise)
 }
 
 function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
@@ -1087,14 +1153,18 @@ function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boole
   if (node.blend && node.blend !== 'source-over') {
     pctx.globalCompositeOperation = node.blend
   }
+  const hasMask = layerMaskOf(node) != null
   const useLayerFilter =
     (node.blur != null && node.blur > 0) ||
     (node.colorFilter != null && node.colorFilter.length > 0) ||
-    node.grade != null
+    node.grade != null ||
+    hasMask
   if (useLayerFilter) {
-    // 先在主画布采样玻璃/背景模糊，再把本体效果离屏糊上
-    if (node.glass) paintGlass(pctx, node, node.glass)
-    else if (node.backdropBlur) paintBackdropBlur(pctx, node, node.backdropBlur)
+    // 先在主画布采样玻璃/背景模糊，再把本体效果离屏糊上。有 mask 时改在离屏里采样，好让 mask 一并裁掉。
+    if (!hasMask) {
+      if (node.glass) paintGlass(pctx, node, node.glass)
+      else if (node.backdropBlur) paintBackdropBlur(pctx, node, node.backdropBlur)
+    }
     paintWithLayerFilter(pctx, node, debug, t, state)
   } else {
     paintNodeEffectsAndBody(pctx, node, debug, t, state, { sampleBackdrop: true })
@@ -1131,7 +1201,7 @@ export function paintDocument(
       ctx.fillRect(0, 0, w, h)
     }
   }
-  // 根 Layer 的 grade 作用于整幅画布，连同画布底色
+  // 根 layer 的 grade 作用于整幅画布，连同画布底色
   const rootGrade = root.grade
   const body: LayerLayoutNode = rootGrade ? { ...root, grade: undefined, gradeMask: undefined, noise: undefined } : root
   ctx.save()
@@ -1142,12 +1212,37 @@ export function paintDocument(
     gradeCanvas(canvas, rootGrade, root.gradeMask, opts.scale, 0, 0, opts.width, opts.height)
     if (root.noise) {
       const pctx = ctx as PaintCtx
-      pctx.save()
-      pctx.scale(opts.scale, opts.scale)
-      pctx.globalAlpha *= root.opacity
-      applyNodeTransform(pctx, root)
-      paintNoise(pctx, root, root.noise)
-      pctx.restore()
+      if (root.mask && root.mask.length > 0) {
+        const off = createCanvas(w, h)
+        const octx = off.getContext('2d') as PaintCtx
+        octx.scale(opts.scale, opts.scale)
+        octx.globalAlpha *= root.opacity
+        applyNodeTransform(octx, root)
+        paintNoise(octx, root, root.noise, 'source-over')
+        const mask = createCanvas(w, h)
+        const mctx = mask.getContext('2d') as PaintCtx
+        mctx.scale(opts.scale, opts.scale)
+        applyNodeTransform(mctx, root)
+        for (const shape of root.mask) paintNode(mctx, shape, false, opts.t, state)
+        octx.save()
+        octx.setTransform(1, 0, 0, 1, 0, 0)
+        octx.globalAlpha = 1
+        octx.globalCompositeOperation = 'destination-in'
+        octx.drawImage(mask, 0, 0)
+        octx.restore()
+        pctx.save()
+        pctx.setTransform(1, 0, 0, 1, 0, 0)
+        pctx.globalCompositeOperation = 'soft-light'
+        pctx.drawImage(off, 0, 0)
+        pctx.restore()
+      } else {
+        pctx.save()
+        pctx.scale(opts.scale, opts.scale)
+        pctx.globalAlpha *= root.opacity
+        applyNodeTransform(pctx, root)
+        paintNoise(pctx, root, root.noise)
+        pctx.restore()
+      }
     }
   }
   return canvas.toBuffer('image/png')

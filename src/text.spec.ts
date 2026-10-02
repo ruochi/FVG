@@ -88,7 +88,7 @@ describe('layoutText', () => {
 
 async function inlineText(body: string) {
   const doc = await layoutSource(
-    `<Layer width="800" height="160"><p style="font-size:32px; white-space:nowrap">${body}</p></Layer>`,
+    `<layer width="800" height="160"><p style="font-size:32px; white-space:nowrap">${body}</p></layer>`,
     process.cwd(),
   )
   const node = doc.root.children[0]
