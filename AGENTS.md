@@ -122,4 +122,4 @@ flowchart TD
 | [README.md](README.md) | 安装与命令 |
 | **本文** | 硬性约定和验证闭环 |
 
-自动化测试：`npm test`（渲染器）；`npm run test:generate`（生成层）。效果图：`npm run gallery`。
+自动化测试：`npm test`（渲染器，含效果图与示例的检测）；`npm run test:generate`（生成层）。`npm run gallery` 检测 gallery 与 examples，有 error 则失败，并重渲染说明里的图。

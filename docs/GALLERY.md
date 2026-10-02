@@ -1,6 +1,6 @@
 # 效果图
 
-每张图是一张网格，格子下面是属性名。源文件在 [docs/gallery/](gallery/)，用 `npm run gallery` 重渲染。
+每张图是一张网格，格子下面是属性名。源文件在 [docs/gallery/](gallery/)。`npm run gallery` 检测这些图和 examples 里的 `.layer`，有 error 则失败，并重渲染说明里的图。
 
 | 图 | 格子 |
 | --- | --- |

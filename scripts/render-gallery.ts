@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createCanvas } from '@napi-rs/canvas'
 import { renderLayer } from '../src/render.js'
+import { formatIssueLine } from '../src/report.js'
 
 function layerFiles(dir: string): string[] {
   return readdirSync(dir)
@@ -62,11 +63,37 @@ function writeScene() {
 writeSwatch()
 writeScene()
 
-const files = [...layerFiles('docs/gallery'), ...layerFiles('examples')]
-for (const file of files) {
+/** 说明图始终重写。examples 里已有的 png（如 draw-layer.png）一并重写，其余只检测。 */
+async function renderOne(file: string, writePng: boolean) {
   const source = readFileSync(file, 'utf8')
-  const { png } = await renderLayer(source, { baseDir: dirname(file) })
-  const out = file.replace(/\.layer$/, '.png')
-  writeFileSync(out, png)
-  console.log(out)
+  const { png, report } = await renderLayer(source, { baseDir: dirname(file) })
+  const errors = report.issues.filter((issue) => issue.level === 'error')
+  if (report.issues.some((issue) => issue.level !== 'info')) {
+    console.log(file)
+    for (const issue of report.issues) {
+      if (issue.level === 'info') continue
+      console.log(formatIssueLine(issue))
+    }
+  }
+  if (writePng) {
+    const out = file.replace(/\.layer$/, '.png')
+    writeFileSync(out, png)
+    console.log(out)
+  } else {
+    console.log(`checked ${file}`)
+  }
+  return errors.length
+}
+
+let errors = 0
+for (const file of layerFiles('docs/gallery')) {
+  errors += await renderOne(file, true)
+}
+for (const file of layerFiles('examples')) {
+  const png = file.replace(/\.layer$/, '.png')
+  errors += await renderOne(file, existsSync(png))
+}
+if (errors > 0) {
+  console.error(`✗ ${errors} error`)
+  process.exit(1)
 }
