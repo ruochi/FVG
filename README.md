@@ -35,7 +35,7 @@ node dist/cli.js render examples/hello.layer -o hello.png
 ## 代码调用
 
 ```ts
-import { renderLayer } from '@dc/flexlayer'
+import { renderLayer } from 'flexlayer'
 
 const { png, report } = await renderLayer(source, { scale: 0.5 })
 ```
@@ -56,7 +56,7 @@ const { png, report } = await renderLayer(source, { scale: 0.5 })
 用 `h()` 或 JSX 时，任意元素可挂 `draw={(ctx, el) => { ... }}`，再交给 `renderLayer(root)`：
 
 ```ts
-import { h, renderLayer } from '@dc/flexlayer'
+import { h, renderLayer } from 'flexlayer'
 
 const root = h(
   'Layer',
@@ -81,7 +81,7 @@ await renderLayer(root)
 按帧生成一组 PNG 和一张联系表：
 
 ```ts
-import { h, renderComposition, type Composition } from '@dc/flexlayer'
+import { h, renderComposition, type Composition } from 'flexlayer'
 
 const scene: Composition = {
   id: 'slide',

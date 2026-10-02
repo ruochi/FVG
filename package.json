@@ -1,5 +1,5 @@
 {
-  "name": "@dc/flexlayer",
+  "name": "flexlayer",
   "version": "0.1.0",
   "description": "Flex Layer: AI-friendly 2D frame markup with flex layout, HTML text and SVG-style shapes, rendered to PNG",
   "type": "module",
@@ -18,8 +18,23 @@
   "bin": {
     "flexlayer": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruochi/flexlayer.git"
+  },
+  "homepage": "https://github.com/ruochi/flexlayer#readme",
+  "bugs": {
+    "url": "https://github.com/ruochi/flexlayer/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:generate": "vitest run --config generate/vitest.config.ts",
     "pythagoras": "tsx examples/render-pythagoras.ts",

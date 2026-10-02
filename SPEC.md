@@ -549,7 +549,7 @@ flexlayer check scene.layer                                      # 只输出检�
 未知标签若同时带有 `draw` 以及 `width` 与 `height`（属性或 `style`），会当作自定义盒子参与布局，不再报 `unknown-tag`；缺少尺寸时仍警告并跳过。
 
 ```ts
-import { h, renderLayer } from '@dc/flexlayer'
+import { h, renderLayer } from 'flexlayer'
 
 const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
   h('Layer', { cx: '540', cy: '700', anchor: 'center' },
@@ -570,7 +570,7 @@ const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', 
 await renderLayer(root)
 ```
 
-JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-runtime`。
+JSX 可将 `jsxImportSource` 设为 `flexlayer`，使用 `flexlayer/jsx-runtime`。
 
 带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<Layer>` 的 `draw` / `<draw>` 和其它元素一样，在画布底色和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
 
@@ -579,7 +579,7 @@ JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-
 动画由程序按时间生成一棵 Flex Layer 节点，再交给渲染器。`t` 的单位是秒。单帧 `renderLayer` 不传 `t` 时，`el.t` 为 `0`。
 
 ```ts
-import { h, renderComposition, type Composition } from '@dc/flexlayer'
+import { h, renderComposition, type Composition } from 'flexlayer'
 
 const scene: Composition = {
   id: 'halving',
