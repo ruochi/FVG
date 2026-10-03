@@ -169,13 +169,13 @@ export function checkChildAttrs(node: FvgNode, parent: 'layer' | 'flex', path: s
       )
     }
     if ((node.tag === 'rect' || node.tag === 'ellipse') && hasTwoPoint(attrs)) {
+      // rect 的 rx 是圆角，可以和两点写法一起用。ellipse 的 rx、ry 才是半径。
       const mixed =
         present(attrs, 'width') ||
         present(attrs, 'height') ||
         present(attrs, 'cx') ||
         present(attrs, 'cy') ||
-        present(attrs, 'rx') ||
-        present(attrs, 'ry')
+        (node.tag === 'ellipse' && (present(attrs, 'rx') || present(attrs, 'ry')))
       if (mixed) {
         out.push(
           flagged(

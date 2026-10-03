@@ -18,7 +18,7 @@
 | --- | --- | --- |
 | 文字 `h1` `h2` `h3` `p` `div` `span` | 外包 `layer` 来定位。文字本身只写 `style` | 直接放 |
 | 图片 `img`（`image` 相同） | 外包 `layer`。`src` 是属性，宽高和 `object-fit` 写 `style` | 直接放，默认不缩小 |
-| `rect` | `cx cy width height`，或 `x1 y1 x2 y2` | 包一层有宽高的 layer，或改用 div |
+| `rect` | `cx cy width height`，或 `x1 y1 x2 y2`。`rx` 是圆角，两种都能加 | 包一层有宽高的 layer，或改用 div |
 | `ellipse` | `cx cy rx ry`，或两点写法 | 同上 |
 | `circle` | `cx cy r` | 同上 |
 | `line` `arrow` `polyline` `polygon` `path` `curve` | `x1 y1 x2 y2` / `points` / `d`。`curve` 闭合加 `closed` | 包一层 `<layer>` |

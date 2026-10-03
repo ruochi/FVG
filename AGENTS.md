@@ -76,8 +76,9 @@ npx tsx src/cli.ts render scene.layer -o scene.png --report scene.json
 
 - **`path`**：如 `layer/layer[0]/div[0]/h1[0]`，与 `issues[].path` 一致。
 - **`box`**：布局盒（含 padding）；flex 的 `gap` 体现在相邻元素 box 之间的空隙。
-- **`ink`**：字形或图形真实着墨。核对字距看 ink 与 ink。
-- **`effect`**：阴影 / 光晕可能占用的范围；`effect-clipped` 表示被画布裁切。
+- **`ink`**：字形或图形真实着墨。有透视时是投影后的外接矩形，`overflow-canvas` 看它，不看没投影的 `box`。
+- **`quad`**：透视平面投影后的四个角（左上、右上、右下、左下）。斜着的平面落在哪儿看这里。
+- **`effect`**：阴影 / 光晕可能占用的范围；`effect-clipped` 表示被画布裁切。`overflow="hidden"` 和 `<mask>` 已经裁掉的部分不算。
 - **`issues`**：见 [SPEC.md 的问题码表](SPEC.md)。**error 必须修**，warn 视需求修。`grade` 回显的是预设展开后的参数。
 
 ## 5. 工作流
@@ -105,7 +106,7 @@ flowchart TD
 
 | 现象 | 建议 |
 | --- | --- |
-| 元素跑出画布 | `overflow-canvas`；看 `ink` / `box` 与画布尺寸 |
+| 元素跑出画布 | `overflow-canvas`；看 `ink` 与画布尺寸。透视平面先看 `quad`，`box` 仍是没投影的布局盒 |
 | 光晕被裁切 | `effect-clipped`；缩小 glow 或移动元素 |
 | 字距和 `gap` 不一致 | 看 debug 里的 ink 间距 |
 | flex 子项被挤爆 | 加宽 flex 容器或缩小子项 |

@@ -1,7 +1,8 @@
+import { createCanvas } from '@napi-rs/canvas'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { initFontsForMeasure } from './fonts.js'
+import { applyCanvasFont, initFontsForMeasure } from './fonts.js'
 import { layoutSource } from './layout.js'
 import { layoutText } from './text.js'
 import type { TextSegment } from './types.js'
@@ -133,5 +134,31 @@ describe('行内空白', () => {
     if (!hasFont) return
     expect((await inlineText('A\n<span>B</span>')).text).toBe('A B')
     expect((await inlineText('A <br/> B')).text).toBe('A\nB')
+  })
+
+  it('可变字体的中间字重不是只有两档', () => {
+    if (!hasFont) return
+    const ink = (weight: number) => {
+      const canvas = createCanvas(160, 64)
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, 160, 64)
+      ctx.fillStyle = '#000000'
+      applyCanvasFont(ctx, 'ChillDuanSans', weight, 42)
+      ctx.fillText('黑8', 4, 48)
+      const data = ctx.getImageData(0, 0, 160, 64).data
+      let sum = 0
+      for (let i = 0; i < data.length; i += 4) sum += 255 - data[i]!
+      return sum
+    }
+    const light = ink(300)
+    const mid = ink(500)
+    const bold = ink(700)
+    const heavy = ink(800)
+    expect(mid).toBeGreaterThan(light + 1000)
+    expect(bold).toBeGreaterThan(mid + 1000)
+    expect(heavy).toBeGreaterThan(bold + 1000)
+    expect(ink(600)).not.toBe(ink(400))
+    expect(ink(600)).not.toBe(ink(700))
   })
 })

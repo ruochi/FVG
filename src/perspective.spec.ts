@@ -52,6 +52,87 @@ describe('perspective', () => {
     expect(report.issues.some((issue) => issue.code === 'flatten-3d')).toBe(true)
   })
 
+  it('倾斜后落在画布里的大平面不报 overflow-canvas，并给出 quad', async () => {
+    const report = await checkFvg(
+      `<layer width="300" height="200" background="#111" perspective="400"><rect cx="150" cy="100" width="360" height="80" fill="#fff" z="-200" rotateX="25" /></layer>`,
+    )
+    const rect = report.elements.find((el) => el.tag === 'rect')
+    expect(rect?.quad).toHaveLength(4)
+    expect(rect!.box.left).toBeLessThan(0)
+    expect(rect!.box.right).toBeGreaterThan(300)
+    const node = {
+      kind: 'shape',
+      x: rect!.box.x,
+      y: rect!.box.y,
+      width: rect!.box.width,
+      height: rect!.box.height,
+      rotateX: 25,
+      z: -200,
+      scale: 1,
+      rotate: 0,
+    } as LayoutNode
+    const expected = [
+      [0, 0],
+      [node.width, 0],
+      [node.width, node.height],
+      [0, node.height],
+    ].map(([u, v]) => project(150, 100, 400, posePoint(node, u!, v!))!)
+    expect(expected.every((p) => p && p.x >= -0.5 && p.x <= 300.5 && p.y >= -0.5 && p.y <= 200.5)).toBe(true)
+    rect!.quad!.forEach((corner, i) => {
+      expect(corner.x).toBeCloseTo(expected[i]!.x, 1)
+      expect(corner.y).toBeCloseTo(expected[i]!.y, 1)
+    })
+    expect(rect!.ink.left).toBeGreaterThanOrEqual(-0.5)
+    expect(rect!.ink.right).toBeLessThanOrEqual(300.5)
+    expect(rect!.ink.top).toBeGreaterThanOrEqual(-0.5)
+    expect(rect!.ink.bottom).toBeLessThanOrEqual(200.5)
+    expect(report.issues.some((issue) => issue.code === 'overflow-canvas')).toBe(false)
+  })
+
+  it('平面里的子元素也按投影报告 quad', async () => {
+    const report = await checkFvg(
+      `<layer width="300" height="200" perspective="400"><layer cx="150" cy="100" width="360" height="80" z="-200" rotateX="25"><rect x1="20" y1="10" x2="80" y2="40" fill="#fff" /></layer></layer>`,
+    )
+    const layer = report.elements.find((el) => el.tag === 'layer' && el.quad)
+    const rect = report.elements.find((el) => el.tag === 'rect')
+    expect(layer?.quad).toHaveLength(4)
+    const host = {
+      kind: 'layer',
+      x: layer!.box.x,
+      y: layer!.box.y,
+      width: layer!.box.width,
+      height: layer!.box.height,
+      rotateX: 25,
+      z: -200,
+      scale: 1,
+      rotate: 0,
+    } as LayoutNode
+    const corner = project(150, 100, 400, posePoint(host, 20, 10))!
+    expect(rect?.quad?.[0]?.x).toBeCloseTo(corner.x, 1)
+    expect(rect?.quad?.[0]?.y).toBeCloseTo(corner.y, 1)
+    expect(report.issues.some((issue) => issue.code === 'overflow-canvas')).toBe(false)
+  })
+
+  it('嵌套 layer 上的 perspective 把 quad 算到画布坐标', async () => {
+    const report = await checkFvg(
+      `<layer width="400" height="300"><layer cx="200" cy="160" width="200" height="120" perspective="300"><rect cx="100" cy="60" width="40" height="30" fill="#fff" rotateY="20" /></layer></layer>`,
+    )
+    const rect = report.elements.find((el) => el.tag === 'rect')
+    const node = {
+      kind: 'shape',
+      x: 80,
+      y: 45,
+      width: 40,
+      height: 30,
+      rotateY: 20,
+      scale: 1,
+      rotate: 0,
+    } as LayoutNode
+    const local = project(100, 60, 300, posePoint(node, 0, 0))!
+    expect(rect?.quad?.[0]?.x).toBeCloseTo(local.x + 100, 1)
+    expect(rect?.quad?.[0]?.y).toBeCloseTo(local.y + 100, 1)
+  })
+
   it('z 超过视距时报 behind-camera', async () => {
     const report = await checkFvg(
       h(
