@@ -53,6 +53,37 @@ describe('paint containers', () => {
     expect(inside[1]).toBeLessThan(20)
   })
 
+  it('perspective 里 rotateY 把方块压窄，中心仍在', async () => {
+    const flat = h(
+      'Layer',
+      { width: '200', height: '200', background: '#000000' },
+      h('Rect', { cx: '100', cy: '100', width: '80', height: '80', fill: '#ffffff' }),
+    )
+    const turned = h(
+      'Layer',
+      { width: '200', height: '200', background: '#000000', perspective: '300' },
+      h('Rect', { cx: '100', cy: '100', width: '80', height: '80', fill: '#ffffff', rotateY: '70' }),
+    )
+    const flatPx = await pixelAt((await renderFvg(flat)).png, 62, 100)
+    const center = await pixelAt((await renderFvg(turned)).png, 100, 108)
+    const edge = await pixelAt((await renderFvg(turned)).png, 62, 100)
+    expect(flatPx[0]).toBeGreaterThan(200)
+    expect(center[0]).toBeGreaterThan(200)
+    expect(edge[0]).toBeLessThan(30)
+  })
+
+  it('z 大的平面盖住后写但更远的平面', async () => {
+    const root = h(
+      'Layer',
+      { width: '120', height: '120', background: '#000000', perspective: '400' },
+      h('Rect', { cx: '60', cy: '60', width: '50', height: '50', fill: '#ff0000', z: '40' }),
+      h('Rect', { cx: '60', cy: '60', width: '50', height: '50', fill: '#0000ff', z: '-30' }),
+    )
+    const px = await pixelAt((await renderFvg(root)).png, 60, 68)
+    expect(px[0]).toBeGreaterThan(200)
+    expect(px[2]).toBeLessThan(40)
+  })
+
   it('Layer 的 rotate 带着子元素绕中心转', async () => {
     const root = h(
       'Layer',

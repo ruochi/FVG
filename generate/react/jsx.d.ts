@@ -93,6 +93,12 @@ declare global {
           safe?: number | string
           opacity?: number | string
           rotate?: number | string
+          rotateX?: number | string
+          rotateY?: number | string
+          /** 像素，正方向朝观众 */
+          z?: number | string
+          /** 直接子元素的视距，像素 */
+          perspective?: number | string
           scale?: number | string
           origin?: string
           overflow?: string

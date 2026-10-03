@@ -70,17 +70,19 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 `rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
 
+`perspective` 只写在 `Layer` 上，单位是像素，是直接子元素共用的视距。灭点是这一层盒子的中心，`z` 正方向朝观众，数值越大看起来越大。`rotateX`、`rotateY`、`z` 的归属和 `rotate` 相同，写在要转动或推近的那一层上，不改变布局。没有祖先写 `perspective` 时仍按二维绘制，并报 `flatten-3d`。子元素的 `z` 大于等于视距时报 `behind-camera`，该元素不绘制。灯光和网格不在这一步。
+
 属性归属（由 [src/schema.ts](src/schema.ts) 生成，不要手改两行标记之间的表）：
 
 <!-- attrs:ownership:begin -->
 | 属性 | 写在哪 |
 | --- | --- |
-| `width`、`height`、`opacity`、`rotate`、`scale`、`origin`、`cx`、`cy`、`anchor` | `Layer` 的属性。HTML 上写了报 `warn` |
+| `width`、`height`、`opacity`、`rotate`、`rotateX`、`rotateY`、`z`、`scale`、`origin`、`cx`、`cy`、`anchor` | `Layer` 的属性。HTML 上写了报 `warn` |
 | `background`、`padding`、`font-size`、`color`、`flex`、`flex-grow`、`flex-shrink`、`gap`、`border`、`border-radius`、`max-width`、`align-items`、`justify-content`、`writing-mode`、`object-fit`、`object-position` | HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn` |
 | `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `Layer` 的局部坐标 |
 | `src`、`alt` | 只写在 `img` 上。宽高仍放进 `style` |
 | `shadow`、`glow`、`inner-shadow`、`inner-glow`、`blur`、`backdrop-blur`、`glass`、`noise`、`filter`、`blend` | 图形和 `Layer` 写属性；文字写在 `style`。见第 9 章 |
-| `overlay`、`grade`、`grade-mask` | 只写在 `Layer` 上。写在别处或写进 `style` 报 `warn` |
+| `perspective`、`overlay`、`grade`、`grade-mask` | 只写在 `Layer` 上。写在别处或写进 `style` 报 `warn` |
 <!-- attrs:ownership:end -->
 
 叶子的定位：
@@ -502,6 +504,8 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
 | `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |
 | `effect-clipped` | warn | 本体在画布内，阴影、光晕或图层模糊超出画布 |
+| `flatten-3d` | warn | `rotateX`、`rotateY`、`z` 没有落在带 `perspective` 的 Layer 里。仍按二维绘制 |
+| `behind-camera` | warn | 平面的 `z` 大于等于所在 Layer 的 `perspective`，不绘制 |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 
@@ -617,5 +621,5 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`。
-- 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。2.5D 是 `Layer` 上的参数。`Scene3D` 留给以后的 Three.js 视口，外面仍是一张平面。见 [docs/proposals/3D.md](docs/proposals/3D.md)（未实现）。
+- `Scene3D` 这个名字仍保留，不要挪作他用。`rotateX`、`rotateY`、`z`、`perspective` 已写在 `Layer` 上，见第 3 章。灯光、网格和 `headless-three` 还没有，讨论见 [docs/proposals/3D.md](docs/proposals/3D.md)。
 - 滤镜设计说明见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。

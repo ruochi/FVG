@@ -227,6 +227,12 @@ export type LayoutNodeBase = {
   ink: Box
   opacity: number
   rotate: number
+  /** 绕水平轴，度。正角度让盒子上边远离观众。没有祖先 perspective 时不投影。 */
+  rotateX?: number
+  /** 绕竖直轴，度。没有祖先 perspective 时不投影。 */
+  rotateY?: number
+  /** 沿平面法线，像素。正方向朝观众。 */
+  z?: number
   scale: number
   /** 变换支点，缺省为盒子中心。 */
   origin?: Anchor
@@ -260,6 +266,8 @@ export type LayerLayoutNode = LayoutNodeBase & {
   children: LayoutNode[]
   /** 缺省为 visible。hidden 时按盒子裁剪子元素。 */
   overflow?: 'visible' | 'hidden'
+  /** 直接子元素共用的视距，像素。灭点是这一层盒子的中心。 */
+  perspective?: number
 }
 
 export type FlexLayoutNode = LayoutNodeBase & {
