@@ -4,7 +4,9 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { h } from './h.js'
 import { initFontsForMeasure } from './fonts.js'
+import { posePoint, project } from './perspective.js'
 import { renderFvg } from './render.js'
+import type { LayoutNode } from './types.js'
 
 beforeAll(async () => {
   for (const dir of [join(homedir(), '.cache', 'flexlayer', 'fonts'), '/tmp/flexlayer-test']) {
@@ -51,6 +53,72 @@ describe('paint containers', () => {
     expect(outside[1]).toBeGreaterThan(240)
     expect(inside[0]).toBeGreaterThan(240)
     expect(inside[1]).toBeLessThan(20)
+  })
+
+  it('perspective 里 rotateY 把方块压窄，中心仍在', async () => {
+    const flat = h(
+      'Layer',
+      { width: '200', height: '200', background: '#000000' },
+      h('Rect', { cx: '100', cy: '100', width: '80', height: '80', fill: '#ffffff' }),
+    )
+    const turned = h(
+      'Layer',
+      { width: '200', height: '200', background: '#000000', perspective: '300' },
+      h('Rect', { cx: '100', cy: '100', width: '80', height: '80', fill: '#ffffff', rotateY: '70' }),
+    )
+    const flatPx = await pixelAt((await renderFvg(flat)).png, 62, 100)
+    const center = await pixelAt((await renderFvg(turned)).png, 100, 108)
+    const edge = await pixelAt((await renderFvg(turned)).png, 62, 100)
+    expect(flatPx[0]).toBeGreaterThan(200)
+    expect(center[0]).toBeGreaterThan(200)
+    expect(edge[0]).toBeLessThan(30)
+  })
+
+  it('二维方块保持硬边', async () => {
+    const root = h(
+      'Layer',
+      { width: '80', height: '80', background: '#000000' },
+      h('Rect', { cx: '40', cy: '40', width: '40', height: '40', fill: '#ffffff' }),
+    )
+    const png = (await renderFvg(root)).png
+    expect((await pixelAt(png, 22, 40))[0]).toBe(255)
+    expect((await pixelAt(png, 18, 40))[0]).toBe(0)
+  })
+
+  it('透视平面的斜边有抗锯齿过渡', async () => {
+    const root = h(
+      'Layer',
+      { width: '200', height: '200', background: '#000000', perspective: '500' },
+      h('Rect', { cx: '100', cy: '100', width: '120', height: '80', fill: '#ffffff', rotateY: '32' }),
+    )
+    const png = (await renderFvg(root)).png
+    const box = { x: 40, y: 60, width: 120, height: 80, rotateY: 32, scale: 1, rotate: 0 } as LayoutNode
+    const tl = project(100, 100, 500, posePoint(box, 0, 0))!
+    const tr = project(100, 100, 500, posePoint(box, 120, 0))!
+    const x = Math.round((tl.x + tr.x) / 2)
+    const yEdge = (tl.y + tr.y) / 2
+    let partial = 0
+    let solid = false
+    for (let y = Math.floor(yEdge) - 3; y <= Math.ceil(yEdge) + 8; y++) {
+      const v = (await pixelAt(png, x, y))[0] ?? 0
+      if (v > 15 && v < 240) partial++
+      if (v > 250) solid = true
+    }
+    expect(partial).toBeGreaterThan(0)
+    expect(solid).toBe(true)
+    expect((await pixelAt(png, x, Math.floor(yEdge) - 6))[0]).toBeLessThan(8)
+  })
+
+  it('z 大的平面盖住后写但更远的平面', async () => {
+    const root = h(
+      'Layer',
+      { width: '120', height: '120', background: '#000000', perspective: '400' },
+      h('Rect', { cx: '60', cy: '60', width: '50', height: '50', fill: '#ff0000', z: '40' }),
+      h('Rect', { cx: '60', cy: '60', width: '50', height: '50', fill: '#0000ff', z: '-30' }),
+    )
+    const px = await pixelAt((await renderFvg(root)).png, 60, 68)
+    expect(px[0]).toBeGreaterThan(200)
+    expect(px[2]).toBeLessThan(40)
   })
 
   it('layer 的 rotate 带着子元素绕中心转', async () => {

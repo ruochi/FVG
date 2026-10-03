@@ -27,6 +27,7 @@ import { applyGrade } from './grade.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { invert, multiply, originOffset } from './matrix.js'
+import { drawTexturedPlane, has3dPose, PERSPECTIVE_AA, planeDepth, posePoint, project } from './perspective.js'
 import { colorFilterToCss } from './style.js'
 import type {
   GlassSpec,
@@ -962,6 +963,39 @@ function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec, drawShado
   ctx.restore()
 }
 
+function paintChildBitmap(child: LayoutNode, k: number, t: number, state: PaintState): Canvas {
+  const w = Math.max(1, Math.ceil(child.width * k))
+  const h = Math.max(1, Math.ceil(child.height * k))
+  const canvas = createCanvas(w, h)
+  const octx = canvas.getContext('2d') as PaintCtx
+  octx.setTransform(k, 0, 0, k, -child.x * k, -child.y * k)
+  paintNode(octx, child, false, t, state)
+  return canvas
+}
+
+function paintPerspectiveChildren(ctx: PaintCtx, node: LayerLayoutNode, debug: boolean, t: number, state: PaintState) {
+  const perspective = node.perspective!
+  const vx = node.width / 2
+  const vy = node.height / 2
+  const k = transformScale(ctx)
+  const ordered = node.children
+    .map((child, index) => ({ child, index, depth: planeDepth(child) }))
+    .sort((a, b) => a.depth - b.depth || a.index - b.index)
+  for (const { child, depth } of ordered) {
+    if (child.width <= 0 || child.height <= 0) continue
+    if (depth >= perspective) continue
+    if (!has3dPose(child)) {
+      paintNode(ctx, child, debug, t, state)
+      continue
+    }
+    const bitmap = paintChildBitmap(child, k * PERSPECTIVE_AA, t, state)
+    drawTexturedPlane(ctx, bitmap, child.width, child.height, (u, v) => {
+      const p = posePoint(child, u, v)
+      return project(vx, vy, perspective, p)
+    })
+  }
+}
+
 function paintBody(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
   if (node.kind === 'text') {
     drawBoxChrome(ctx, node)
@@ -986,7 +1020,11 @@ function paintBody(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, s
       ctx.rect(0, 0, node.width, node.height)
       ctx.clip()
     }
-    for (const ch of node.children) paintNode(ctx, ch, debug, t, state)
+    if (node.kind === 'layer' && node.perspective != null && node.perspective > 0 && node.children.some(has3dPose)) {
+      paintPerspectiveChildren(ctx, node, debug, t, state)
+    } else {
+      for (const ch of node.children) paintNode(ctx, ch, debug, t, state)
+    }
     ctx.restore()
   }
 }

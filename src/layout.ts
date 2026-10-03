@@ -17,6 +17,7 @@ import { ensureBuiltinFonts, registerFontsFromDocument } from './fonts.js'
 import { catmullRomPath } from './curve.js'
 import { isGradient, parseGradient, solidPaint } from './gradient.js'
 import { translateSvgPath } from './path.js'
+import { perspectiveIssues } from './perspective.js'
 import {
   parseBlend,
   parseBlurRadius,
@@ -352,6 +353,9 @@ function readHtmlAppearance(style: Record<string, string>) {
     background: style.background ?? style['background-color'],
     opacity: parseNumber(style.opacity) ?? 1,
     rotate: parseNumber(style.rotate) ?? 0,
+    rotateX: parseNumber(style.rotateX) ?? 0,
+    rotateY: parseNumber(style.rotateY) ?? 0,
+    z: parseNumber(style.z) ?? 0,
     scale: parseNumber(style.scale) ?? 1,
     origin: parseAnchor(style.origin),
   }
@@ -365,6 +369,9 @@ function readAttrAppearance(attrs: Record<string, string>) {
     background: attrs.background as string | undefined,
     opacity: parseNumber(attrs.opacity) ?? 1,
     rotate: parseNumber(attrs.rotate) ?? 0,
+    rotateX: parseNumber(attrs.rotateX) ?? 0,
+    rotateY: parseNumber(attrs.rotateY) ?? 0,
+    z: parseNumber(attrs.z) ?? 0,
     scale: parseNumber(attrs.scale) ?? 1,
     origin: parseAnchor(attrs.origin),
   }
@@ -1491,6 +1498,22 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
 
   const overlay = readLayerOverlay(node.attrs, ctx)
   const grade = readLayerGrade(node.attrs, ctx)
+  let perspective: number | undefined
+  const perspectiveRaw = node.attrs.perspective
+  if (perspectiveRaw != null && perspectiveRaw.trim() !== '') {
+    const parsed = parseNumber(perspectiveRaw)
+    if (parsed == null || parsed <= 0) {
+      ctx.issues.push({
+        level: 'warn',
+        code: 'invalid-attr',
+        path: ctx.pathPrefix,
+        message: `无法解析 perspective: ${perspectiveRaw}`,
+        hint: '写成像素视距，例如 perspective="900"',
+      })
+    } else {
+      perspective = parsed
+    }
+  }
   const mask = chosenMask
     ? await layoutMask(chosenMask, { ...ctx, pathPrefix: chosenMaskPath }, layerW, layerH)
     : undefined
@@ -1526,6 +1549,7 @@ async function layoutLayer(node: FvgNode, ctx: LayoutContext): Promise<LayerLayo
     ...appearance,
     children,
     overflow: node.attrs.overflow === 'hidden' ? 'hidden' : 'visible',
+    ...(perspective != null ? { perspective } : {}),
     ...(mask ? { mask } : {}),
     ...readEffects(node.attrs, ctx, solidPaint(appearance.border?.color, ctx.color)),
     ...(overlay ? { overlay } : {}),
@@ -1664,6 +1688,7 @@ export async function layoutSource(source: string | FvgNode, baseDir: string): P
 
   root.width = width
   root.height = height
+  issues.push(...perspectiveIssues(root))
 
   return { width, height, background, color, fontFamily, safe, root, issues }
 }
