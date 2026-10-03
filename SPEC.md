@@ -617,5 +617,5 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`。
-- 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。草案定为参数写在 `Layer` 上，不新增 `Scene3D` 标签，见 [docs/proposals/3D.md](docs/proposals/3D.md)（未实现）。
+- 2.5D 与 3D：`rotateX`、`rotateY`、`z`、`perspective`、`Scene3D` 这些名字已保留，不要挪作他用。2.5D 是 `Layer` 上的参数。`Scene3D` 留给以后的 Three.js 视口，外面仍是一张平面。见 [docs/proposals/3D.md](docs/proposals/3D.md)（未实现）。
 - 滤镜设计说明见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。
