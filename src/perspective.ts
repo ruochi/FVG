@@ -1,4 +1,4 @@
-import type { Canvas, CanvasRenderingContext2D } from '@napi-rs/canvas'
+import { createCanvas, type Canvas, type CanvasRenderingContext2D } from '@napi-rs/canvas'
 import { originOffset } from './matrix.js'
 import type { Issue, LayoutNode } from './types.js'
 
@@ -92,6 +92,9 @@ function solveAffine(
   return { a: x.a, b: y.a, c: x.c, d: y.c, e: x.e, f: y.e }
 }
 
+/** 透视平面的超采样倍数。只作用在投影后的平面上，二维绘制不经过这里。 */
+export const PERSPECTIVE_AA = 4
+
 function expandTriangle(points: [Vec2, Vec2, Vec2], amount: number): [Vec2, Vec2, Vec2] {
   const cx = (points[0].x + points[1].x + points[2].x) / 3
   const cy = (points[0].y + points[1].y + points[2].y) / 3
@@ -103,8 +106,12 @@ function expandTriangle(points: [Vec2, Vec2, Vec2], amount: number): [Vec2, Vec2
   }) as [Vec2, Vec2, Vec2]
 }
 
+type DrawCtx = CanvasRenderingContext2D & { drawImage(...args: unknown[]): void }
+
+const MAX_RASTER_SIDE = 8192
+
 function drawTriangle(
-  ctx: CanvasRenderingContext2D & { drawImage(...args: unknown[]): void },
+  ctx: DrawCtx,
   bitmap: Canvas,
   logicalWidth: number,
   logicalHeight: number,
@@ -130,22 +137,22 @@ function drawTriangle(
   ctx.restore()
 }
 
-/** 把位图贴到投影后的平面上。网格点用真实投影，避免整张图只做一次仿射。 */
-export function drawTexturedPlane(
-  ctx: CanvasRenderingContext2D & { drawImage(...args: unknown[]): void },
+function deviceScale(ctx: CanvasRenderingContext2D): number {
+  const matrix = (
+    ctx as CanvasRenderingContext2D & { getTransform(): { a: number; b: number; c: number; d: number } }
+  ).getTransform()
+  return Math.sqrt(Math.abs(matrix.a * matrix.d - matrix.b * matrix.c)) || 1
+}
+
+function paintGrid(
+  ctx: DrawCtx,
   bitmap: Canvas,
   logicalWidth: number,
   logicalHeight: number,
-  at: (u: number, v: number) => Vec2 | null,
+  n: number,
+  pts: Array<Vec2 | null>,
+  expand: number,
 ) {
-  const edge = Math.max(logicalWidth, logicalHeight)
-  const n = Math.min(24, Math.max(4, Math.ceil(edge / 32)))
-  const pts: Array<Vec2 | null> = []
-  for (let j = 0; j <= n; j++) {
-    for (let i = 0; i <= n; i++) {
-      pts.push(at((i / n) * logicalWidth, (j / n) * logicalHeight))
-    }
-  }
   const atGrid = (i: number, j: number) => pts[j * (n + 1) + i]!
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -158,13 +165,110 @@ export function drawTexturedPlane(
       const s10 = { x: ((i + 1) / n) * logicalWidth, y: (j / n) * logicalHeight }
       const s11 = { x: ((i + 1) / n) * logicalWidth, y: ((j + 1) / n) * logicalHeight }
       const s01 = { x: (i / n) * logicalWidth, y: ((j + 1) / n) * logicalHeight }
-      // 裁剪边缘会露出底色，把目标三角形稍微撑开，相邻格叠上同一颜色。
-      const [a, b, c] = expandTriangle([d00, d10, d11], 1.25)
-      const [d, e, f] = expandTriangle([d00, d11, d01], 1.25)
+      // 相邻格只重叠一个采样像素，盖住裁剪缝，又不把轮廓顶成一截一截的台阶。
+      const [a, b, c] = expandTriangle([d00, d10, d11], expand)
+      const [d, e, f] = expandTriangle([d00, d11, d01], expand)
       drawTriangle(ctx, bitmap, logicalWidth, logicalHeight, s00, s10, s11, a!, b!, c!)
       drawTriangle(ctx, bitmap, logicalWidth, logicalHeight, s00, s11, s01, d!, e!, f!)
     }
   }
+}
+
+/** 把高分辨率的平面平均缩回目标像素。颜色按预乘 alpha 平均，避免边缘发暗。 */
+function resolveSamples(src: Canvas, dw: number, dh: number): Canvas {
+  const sw = src.width
+  const sh = src.height
+  const srcData = src.getContext('2d').getImageData(0, 0, sw, sh).data
+  const out = createCanvas(dw, dh)
+  const octx = out.getContext('2d')
+  const image = octx.createImageData(dw, dh)
+  const dst = image.data
+  for (let y = 0; y < dh; y++) {
+    const y0 = Math.floor((y * sh) / dh)
+    const y1 = Math.floor(((y + 1) * sh) / dh)
+    for (let x = 0; x < dw; x++) {
+      const x0 = Math.floor((x * sw) / dw)
+      const x1 = Math.floor(((x + 1) * sw) / dw)
+      let r = 0
+      let g = 0
+      let b = 0
+      let a = 0
+      let n = 0
+      for (let iy = y0; iy < y1; iy++) {
+        for (let ix = x0; ix < x1; ix++) {
+          const si = (iy * sw + ix) * 4
+          const ai = srcData[si + 3] ?? 0
+          r += (srcData[si] ?? 0) * ai
+          g += (srcData[si + 1] ?? 0) * ai
+          b += (srcData[si + 2] ?? 0) * ai
+          a += ai
+          n++
+        }
+      }
+      const di = (y * dw + x) * 4
+      dst[di + 3] = n > 0 ? Math.round(a / n) : 0
+      if (a > 0) {
+        dst[di] = Math.round(r / a)
+        dst[di + 1] = Math.round(g / a)
+        dst[di + 2] = Math.round(b / a)
+      }
+    }
+  }
+  octx.putImageData(image, 0, 0)
+  return out
+}
+
+/** 把位图贴到投影后的平面上。网格点用真实投影，避免整张图只做一次仿射。 */
+export function drawTexturedPlane(
+  ctx: DrawCtx,
+  bitmap: Canvas,
+  logicalWidth: number,
+  logicalHeight: number,
+  at: (u: number, v: number) => Vec2 | null,
+) {
+  const edge = Math.max(logicalWidth, logicalHeight)
+  const n = Math.min(24, Math.max(4, Math.ceil(edge / 32)))
+  const pts: Array<Vec2 | null> = []
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (let j = 0; j <= n; j++) {
+    for (let i = 0; i <= n; i++) {
+      const p = at((i / n) * logicalWidth, (j / n) * logicalHeight)
+      pts.push(p)
+      if (!p) continue
+      minX = Math.min(minX, p.x)
+      minY = Math.min(minY, p.y)
+      maxX = Math.max(maxX, p.x)
+      maxY = Math.max(maxY, p.y)
+    }
+  }
+  if (!Number.isFinite(minX)) return
+  const base = deviceScale(ctx)
+  const pad = 2
+  const x0 = Math.floor(minX - pad)
+  const y0 = Math.floor(minY - pad)
+  const x1 = Math.ceil(maxX + pad)
+  const y1 = Math.ceil(maxY + pad)
+  const lw = Math.max(1, x1 - x0)
+  const lh = Math.max(1, y1 - y0)
+  let samples = PERSPECTIVE_AA
+  while (samples > 1 && (lw * base * samples > MAX_RASTER_SIDE || lh * base * samples > MAX_RASTER_SIDE)) samples /= 2
+  const raster = base * samples
+  if (samples <= 1) {
+    paintGrid(ctx, bitmap, logicalWidth, logicalHeight, n, pts, 1 / base)
+    return
+  }
+  const pw = Math.max(1, Math.round(lw * raster))
+  const ph = Math.max(1, Math.round(lh * raster))
+  const off = createCanvas(pw, ph)
+  const octx = off.getContext('2d') as DrawCtx
+  octx.setTransform(raster, 0, 0, raster, -x0 * raster, -y0 * raster)
+  paintGrid(octx, bitmap, logicalWidth, logicalHeight, n, pts, 1 / raster)
+  const resolved = resolveSamples(off, Math.max(1, Math.round(lw * base)), Math.max(1, Math.round(lh * base)))
+  ctx.imageSmoothingEnabled = true
+  ctx.drawImage(resolved, x0, y0, lw, lh)
 }
 
 /** 直接子级才进入这一层的镜头。再往里的子孙先画进父平面。 */

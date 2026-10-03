@@ -27,7 +27,7 @@ import { applyGrade } from './grade.js'
 import { canvasPaint, isGradient } from './gradient.js'
 import { gradientStyle, isGradientPaint, type GradientBox } from './gradientField.js'
 import { originOffset } from './matrix.js'
-import { drawTexturedPlane, has3dPose, planeDepth, posePoint, project } from './perspective.js'
+import { drawTexturedPlane, has3dPose, PERSPECTIVE_AA, planeDepth, posePoint, project } from './perspective.js'
 import { colorFilterToCss } from './style.js'
 import type {
   GlassSpec,
@@ -954,7 +954,7 @@ function paintPerspectiveChildren(ctx: PaintCtx, node: LayerLayoutNode, debug: b
       paintNode(ctx, child, debug, t, state)
       continue
     }
-    const bitmap = paintChildBitmap(child, k, t, state)
+    const bitmap = paintChildBitmap(child, k * PERSPECTIVE_AA, t, state)
     drawTexturedPlane(ctx, bitmap, child.width, child.height, (u, v) => {
       const p = posePoint(child, u, v)
       return project(vx, vy, perspective, p)
