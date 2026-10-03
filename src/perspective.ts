@@ -281,7 +281,7 @@ export function perspectiveIssues(root: LayoutNode): Issue[] {
         code: 'flatten-3d',
         path: node.path,
         message: 'rotateX、rotateY、z 没有落在带 perspective 的 Layer 里',
-        hint: '在父 Layer 上写 perspective，例如 <Layer perspective="900">',
+        hint: '在父 layer 上写 perspective，例如 <layer perspective="900">',
       })
     }
     if (inCamera && distance != null && (node.z ?? 0) >= distance) {

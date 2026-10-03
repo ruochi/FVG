@@ -32,7 +32,7 @@ describe('draw(ctx, el)', () => {
     let seen: Record<string, unknown> | null = null
 
     const root = h(
-      'Layer',
+      'layer',
       { width: '400', height: '300', background: '#ffffff', color: '#111111' },
       h(
         'h1',
@@ -84,7 +84,7 @@ describe('draw(ctx, el)', () => {
   it('未知标签带 draw 与尺寸时参与布局', async () => {
     let drawCalled = false
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
       h(
         'Ring',
@@ -122,9 +122,9 @@ describe('draw(ctx, el)', () => {
   it('线条上的 draw 原点在几何范围的左上角', async () => {
     let seen: { w: number; h: number } | null = null
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '80', background: '#000000' },
-      h('Line', {
+      h('line', {
         x1: '20',
         y1: '40',
         x2: '120',
@@ -148,9 +148,9 @@ describe('draw(ctx, el)', () => {
   it('形状上的自定义属性出现在 el.attr', async () => {
     let total = ''
     const root = h(
-      'Layer',
+      'layer',
       { width: '80', height: '80' },
-      h('Rect', {
+      h('rect', {
         cx: '40',
         cy: '40',
         width: '20',
@@ -165,11 +165,11 @@ describe('draw(ctx, el)', () => {
     expect(total).toBe('33')
   })
 
-  it('根节点 Layer 的 draw 在子元素之后执行', async () => {
+  it('根节点 layer 的 draw 在子元素之后执行', async () => {
     let seen: { w: number; h: number; t: number } | null = null
     let childAtDraw: number[] | null = null
     const root = h(
-      'Layer',
+      'layer',
       {
         width: '80',
         height: '40',
@@ -182,7 +182,7 @@ describe('draw(ctx, el)', () => {
           ctx.fillRect(0, 0, 4, 4)
         },
       },
-      h('Rect', { width: '10', height: '10', cx: '70', cy: '20', fill: '#00ff00' }),
+      h('rect', { width: '10', height: '10', cx: '70', cy: '20', fill: '#00ff00' }),
     )
 
     const { png } = await renderFvg(root, { t: 0.25 })
@@ -210,13 +210,13 @@ describe('draw(ctx, el)', () => {
 
   it('.layer 里的 <draw> 在子元素之后着色', async () => {
     const { png, report } = await renderFvg(
-      `<Layer width="80" height="40" background="#000000">
-        <Rect width="10" height="10" cx="70" cy="20" fill="#00ff00" />
+      `<layer width="80" height="40" background="#000000">
+        <rect width="10" height="10" cx="70" cy="20" fill="#00ff00" />
         <draw>
           ctx.fillStyle = '#ff0000'
           ctx.fillRect(0, 0, 4, 4)
         </draw>
-      </Layer>`,
+      </layer>`,
     )
     expect(report.issues.some((i) => i.code === 'invalid-draw')).toBe(false)
     const corner = await pixelAt(png, 1, 1)
@@ -226,16 +226,16 @@ describe('draw(ctx, el)', () => {
     expect(child[1]).toBeGreaterThan(200)
   })
 
-  it('嵌套 Layer 用 <draw> 填色，不用 background', async () => {
+  it('嵌套 layer 用 <draw> 填色，不用 background', async () => {
     const { png, report } = await renderFvg(
-      `<Layer width="60" height="40" background="#0000ff">
-        <Layer width="30" height="30" cx="15" cy="20">
+      `<layer width="60" height="40" background="#0000ff">
+        <layer width="30" height="30" cx="15" cy="20">
           <draw>
             ctx.fillStyle = '#ff0000'
             ctx.fillRect(0, 0, el.w, el.h)
           </draw>
-        </Layer>
-      </Layer>`,
+        </layer>
+      </layer>`,
     )
     expect(report.issues.some((i) => i.message.includes('background'))).toBe(false)
     const red = await pixelAt(png, 15, 20)
@@ -248,9 +248,9 @@ describe('draw(ctx, el)', () => {
 
   it('<draw> 语法错误报 invalid-draw', async () => {
     const { report } = await renderFvg(
-      `<Layer width="40" height="40" background="#000">
+      `<layer width="40" height="40" background="#000">
         <draw>ctx.fillStyle = </draw>
-      </Layer>`,
+      </layer>`,
     )
     expect(report.issues.some((i) => i.code === 'invalid-draw' && i.level === 'error')).toBe(true)
   })

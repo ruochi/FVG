@@ -182,6 +182,6 @@ export function renderVueFvg(options: VueFvgOptions): string {
   )
   render(vnode, container as unknown as RendererElement)
   const roots = container.children.filter((c): c is FvgHostElement => c.kind === 'el')
-  if (roots.length !== 1) throw new Error('模板需要一个 <Layer> 根元素')
+  if (roots.length !== 1) throw new Error('模板需要一个 <layer> 根元素')
   return serializeFvgDocument(roots[0]!)
 }

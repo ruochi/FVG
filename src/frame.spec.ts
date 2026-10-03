@@ -30,9 +30,9 @@ const slide: Composition = {
   durationInFrames: 4,
   component: ({ frame }) =>
     h(
-      'Layer',
+      'layer',
       { width: '32', height: '32', background: '#000000' },
-      h('Rect', { width: '8', height: '32', cx: String(4 + frame * 8), cy: '16', fill: '#ffffff' }),
+      h('rect', { width: '8', height: '32', cx: String(4 + frame * 8), cy: '16', fill: '#ffffff' }),
     ),
 }
 
@@ -40,9 +40,9 @@ describe('el.t', () => {
   it('不传 t 时为 0，传入后 draw 读到同一个数', async () => {
     const seen: number[] = []
     const root = h(
-      'Layer',
+      'layer',
       { width: '40', height: '40', background: '#ffffff' },
-      h('Rect', {
+      h('rect', {
         width: '10',
         height: '10',
         cx: '20',
@@ -64,7 +64,7 @@ describe('renderComposition', () => {
     const { frames, reports, contactSheet } = await renderComposition(slide)
     expect(frames).toHaveLength(4)
     expect(reports).toHaveLength(4)
-    expect(reports[0]!.elements.some((e) => e.tag === 'Rect')).toBe(true)
+    expect(reports[0]!.elements.some((e) => e.tag === 'rect')).toBe(true)
     const [r0, g0, b0] = await pixelAt(frames[0]!, 4, 16)
     const [r3, g3, b3] = await pixelAt(frames[3]!, 4, 16)
     expect(r0 + g0 + b0).toBeGreaterThan(700)
@@ -113,10 +113,10 @@ describe('interpolate / spring / sequence', () => {
       t: 0.2,
     })
     const node = h(
-      'Layer',
+      'layer',
       { width: '10', height: '10' },
       sequence({ frame: 0, fps: 10, t: 0 }, { from: 5, durationInFrames: 2 }, () =>
-        h('Rect', { width: '4', height: '4' }),
+        h('rect', { width: '4', height: '4' }),
       ),
     )
     expect(node.children).toEqual([])

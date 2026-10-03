@@ -1,6 +1,6 @@
 /**
  * 十张互不相似的测试海报，全部由 Vue 模板生成。
- * Layer 和图形用属性，文字用 style，排布用 div flex。
+ * layer 和图形用属性，文字用 style，排布用 div flex。
  */
 import { renderVueFvg } from './renderVueFvg.js'
 
@@ -12,35 +12,35 @@ function vue(template: string, bindings: Record<string, unknown> = {}, component
 
 export function renderBatchPosters(): BatchPoster[] {
   const ticket = vue(
-    `<Layer width="780" height="1200" background="#1a0b0c" color="#f4e6d4" safe="36">
-      <Rect cx="390" cy="28" width="780" height="16" fill="#e23b2f" />
-      <Layer cx="48" cy="72" anchor="top-left">
+    `<layer width="780" height="1200" background="#1a0b0c" color="#f4e6d4" safe="36">
+      <rect cx="390" cy="28" width="780" height="16" fill="#e23b2f" />
+      <layer cx="48" cy="72" anchor="top-left">
         <p style="font-size:22px; letter-spacing:6px; color:#e23b2f; white-space:nowrap">ADMIT ONE</p>
-      </Layer>
-      <Layer cx="732" cy="72" anchor="top-right">
+      </layer>
+      <layer cx="732" cy="72" anchor="top-right">
         <p style="font-size:22px; color:#c4a48a; white-space:nowrap">NO. 0841</p>
-      </Layer>
-      <Layer cx="390" cy="280" anchor="center">
+      </layer>
+      <layer cx="390" cy="280" anchor="center">
         <h1 style="font-size:220px; color:#f4e6d4; white-space:nowrap">A12</h1>
-      </Layer>
-      <Layer cx="390" cy="430" anchor="center">
+      </layer>
+      <layer cx="390" cy="430" anchor="center">
         <p style="font-size:28px; letter-spacing:8px; color:#c4a48a; white-space:nowrap">座号</p>
-      </Layer>
-      <Line x1="80" y1="500" x2="700" y2="500" stroke="#5a3030" stroke-width="2" stroke-dasharray="8 8" />
-      <Layer cx="80" cy="540" anchor="top-left">
+      </layer>
+      <line x1="80" y1="500" x2="700" y2="500" stroke="#5a3030" stroke-width="2" stroke-dasharray="8 8" />
+      <layer cx="80" cy="540" anchor="top-left">
         <div style="display:flex; flex-direction:column; width:620px; gap:18px; align-items:start">
           <div v-for="row in rows" :key="row.k" style="display:flex; width:620px; align-items:center">
             <p style="font-size:26px; color:#c4a48a; width:160px; white-space:nowrap">{{ row.k }}</p>
             <p style="font-size:32px; color:#f4e6d4; white-space:nowrap">{{ row.v }}</p>
           </div>
         </div>
-      </Layer>
-      <Layer cx="390" cy="1080" anchor="center">
+      </layer>
+      <layer cx="390" cy="1080" anchor="center">
         <div style="display:flex; gap:8px; align-items:center">
           <div v-for="(bar, i) in bars" :key="i" :style="'width:' + bar + 'px; height:72px; background:#f4e6d4'"></div>
         </div>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       rows: [
         { k: '场次', v: '03 月 21 日 19:30' },
@@ -52,38 +52,38 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const album = vue(
-    `<Layer width="1080" height="1080" background="#10241c" color="#e7f6ee" safe="48">
-      <Circle cx="540" cy="400" r="220" fill="#0b1612" stroke="#7dffa8" stroke-width="10" />
-      <Circle cx="540" cy="400" r="70" fill="#7dffa8" />
-      <Circle cx="540" cy="400" r="16" fill="#10241c" />
-      <Layer cx="540" cy="720" anchor="center">
+    `<layer width="1080" height="1080" background="#10241c" color="#e7f6ee" safe="48">
+      <circle cx="540" cy="400" r="220" fill="#0b1612" stroke="#7dffa8" stroke-width="10" />
+      <circle cx="540" cy="400" r="70" fill="#7dffa8" />
+      <circle cx="540" cy="400" r="16" fill="#10241c" />
+      <layer cx="540" cy="720" anchor="center">
         <h1 style="font-size:72px; color:#e7f6ee; white-space:nowrap">绿洲录音</h1>
-      </Layer>
-      <Layer cx="540" cy="800" anchor="center">
+      </layer>
+      <layer cx="540" cy="800" anchor="center">
         <p style="font-size:28px; letter-spacing:6px; color:#7dffa8; white-space:nowrap">SIDE A</p>
-      </Layer>
-      <Layer cx="540" cy="920" anchor="center">
+      </layer>
+      <layer cx="540" cy="920" anchor="center">
         <div style="display:flex; gap:28px">
           <p v-for="t in tracks" :key="t" style="font-size:26px; color:#b7d8c4; white-space:nowrap">{{ t }}</p>
         </div>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     { tracks: ['01 潮', '02 岸', '03 风'] },
   )
 
   const weather = vue(
-    `<Layer width="900" height="1500" background="#d7eef8" color="#14324a" safe="40">
-      <Layer cx="60" cy="70" anchor="top-left">
+    `<layer width="900" height="1500" background="#d7eef8" color="#14324a" safe="40">
+      <layer cx="60" cy="70" anchor="top-left">
         <p style="font-size:28px; color:#3d6d88; white-space:nowrap">上海 · 晴间多云</p>
-      </Layer>
-      <Layer cx="60" cy="160" anchor="top-left">
+      </layer>
+      <layer cx="60" cy="160" anchor="top-left">
         <h1 style="font-size:220px; color:#14324a; white-space:nowrap">18°</h1>
-      </Layer>
-      <Layer cx="60" cy="420" anchor="top-left">
+      </layer>
+      <layer cx="60" cy="420" anchor="top-left">
         <p style="font-size:36px; color:#3d6d88; white-space:nowrap">体感 16°  东北风 3 级</p>
-      </Layer>
-      <Rect cx="450" cy="980" width="780" height="640" rx="28" fill="#ffffff" shadow="0 12 24 #14324a22" />
-      <Layer cx="110" cy="700" anchor="top-left">
+      </layer>
+      <rect cx="450" cy="980" width="780" height="640" rx="28" fill="#ffffff" shadow="0 12 24 #14324a22" />
+      <layer cx="110" cy="700" anchor="top-left">
         <div style="display:flex; flex-direction:column; width:680px; gap:8px; align-items:start">
           <div v-for="h in hours" :key="h.t" style="display:flex; width:680px; align-items:center">
             <p style="width:140px; font-size:30px; color:#3d6d88; white-space:nowrap">{{ h.t }}</p>
@@ -91,8 +91,8 @@ export function renderBatchPosters(): BatchPoster[] {
             <p style="font-size:34px; color:#14324a; white-space:nowrap">{{ h.c }}</p>
           </div>
         </div>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       hours: [
         { t: '08:00', s: '多云', c: '14°' },
@@ -105,22 +105,22 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const metro = vue(
-    `<Layer width="1680" height="840" background="#f4f1ea" color="#1c1a17" safe="40">
-      <Layer cx="64" cy="48" anchor="top-left">
+    `<layer width="1680" height="840" background="#f4f1ea" color="#1c1a17" safe="40">
+      <layer cx="64" cy="48" anchor="top-left">
         <p style="font-size:28px; letter-spacing:4px; color:#8a8175; white-space:nowrap">市域线路</p>
-      </Layer>
-      <Layer cx="64" cy="96" anchor="top-left">
+      </layer>
+      <layer cx="64" cy="96" anchor="top-left">
         <h1 style="font-size:64px; white-space:nowrap">今日停靠</h1>
-      </Layer>
-      <Line v-for="line in lines" :key="line.name" :x1="120" :y1="line.y" :x2="1560" :y2="line.y" :stroke="line.color" stroke-width="14" />
-      <Circle v-for="stop in stops" :key="stop.id" :cx="stop.x" :cy="stop.y" r="16" fill="#f4f1ea" stroke="#1c1a17" stroke-width="4" />
-      <Layer v-for="stop in stops" :key="stop.id + 'l'" :cx="stop.x" :cy="stop.y + 36" anchor="top">
+      </layer>
+      <line v-for="line in lines" :key="line.name" :x1="120" :y1="line.y" :x2="1560" :y2="line.y" :stroke="line.color" stroke-width="14" />
+      <circle v-for="stop in stops" :key="stop.id" :cx="stop.x" :cy="stop.y" r="16" fill="#f4f1ea" stroke="#1c1a17" stroke-width="4" />
+      <layer v-for="stop in stops" :key="stop.id + 'l'" :cx="stop.x" :cy="stop.y + 36" anchor="top">
         <p style="font-size:22px; white-space:nowrap">{{ stop.name }}</p>
-      </Layer>
-      <Layer v-for="line in lines" :key="line.name + 'n'" cx="64" :cy="line.y" anchor="left">
+      </layer>
+      <layer v-for="line in lines" :key="line.name + 'n'" cx="64" :cy="line.y" anchor="left">
         <p :style="'font-size:26px; color:' + line.color + '; white-space:nowrap'">{{ line.name }}</p>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       lines: [
         { name: '1', y: 280, color: '#e23b2f' },
@@ -140,44 +140,44 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const exhibit = vue(
-    `<Layer width="1080" height="1620" background="#f3efe6" color="#1a1814" safe="64">
-      <Line x1="80" y1="80" x2="80" y2="1540" stroke="#1a1814" stroke-width="2" />
-      <Layer cx="110" cy="90" anchor="top-left">
+    `<layer width="1080" height="1620" background="#f3efe6" color="#1a1814" safe="64">
+      <line x1="80" y1="80" x2="80" y2="1540" stroke="#1a1814" stroke-width="2" />
+      <layer cx="110" cy="90" anchor="top-left">
         <p style="font-size:24px; letter-spacing:6px; white-space:nowrap">美术馆 三月</p>
-      </Layer>
-      <Layer cx="140" cy="620" anchor="left">
+      </layer>
+      <layer cx="140" cy="620" anchor="left">
         <h1 style="font-size:280px; white-space:nowrap">墨</h1>
-      </Layer>
-      <Layer cx="140" cy="980" anchor="top-left">
+      </layer>
+      <layer cx="140" cy="980" anchor="top-left">
         <p style="font-size:36px; white-space:nowrap">纸本水墨 · 十二件</p>
-      </Layer>
-      <Layer cx="140" cy="1040" anchor="top-left">
+      </layer>
+      <layer cx="140" cy="1040" anchor="top-left">
         <p style="font-size:28px; color:#5c564c; white-space:nowrap">3.12 — 5.02  免费预约</p>
-      </Layer>
-      <Rect cx="860" cy="1480" width="280" height="8" fill="#1a1814" />
-    </Layer>`,
+      </layer>
+      <rect cx="860" cy="1480" width="280" height="8" fill="#1a1814" />
+    </layer>`,
   )
 
   const menu = vue(
-    `<Layer width="860" height="1500" background="#24160f" color="#f6efe6" safe="40">
-      <Layer cx="430" cy="80" anchor="center">
+    `<layer width="860" height="1500" background="#24160f" color="#f6efe6" safe="40">
+      <layer cx="430" cy="80" anchor="center">
         <p style="font-size:24px; letter-spacing:8px; color:#e07a3a; white-space:nowrap">SUPPER</p>
-      </Layer>
-      <Layer cx="430" cy="130" anchor="center">
+      </layer>
+      <layer cx="430" cy="130" anchor="center">
         <h1 style="font-size:72px; white-space:nowrap">晚饭</h1>
-      </Layer>
-      <Layer cx="70" cy="280" anchor="top-left">
+      </layer>
+      <layer cx="70" cy="280" anchor="top-left">
         <div style="display:flex; flex-direction:column; width:720px; gap:22px; align-items:start">
           <div v-for="d in dishes" :key="d.name" style="display:flex; width:720px; align-items:center">
             <p style="width:460px; font-size:34px; white-space:nowrap">{{ d.name }}</p>
             <p style="font-size:32px; color:#e07a3a; white-space:nowrap">{{ d.price }}</p>
           </div>
         </div>
-      </Layer>
-      <Layer cx="430" cy="1400" anchor="center">
+      </layer>
+      <layer cx="430" cy="1400" anchor="center">
         <p style="font-size:24px; color:#a89080; white-space:nowrap">当日售罄即止</p>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       dishes: [
         { name: '番茄牛腩', price: '68' },
@@ -190,54 +190,54 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const derby = vue(
-    `<Layer width="1500" height="860" background="#0e1a14" color="#f4f7f2" safe="32">
-      <Rect cx="375" cy="430" width="750" height="860" fill="#143024" />
-      <Rect cx="1125" cy="430" width="750" height="860" fill="#10243a" />
-      <Layer cx="375" cy="180" anchor="center">
+    `<layer width="1500" height="860" background="#0e1a14" color="#f4f7f2" safe="32">
+      <rect cx="375" cy="430" width="750" height="860" fill="#143024" />
+      <rect cx="1125" cy="430" width="750" height="860" fill="#10243a" />
+      <layer cx="375" cy="180" anchor="center">
         <p style="font-size:32px; letter-spacing:6px; color:#8fbfa2; white-space:nowrap">主队</p>
-      </Layer>
-      <Layer cx="1125" cy="180" anchor="center">
+      </layer>
+      <layer cx="1125" cy="180" anchor="center">
         <p style="font-size:32px; letter-spacing:6px; color:#8eb4d6; white-space:nowrap">客队</p>
-      </Layer>
-      <Layer cx="375" cy="400" anchor="center">
+      </layer>
+      <layer cx="375" cy="400" anchor="center">
         <h1 style="font-size:200px; white-space:nowrap">2</h1>
-      </Layer>
-      <Layer cx="1125" cy="400" anchor="center">
+      </layer>
+      <layer cx="1125" cy="400" anchor="center">
         <h1 style="font-size:200px; white-space:nowrap">1</h1>
-      </Layer>
-      <Layer cx="750" cy="430" anchor="center">
+      </layer>
+      <layer cx="750" cy="430" anchor="center">
         <p style="font-size:48px; color:#f4f7f2; white-space:nowrap">终场</p>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
   )
 
   const fern = vue(
-    `<Layer width="980" height="1400" background="#f7f3ea" color="#2a3228" safe="48">
-      <Ellipse cx="490" cy="460" rx="220" ry="280" fill="#e4efe0" stroke="#2f6b45" stroke-width="3" />
-      <Ellipse cx="490" cy="460" rx="70" ry="150" fill="#2f6b45" />
-      <Line x1="120" y1="860" x2="860" y2="860" stroke="#2a3228" stroke-width="1" />
-      <Layer cx="120" cy="900" anchor="top-left">
+    `<layer width="980" height="1400" background="#f7f3ea" color="#2a3228" safe="48">
+      <ellipse cx="490" cy="460" rx="220" ry="280" fill="#e4efe0" stroke="#2f6b45" stroke-width="3" />
+      <ellipse cx="490" cy="460" rx="70" ry="150" fill="#2f6b45" />
+      <line x1="120" y1="860" x2="860" y2="860" stroke="#2a3228" stroke-width="1" />
+      <layer cx="120" cy="900" anchor="top-left">
         <p style="font-size:22px; letter-spacing:4px; color:#6d7a68; white-space:nowrap">PLATE 07</p>
-      </Layer>
-      <Layer cx="120" cy="950" anchor="top-left">
+      </layer>
+      <layer cx="120" cy="950" anchor="top-left">
         <h1 style="font-size:64px; white-space:nowrap">肾蕨</h1>
-      </Layer>
-      <Layer cx="120" cy="1040" anchor="top-left">
+      </layer>
+      <layer cx="120" cy="1040" anchor="top-left">
         <p style="font-size:28px; color:#4d5c48; white-space:nowrap">Nephrolepis cordifolia</p>
-      </Layer>
-      <Layer cx="120" cy="1120" anchor="top-left">
+      </layer>
+      <layer cx="120" cy="1120" anchor="top-left">
         <p style="font-size:26px; color:#4d5c48; width:740px">林下阴湿处。羽片对生，孢子囊群沿叶缘排列。</p>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
   )
 
   const market = vue(
-    `<Layer width="1080" height="1620" background="#fff6ea" color="#2a140c" safe="40">
-      <Rect cx="540" cy="160" width="1080" height="220" fill="#d23a2a" />
-      <Layer cx="540" cy="160" anchor="center">
+    `<layer width="1080" height="1620" background="#fff6ea" color="#2a140c" safe="40">
+      <rect cx="540" cy="160" width="1080" height="220" fill="#d23a2a" />
+      <layer cx="540" cy="160" anchor="center">
         <h1 style="font-size:84px; color:#fff6ea; white-space:nowrap">早市</h1>
-      </Layer>
-      <Layer cx="80" cy="320" anchor="top-left">
+      </layer>
+      <layer cx="80" cy="320" anchor="top-left">
         <div style="display:flex; flex-direction:column; width:920px; gap:20px; align-items:start">
           <div v-for="s in stalls" :key="s.name" style="display:flex; width:920px; height:120px; align-items:center; background:#ffffff; padding:0 28px">
             <div :style="'width:28px; height:72px; background:' + s.color"></div>
@@ -246,11 +246,11 @@ export function renderBatchPosters(): BatchPoster[] {
             <p style="font-size:32px; color:#8a5a3a; white-space:nowrap">{{ s.where }}</p>
           </div>
         </div>
-      </Layer>
-      <Layer cx="540" cy="1520" anchor="center">
+      </layer>
+      <layer cx="540" cy="1520" anchor="center">
         <p style="font-size:26px; color:#8a5a3a; white-space:nowrap">周六 6:00 — 11:00</p>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       stalls: [
         { name: '豆腐', where: '东棚', color: '#d23a2a' },
@@ -262,19 +262,19 @@ export function renderBatchPosters(): BatchPoster[] {
   )
 
   const month = vue(
-    `<Layer width="1100" height="1100" background="#f2f4f7" color="#1d2430" safe="36">
-      <Layer cx="64" cy="48" anchor="top-left">
+    `<layer width="1100" height="1100" background="#f2f4f7" color="#1d2430" safe="36">
+      <layer cx="64" cy="48" anchor="top-left">
         <h1 style="font-size:64px; white-space:nowrap">三月</h1>
-      </Layer>
-      <Layer cx="1036" cy="72" anchor="top-right">
+      </layer>
+      <layer cx="1036" cy="72" anchor="top-right">
         <p style="font-size:28px; color:#6b7688; white-space:nowrap">2026</p>
-      </Layer>
-      <Layer cx="64" cy="160" anchor="top-left">
+      </layer>
+      <layer cx="64" cy="160" anchor="top-left">
         <div style="display:flex; gap:8px">
           <p v-for="d in heads" :key="d" style="width:132px; font-size:22px; color:#6b7688; text-align:center; white-space:nowrap">{{ d }}</p>
         </div>
-      </Layer>
-      <Layer cx="64" cy="220" anchor="top-left">
+      </layer>
+      <layer cx="64" cy="220" anchor="top-left">
         <div style="display:flex; flex-direction:column; gap:8px">
           <div v-for="(week, wi) in weeks" :key="wi" style="display:flex; gap:8px">
             <div v-for="(day, di) in week" :key="wi + '-' + di" :style="'display:flex; width:132px; height:120px; background:' + (day.on ? '#ffffff' : 'transparent') + '; padding:12px'">
@@ -282,8 +282,8 @@ export function renderBatchPosters(): BatchPoster[] {
             </div>
           </div>
         </div>
-      </Layer>
-    </Layer>`,
+      </layer>
+    </layer>`,
     {
       heads: ['一', '二', '三', '四', '五', '六', '日'],
       weeks: [

@@ -1,12 +1,12 @@
 # Flex Layer 规范 v0.1
 
-Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `Layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
+Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标签用属性。结构标签只有 `layer`。文字用 HTML 写法，排布用 `display:flex`，图形用 SVG 属性。
 动画 = 程序为每个时刻生成一份 Flex Layer（v0.2 起）。
 
 设计原则：
 
 1. **一律实际像素**：所有数字都是像素，可以写 `px` 后缀，不支持百分比、em、rem。
-2. **位置由 Layer 决定**：`Layer` 负责定位，`display:flex` 的 HTML 负责排布。图形用自身坐标画在 Layer 里。
+2. **位置由 layer 决定**：`layer` 负责定位，`display:flex` 的 HTML 负责排布。图形用自身坐标画在 layer 里。
 3. **y 轴向下**：和 Canvas、HTML 一致，`cy="400"` 表示距离父级顶部 400 像素。
 4. **显式写了就照做**：写了尺寸、位置就严格使用，不会被悄悄改掉；有问题只在报告里指出。
 5. **没写的由渲染器决定，并写进报告**：比如自动换行。
@@ -17,18 +17,18 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 ## 1. 文件结构
 
 ```html
-<Layer width="1080" height="1920" background="#0f1115" color="#ffffff">
+<layer width="1080" height="1920" background="#0f1115" color="#ffffff">
   <font family="DeYiHei" src="https://example.com/deyihei.otf" />
-  <Layer cx="540" cy="700">
+  <layer cx="540" cy="700">
     <div style="display:flex; flex-direction:column; gap:32px; align-items:center">
       <h1>比特币减半</h1>
       <p style="color:#f7931a">每四年一次</p>
     </div>
-  </Layer>
-</Layer>
+  </layer>
+</layer>
 ```
 
-根元素 `<Layer>` 本身就是一个 `Layer`（见下文），属性：
+根元素 `<layer>` 本身就是一个 `layer`（见下文），属性：
 
 | 属性 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -44,15 +44,16 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 | 类别 | 标签 |
 | --- | --- |
-| 容器 | `Layer`（嵌套不填背景）。横排竖排用带 `display:flex` 的 `div` |
+| 容器 | `layer`（嵌套不填背景）。横排竖排用带 `display:flex` 的 `div` |
 | 绘制 | `draw`（子标签，正文 JS；程序侧也可用 `draw={fn}`） |
 | 文字 | `h1`、`h2`、`h3`、`p`、`div`、`span`；行内：`span`、`strong`、`b`、`em`、`br` |
 | 图片 | `img`（`image` 是同一个标签） |
-| 形状 | `Rect`、`Circle`、`Ellipse` |
-| 线条 | `Line`、`Arrow`、`Polyline`、`Polygon`、`Path`、`Curve` |
+| 形状 | `rect`、`circle`、`ellipse` |
+| 线条 | `line`、`arrow`、`polyline`、`polygon`、`path`、`curve` |
 | 复用 | `symbol`、`use` |
+| 蒙版 | `mask`（只作为 `layer` 的直接子元素） |
 
-- `Layer` 和图形首字母大写，文字和图片标签全部小写（和 HTML 一样）。HTML 只写 `style`，`Layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。
+- `layer` 和图形首字母大写，文字和图片标签全部小写（和 HTML 一样）。HTML 只写 `style`，`layer` 和图形只写属性。图片的 `src`、`alt` 仍是属性。
 - 后写的元素画在上面。
 - 不认识的标签会被忽略，并在报告里给出警告。
 
@@ -61,63 +62,86 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | 属性 | 说明 |
 | --- | --- |
 | `id` | 报告里用来指认元素 |
-| `cx`、`cy` | 只写在 `Layer` 上，默认是该层中心（见 `anchor`） |
+| `cx`、`cy` | 只写在 `layer` 上，默认是该层中心（见 `anchor`） |
 | `anchor` | 定位点在元素上的哪个位置，九宫格：`center`（默认）、`top`、`bottom`、`left`、`right`、`top-left`、`top-right`、`bottom-left`、`bottom-right` |
 | `opacity` | 0 到 1。嵌套时逐层相乘 |
-| `rotate` | 绕 `origin` 旋转，单位度，顺时针为正。对文字、线条、形状和 Layer 都生效；Layer 上的旋转作用到整棵子树 |
+| `rotate` | 绕 `origin` 旋转，单位度，顺时针为正。对文字、线条、形状和 layer 都生效；layer 上的旋转作用到整棵子树 |
 | `scale` | 绕 `origin` 缩放，同样作用到整棵子树 |
 | `origin` | 旋转和缩放的支点，取值和 `anchor` 一样，默认 `center` |
 
 `rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
 
-`perspective` 只写在 `Layer` 上，单位是像素，是直接子元素共用的视距。灭点是这一层盒子的中心，`z` 正方向朝观众，数值越大看起来越大。`rotateX`、`rotateY`、`z` 的归属和 `rotate` 相同，写在要转动或推近的那一层上，不改变布局。没有祖先写 `perspective` 时仍按二维绘制，并报 `flatten-3d`。子元素的 `z` 大于等于视距时报 `behind-camera`，该元素不绘制。带三维姿态的平面先按 4 倍分辨率绘制，再平均缩回逻辑像素，斜边因此抗锯齿。没有三维姿态的内容仍走原来的二维绘制。灯光和网格不在这一步。
+`perspective` 只写在 `layer` 上，单位是像素，是直接子元素共用的视距。灭点是这一层盒子的中心，`z` 正方向朝观众，数值越大看起来越大。`rotateX`、`rotateY`、`z` 的归属和 `rotate` 相同，写在要转动或推近的那一层上，不改变布局。没有祖先写 `perspective` 时仍按二维绘制，并报 `flatten-3d`。子元素的 `z` 大于等于视距时报 `behind-camera`，该元素不绘制。带三维姿态的平面先按 4 倍分辨率绘制，再平均缩回逻辑像素，斜边因此抗锯齿。没有三维姿态的内容仍走原来的二维绘制。灯光和网格不在这一步。
 
 属性归属（由 [src/schema.ts](src/schema.ts) 生成，不要手改两行标记之间的表）：
 
 <!-- attrs:ownership:begin -->
 | 属性 | 写在哪 |
 | --- | --- |
-| `width`、`height`、`opacity`、`rotate`、`rotateX`、`rotateY`、`z`、`scale`、`origin`、`cx`、`cy`、`anchor` | `Layer` 的属性。HTML 上写了报 `warn` |
-| `background`、`padding`、`font-size`、`color`、`flex`、`flex-grow`、`flex-shrink`、`gap`、`border`、`border-radius`、`max-width`、`align-items`、`justify-content`、`writing-mode`、`object-fit`、`object-position` | HTML 的 `style`。`Layer` 或图形写了 `style` 报 `warn` |
-| `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `Layer` 的局部坐标 |
+| `width`、`height`、`opacity`、`rotate`、`rotateX`、`rotateY`、`z`、`scale`、`origin`、`cx`、`cy`、`anchor` | `layer` 的属性。HTML 上写了报 `warn` |
+| `background`、`padding`、`font-size`、`color`、`flex`、`flex-grow`、`flex-shrink`、`gap`、`border`、`border-radius`、`max-width`、`align-items`、`justify-content`、`writing-mode`、`object-fit`、`object-position` | HTML 的 `style`。`layer` 或图形写了 `style` 报 `warn` |
+| `x1`、`y1`、`x2`、`y2`、`points`、`d`、`fill`、`stroke` | 图形属性，坐标是所在 `layer` 的局部坐标 |
 | `src`、`alt` | 只写在 `img` 上。宽高仍放进 `style` |
-| `shadow`、`glow`、`inner-shadow`、`inner-glow`、`blur`、`backdrop-blur`、`glass`、`noise`、`filter`、`blend` | 图形和 `Layer` 写属性；文字写在 `style`。见第 9 章 |
-| `perspective`、`overlay`、`grade`、`grade-mask` | 只写在 `Layer` 上。写在别处或写进 `style` 报 `warn` |
+| `shadow`、`glow`、`inner-shadow`、`inner-glow`、`blur`、`backdrop-blur`、`glass`、`noise`、`filter`、`blend` | 图形和 `layer` 写属性；文字写在 `style`。见第 9 章 |
+| `perspective`、`overlay`、`grade`、`grade-mask` | 只写在 `layer` 上。写在别处或写进 `style` 报 `warn` |
 <!-- attrs:ownership:end -->
 
 叶子的定位：
 
 | 叶子 | 怎么定位 |
 | --- | --- |
-| 文字，以及没写宽高的一组 HTML | 外包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上 |
-| 图片 `img` | 和文字一样，外包一层 `Layer` 来定位 |
+| 文字，以及没写宽高的一组 HTML | 外包一层 `layer`，把 `cx`、`cy`、`anchor` 写在 `layer` 上 |
+| 图片 `img` | 和文字一样，外包一层 `layer` 来定位 |
 | 形状、带 `draw` 和尺寸的自定义元素 | 中心写法（`cx`、`cy` 永远是中心）或两点写法 `x1 y1 x2 y2`。尺寸是自己写的，不用 `anchor` |
 | 线条 | 端点、`points`、`d` 本身就是坐标，不写 `cx`、`cy` |
 
-没写 `cx`、`cy` 时，默认放在父级 `Layer` 的中心。
+没写 `cx`、`cy` 时，默认放在父级 `layer` 的中心。
 
-`anchor` 示例：`<Layer cx="60" cy="120" anchor="top-left"><h1>标题</h1></Layer>` 表示这一层的左上角在 (60, 120)。
+`anchor` 示例：`<layer cx="60" cy="120" anchor="top-left"><h1>标题</h1></layer>` 表示这一层的左上角在 (60, 120)。
 
 ## 4. 容器
 
-### 4.1 Layer：自由摆放，也可以当分组
+### 4.1 layer：自由摆放，也可以当分组
 
-原点是 Layer 的左上角。图形和嵌套 Layer 用 `cx`、`cy` 或自身坐标定位；HTML 不写 `cx`，要单独摆放就再包一层 Layer。Layer 可以嵌套。外层的 `opacity`、`rotate`、`scale` 会作用到里面的全部子元素，所以一组要一起移动、旋转或缩放时，包一层 Layer 即可。
+原点是 layer 的左上角。图形和嵌套 layer 用 `cx`、`cy` 或自身坐标定位；HTML 不写 `cx`，要单独摆放就再包一层 layer。layer 可以嵌套。外层的 `opacity`、`rotate`、`scale` 会作用到里面的全部子元素，所以一组要一起移动、旋转或缩放时，包一层 layer 即可。
 
-- 写了 `width`、`height`：Layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
+- 写了 `width`、`height`：layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
 - 没写：宽高等于从原点到内容右下角的距离，没写 `cx`、`cy` 的子元素放在这个盒子的中心。坐标在负方向的子元素会画到盒子外面，但不会把其他子元素一起平移。
 
-`overflow="hidden"` 按 Layer 的盒子裁剪子元素。默认 `visible`。
+`overflow="hidden"` 按 layer 的盒子裁剪子元素。默认 `visible`。被裁掉的是子元素；阴影、模糊仍可以画到盒子外面。
 
-`border`、`border-radius`、`overflow` 写在 `Layer` 的属性上，不写 `style`。**`Layer` 不填背景**：它只合成子元素画出来的内容。色块用 `Rect` 的 `fill`、HTML 的 `style="background: …"`，或子标签 `<draw>` 自己画。`Layer` / `use` 上写 `background` 会警告并忽略。画布底色只写在根节点 `<Layer background>`。
+`<mask>` 裁的是这一层合成完的画面，包括阴影、模糊、调色和颗粒。它写在 `layer` 里面，和要裁的内容并列。自己不画出来，不占布局，不把层撑大，不出现在报告里，也不触发 `overflow-canvas`。一层最多一个，多出来的 `warn` 并忽略。坐标和同层的图形一样，原点在 layer 左上角。
 
-一组 HTML 要放到画面上，包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在 `Layer` 上。
+里面直接写 `rect`、`circle`、`ellipse`、`polygon`、`path`，也可以放 `img`（用图片自己的 alpha）。`line`、`arrow`、`polyline`、`curve`、文字、`div`、嵌套 `layer` 会 `warn` 并忽略。空的 `mask` 报 `empty-mask`，并且不生效。
 
-`symbol` 定义一块可复用的图，本身不画出来。`use` 按 Layer 的方式摆放它：`cx`、`cy`、`anchor`、`rotate`、`scale`、`opacity` 都写在 `use` 上。`symbol` 里的坐标是它自己的局部坐标。
+没写 `fill` 时按 `#fff` 画满。实心形状是硬边；`fill` 的 alpha 和渐变里的透明处是软边。颜色不算，只看 alpha。没画到的像素藏起来。多个形状按书写顺序叠上，后写的盖住先写的；半透明不会把底下挖空。要挖洞，用带洞的 `path`。形状自己的 `rotate`、`scale` 仍然有效。
+
+画布底色先铺好，不进 `mask`。根 `layer` 的 `grade` 仍作用整幅画布，包括底色。`grade-mask` 只控制调色强度。`mask` 放进 flex、写在图形或 HTML 上、写成属性或写进 `style`，都会 `warn` 并忽略。
+
+```html
+<layer width="320" height="180">
+  <mask>
+    <circle cx="160" cy="90" r="90" />
+  </mask>
+  <img src="street.png" style="width:320px; height:180px" />
+</layer>
+```
+
+```html
+<mask>
+  <rect x1="0" y1="0" x2="320" y2="180" fill="linear-gradient(to bottom, #fff, #fff0)" />
+</mask>
+```
+
+`border`、`border-radius`、`overflow` 写在 `layer` 的属性上，不写 `style`。**`layer` 不填背景**：它只合成子元素画出来的内容。色块用 `rect` 的 `fill`、HTML 的 `style="background: …"`，或子标签 `<draw>` 自己画。`layer` / `use` 上写 `background` 会警告并忽略。画布底色只写在根节点 `<layer background>`。
+
+一组 HTML 要放到画面上，包一层 `layer`，把 `cx`、`cy`、`anchor` 写在 `layer` 上。
+
+`symbol` 定义一块可复用的图，本身不画出来。`use` 按 layer 的方式摆放它：`cx`、`cy`、`anchor`、`rotate`、`scale`、`opacity` 都写在 `use` 上。`symbol` 里的坐标是它自己的局部坐标。
 
 ```html
 <symbol id="dew" width="28" height="28">
-  <Circle cx="14" cy="14" r="12" fill="radial-gradient(#ffffff, #ffffff00)" />
+  <circle cx="14" cy="14" r="12" fill="radial-gradient(#ffffff, #ffffff00)" />
 </symbol>
 <use href="#dew" cx="180" cy="640" />
 <use href="#dew" cx="240" cy="700" scale="0.8" />
@@ -126,18 +150,18 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 没写 `width`、`height` 时，`symbol` 的盒子包住内容。`href` 写成 `#id`。
 
 ```html
-<Layer cx="120" cy="64" anchor="top-left">
+<layer cx="120" cy="64" anchor="top-left">
   <div style="display:flex; gap:40px; align-items:center">
     <h2 style="font-size:56px">勾股定理</h2>
   </div>
-</Layer>
+</layer>
 ```
 
 ### 4.2 flex：HTML 排布
 
-`display:flex` 把 `div`（以及其他文字标签）变成排布容器，不再当文字盒子。默认横向。竖排写 `flex-direction:column`。子元素是文字、图片、flex 容器或 `Layer`。
+`display:flex` 把 `div`（以及其他文字标签）变成排布容器，不再当文字盒子。默认横向。竖排写 `flex-direction:column`。子元素是文字、图片、flex 容器或 `layer`。
 
-图形要放进 flex，包一层写了宽高的 `Layer`，或者改用 `div` 盒子（`width`、`height`、`background`、`border-radius`）。形状直接放进来会照尺寸渲染并报 `info`；线条直接放进来不渲染，报 `warn`。两点坐标写在 flex 里的形状上不渲染，报 `warn`。
+图形要放进 flex，包一层写了宽高的 `layer`，或者改用 `div` 盒子（`width`、`height`、`background`、`border-radius`）。形状直接放进来会照尺寸渲染并报 `info`；线条直接放进来不渲染，报 `warn`。两点坐标写在 flex 里的形状上不渲染，报 `warn`。
 
 `style` 支持的属性：
 
@@ -155,7 +179,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 - 文字默认 `flex-shrink:1`，空间不够时会换行变窄，但不会窄过最长的一个不可断开的词。
 - 形状和图片默认 `flex-shrink:0`，不会被压扁。
 
-**可用宽度**：放在 Layer 里、没写 `width` 的 flex 容器，最宽只能到 Layer 的宽度（根 Layer 要减去左右安全区）。
+**可用宽度**：放在 layer 里、没写 `width` 的 flex 容器，最宽只能到 layer 的宽度（根 layer 要减去左右安全区）。
 
 ## 5. 文字
 
@@ -193,7 +217,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 3. 都没写：默认一行；如果一行超出可用宽度，自动换行，报告里记为 `auto-wrap`。
 4. 中文可以在任意两个字之间断行；英文单词和连续数字不会被拆开。
 5. 避头尾：`，。、；：？！）」』》】…` 等不会出现在行首，`（「『《【` 等不会出现在行尾。
-6. 硬换行只用 `<br>`，源码里的换行和连续空格会被折叠成一个空格。
+6. 硬换行只用 `<br>`。源码里的换行和连续空格折成一个空格，每一行的行首行尾空格去掉。行内标签交界处的空格保留，`A <span>B</span> C` 是 `A B C`。`&nbsp;` 不折叠，也不当行首行尾空格去掉。
 
 ## 6. 图片
 
@@ -212,21 +236,21 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | `object-position` | 默认 `center`。可写 `top`、`left`、`top-left`、`left top`，或相对图片盒子的 `0%`–`100%`（例如 `50% 0%`） |
 | `border-radius`、`opacity`、`padding`、`background`、`border` | 同其它 HTML。圆角会裁切图片 |
 
-图片可以放进 `display:flex`，默认不缩小。在 Layer 里和文字一样默认居中；要指定位置就外包一层 `Layer`，把 `cx`、`cy`、`anchor` 写在那一层上。加载失败报 `missing-image`，写了宽高的盒子仍然占位。缺 `src` 报 `invalid-attr`。
+图片可以放进 `display:flex`，默认不缩小。在 layer 里和文字一样默认居中；要指定位置就外包一层 `layer`，把 `cx`、`cy`、`anchor` 写在那一层上。加载失败报 `missing-image`，写了宽高的盒子仍然占位。缺 `src` 报 `invalid-attr`。
 
 ## 7. 形状与线条
 
 ### 7.1 形状
 
-两种写法只能选一种。两点可以反着写，取最小最大。`Circle` 只有中心写法。
+两种写法只能选一种。两点可以反着写，取最小最大。`circle` 只有中心写法。
 
 | 标签 | 中心写法 | 两点写法 |
 | --- | --- | --- |
-| `Rect` | `cx` `cy` `width` `height`，另有 `rx`（圆角） | `x1` `y1` `x2` `y2`，对角两个角 |
-| `Ellipse` | `cx` `cy` `rx` `ry` | `x1` `y1` `x2` `y2`，外接矩形的对角 |
-| `Circle` | `cx` `cy` `r` | 不支持 |
+| `rect` | `cx` `cy` `width` `height`，另有 `rx`（圆角） | `x1` `y1` `x2` `y2`，对角两个角 |
+| `ellipse` | `cx` `cy` `rx` `ry` | `x1` `y1` `x2` `y2`，外接矩形的对角 |
+| `circle` | `cx` `cy` `r` | 不支持 |
 
-`Rect` 写 SVG 的 `x` `y` `width` `height` 时，按左上角渲染，并报 `info`。形状上写 `anchor` 也照做，并报 `info`。
+`rect` 写 SVG 的 `x` `y` `width` `height` 时，按左上角渲染，并报 `info`。形状上写 `anchor` 也照做，并报 `info`。
 
 绘制属性和 SVG 一致：`fill`（默认 `#000000`，写 `none` 不填充）、`stroke`（默认 `none`）、`stroke-width`（默认 1）、`stroke-dasharray`。
 
@@ -234,17 +258,17 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 | 标签 | 属性 |
 | --- | --- |
-| `Line` | `x1`、`y1`、`x2`、`y2` |
-| `Arrow` | `x1`、`y1`、`x2`、`y2`、`head`（箭头长度，默认 `stroke-width` 的 4 倍，最小 12） |
-| `Polyline`、`Polygon` | `points="x,y x,y …"` |
-| `Path` | `d`（SVG 路径语法） |
-| `Curve` | `points="x,y x,y …"`，可选 `closed` |
+| `line` | `x1`、`y1`、`x2`、`y2` |
+| `arrow` | `x1`、`y1`、`x2`、`y2`、`head`（箭头长度，默认 `stroke-width` 的 4 倍，最小 12） |
+| `polyline`、`polygon` | `points="x,y x,y …"` |
+| `path` | `d`（SVG 路径语法） |
+| `curve` | `points="x,y x,y …"`，可选 `closed` |
 
-- 线条只能放在 Layer 里，坐标是 **Layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
+- 线条只能放在 layer 里，坐标是 **layer 的局部坐标**（和 SVG 一样，不用 `cx`、`cy`）。写了 `cx`、`cy` 会忽略并报 `warn`。
 - 布局盒子是纯几何范围，水平线的高度可以是 0。描边和箭头只算进报告的 `ink`。
 - `stroke` 默认是全局 `color`，`stroke-width` 默认 4（注意和 SVG 不同：SVG 默认不描边，线条会看不见）。
-- `Polygon`、`Path`、`Curve` 的 `fill` 默认 `none`。开口的 `Curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
-- `Curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
+- `polygon`、`path`、`curve` 的 `fill` 默认 `none`。开口的 `curve` 写了 `fill` 也不填，并给出警告；要色块就加 `closed`。
+- `curve` 穿过 `points` 里的每个点，绘制时转成贝塞尔。两个点退化为直线。
 - 还支持 `stroke-linecap`、`stroke-linejoin`、`stroke-dasharray`。
 
 ## 8. 填充 paint
@@ -252,8 +276,8 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 `fill`、`stroke`、画布 `background`、HTML 的 `background`，以及第 9 章里的 `overlay`、`grade-mask`，共用这一套写法。色标位置是元素自己的 0 到 1，也可以写百分比，不是布局用的百分比。文字的 `color` 仍是纯色。
 
 ```html
-<Rect x="0" y="0" width="720" height="960" fill="linear-gradient(to bottom, #0c1424, #1a3352 55%, #6e7c72)" />
-<Circle cx="520" cy="220" r="70" fill="radial-gradient(at 40% 35%, #fff, #f4efe4 40%, #d9d0c0)" />
+<rect x="0" y="0" width="720" height="960" fill="linear-gradient(to bottom, #0c1424, #1a3352 55%, #6e7c72)" />
+<circle cx="520" cy="220" r="70" fill="radial-gradient(at 40% 35%, #fff, #f4efe4 40%, #d9d0c0)" />
 ```
 
 `linear-gradient` 默认从上到下，可以写 `to top`、`to right` 或 `180deg`。`radial-gradient` 默认从中心散开，`at 40% 35%` 把高光挪到左上。
@@ -276,11 +300,11 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `conic cx cy [角度]` | 从正上方起、再加起始角度，顺时针一圈 | 圆心到盒子最远角 |
 
 ```html
-<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115, #f7931a)" />
-<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115 / #f7931a)" />
-<Rect cx="200" cy="120" width="400" height="240" fill="gradient(#ff0000 #00ff00 / #0000ff #ffffff)" />
-<Circle cx="400" cy="500" r="120" fill="gradient(radial 120 120 120, #ffffff, #f7931a 0.45, #0f1115)" />
-<Rect cx="540" cy="700" width="400" height="400" fill="gradient(conic 200 200, #ff0000, #00ff00, #0000ff, #ff0000)" />
+<rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115, #f7931a)" />
+<rect cx="200" cy="120" width="400" height="240" fill="gradient(#0f1115 / #f7931a)" />
+<rect cx="200" cy="120" width="400" height="240" fill="gradient(#ff0000 #00ff00 / #0000ff #ffffff)" />
+<circle cx="400" cy="500" r="120" fill="gradient(radial 120 120 120, #ffffff, #f7931a 0.45, #0f1115)" />
+<rect cx="540" cy="700" width="400" height="400" fill="gradient(conic 200 200, #ff0000, #00ff00, #0000ff, #ff0000)" />
 ```
 
 锥形的 `u`、径向的 `v` 走到 1 就回到起点。要无缝接上，把第一个颜色或第一行在末尾再写一次。铺满整个盒子用矩阵；多行的 `linear` 只向线段左侧展开。盒子在某个方向上长度为 0 时（比如水平线没有高度），这一维没有变化：沿竖线变色写成两行，不要写成一行。
@@ -289,11 +313,11 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 ## 9. 效果
 
-图形和 `Layer` 把效果写在属性上。文字把同一项写在 `style` 里。**作用于整棵子树的效果只写在 `Layer` 上**：`overlay`、`grade`、`grade-mask`。写在图形、文字或 `style` 里报 `invalid-attr` 并忽略。
+图形和 `layer` 把效果写在属性上。文字把同一项写在 `style` 里。**作用于整棵子树的效果只写在 `layer` 上**：`overlay`、`grade`、`grade-mask`。写在图形、文字或 `style` 里报 `invalid-attr` 并忽略。
 
-效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，Layer / flex 跟自身边框或背景；`blur` / `filter` / `blend` 作用在已绘制像素上。
+效果只影响绘制，不改变布局盒子。**一律按着墨（墨迹 / alpha）计算，不按布局盒子**：文字跟字形，形状跟几何填充，layer / flex 跟自身边框或背景；`blur` / `filter` / `blend` 作用在已绘制像素上。
 
-绘制顺序只此一份：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体 → `inner-shadow` → `inner-glow` → `overlay` → `noise`。若有 `blur`、`filter` 或 `grade`，阴影到 overlay 先画进离屏，依次做 `grade`、`blur` / `filter`，贴回后再叠 `noise`（写了 `grade` 时颗粒不被染色）。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。`glass` 与 `backdrop-blur` 同时出现时以 `glass` 为准，并报 `info`。
+绘制顺序只此一份：`backdrop-blur` / `glass` 取样 → `shadow` → `glow` → 本体（`overflow="hidden"` 在这里裁子元素）→ `inner-shadow` → `inner-glow` → `overlay` → `noise`。若有 `blur`、`filter`、`grade` 或 `<mask>`，先画进离屏，依次做 `grade`、`blur` / `filter`，有 `grade` 时再叠 `noise`，然后按 `<mask>` 的 alpha 裁掉，再贴回。画布底色不进 `<mask>`。写了 `grade` 时颗粒不被染色。同时写了 `blur` 与 `filter` 时，图层模糊以 `blur` 为准，并报 `info`。`glass` 与 `backdrop-blur` 同时出现时以 `glass` 为准，并报 `info`。
 
 每个效果都按同一套字段描述：归属、语法、是否复用 paint、作用范围、在上面这条顺序里的位置、报告与问题码、图格。实现取舍见 [docs/EFFECTS.md](docs/EFFECTS.md)。图在 [docs/GALLERY.md](docs/GALLERY.md)。
 
@@ -312,7 +336,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 图形、线条、`Layer` 写属性；文字写 `style` |
+| 归属 | 图形、线条、`layer` 写属性；文字写 `style` |
 | paint | 颜色是一个色值，不是渐变 |
 | 作用范围 | 该元素的墨迹 |
 | 报告 | 可能占用的范围在 `effect`；超出画布报 `effect-clipped` |
@@ -328,7 +352,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 | 属性 | 语法 | 说明 |
 | --- | --- | --- |
-| `blur` | 单个非负像素 | 图层模糊：糊本元素（含 Layer 子树）已绘制像素；外扩计入 `effect-clipped` |
+| `blur` | 单个非负像素 | 图层模糊：糊本元素（含 layer 子树）已绘制像素；外扩计入 `effect-clipped` |
 | `backdrop-blur` | 单个非负像素 | 背景模糊：糊元素背后已画内容，再透过半透明本体看见 |
 | `glass` | 见下 | 边缘凸弧面透镜折射 + 色散 + 朝光高光。与 `backdrop-blur` 同时写时以 `glass` 为准 |
 
@@ -341,7 +365,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 图形和 `Layer` 写属性；文字写 `style` |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
 | paint | `glass` 的色调是一个色值 |
 | 作用范围 | `blur` 作用于已绘制像素；`backdrop-blur` / `glass` 取样背后的画面，再按墨迹贴回 |
 | 图 | [docs/gallery/blur-glass.png](docs/gallery/blur-glass.png)、[docs/gallery/glass-scene.png](docs/gallery/glass-scene.png) |
@@ -351,14 +375,14 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | 想要 | 写 |
 | --- | --- |
 | 整块提亮、去色、偏色相 | `filter` |
-| 胶片风格：暗部高光分色、发灰、暗角 | `Layer` 的 `grade`，局部再加 `grade-mask` |
-| 在画面上罩一层纯色或渐变 | `Layer` 的 `overlay` |
+| 胶片风格：暗部高光分色、发灰、暗角 | `layer` 的 `grade`，局部再加 `grade-mask` |
+| 在画面上罩一层纯色或渐变 | `layer` 的 `overlay` |
 
 #### filter
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 图形和 `Layer` 写属性；文字写 `style` |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
 | 语法 | `brightness()`、`contrast()`、`saturate()`、`grayscale()`、`sepia()`、`invert()`、`hue-rotate()`，空格分隔。比例写 `0–1` 或百分比；`hue-rotate` 用度（`15` 或 `15deg`） |
 | paint | 否 |
 | 作用范围 | 已绘制像素 |
@@ -367,12 +391,12 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 #### grade 与 grade-mask
 
-`grade` 只写在 `Layer` 上，作用于整个子树：文字、图片、色块一起调。图片要调色就外包一层 `Layer`。根 `Layer` 写 `grade` 时连画布底色一起调。
+`grade` 只写在 `layer` 上，作用于整个子树：文字、图片、色块一起调。图片要调色就外包一层 `layer`。根 `layer` 写 `grade` 时连画布底色一起调。
 
 ```html
-<Layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
+<layer grade="lomo 0.8, fade 0.1" grade-mask="radial-gradient(#fff0 30%, #fff)">
   <img src="street.png" style="width:640px; height:800px; object-fit:cover" />
-</Layer>
+</layer>
 ```
 
 `grade` 是逗号分开的几项。第一项可以是预设名，后面可跟整体强度 0–1（和原图混合）。后面的项覆盖预设里的同名参数，没写的参数保持预设值。
@@ -396,25 +420,25 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `bleach` | 低饱和高对比 | `contrast 1.25, fade 0.05, saturate 0.55` |
 | `mono` | 黑白 | `contrast 1.1, saturate 0` |
 
-计算在 OKLab 里进行，顺序是：`contrast` → `fade` → `saturate` → `warmth` → 三段染色 → `vignette` → 按强度和原图混合。染色排在 `saturate` 之后，所以 `mono, shadows #1f5a6e 0.4` 是冷调黑白。暗角的中心和遮罩都按这个 Layer 的盒子计算，和渐变的坐标一样。
+计算在 OKLab 里进行，顺序是：`contrast` → `fade` → `saturate` → `warmth` → 三段染色 → `vignette` → 按强度和原图混合。染色排在 `saturate` 之后，所以 `mono, shadows #1f5a6e 0.4` 是冷调黑白。暗角的中心和遮罩都按这个 layer 的盒子计算，和渐变的坐标一样。
 
 `grade-mask` 复用第 8 章的 paint：纯色、`linear-gradient`、`radial-gradient` 或 `gradient()`。alpha 是强度：不透明处满强度，透明处保持原图。只写 `grade-mask` 不写 `grade` 时报 `warn`。
 
-不同区域用不同效果：内外两层 `Layer` 各写一个 `grade`，各自用遮罩只盖自己那一块。
+不同区域用不同效果：内外两层 `layer` 各写一个 `grade`，各自用遮罩只盖自己那一块。
 
 ```html
-<Layer grade="mono" grade-mask="linear-gradient(to right, #fff0 50%, #fff 50%)">
-  <Layer grade="lomo" grade-mask="linear-gradient(to right, #fff 50%, #fff0 50%)">
+<layer grade="mono" grade-mask="linear-gradient(to right, #fff0 50%, #fff 50%)">
+  <layer grade="lomo" grade-mask="linear-gradient(to right, #fff 50%, #fff0 50%)">
     <img src="street.png" style="width:640px; height:400px" />
-  </Layer>
-</Layer>
+  </layer>
+</layer>
 ```
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 只写在 `Layer` 的属性上 |
+| 归属 | 只写在 `layer` 的属性上 |
 | paint | `grade-mask` 复用 paint |
-| 作用范围 | 该 Layer 整棵子树的已绘制像素 |
+| 作用范围 | 该 layer 整棵子树的已绘制像素 |
 | 位置 | 离屏里、`blur` / `filter` 之前 |
 | 报告 | `grade` 回显预设展开后的完整参数 |
 | 图 | [docs/gallery/color.png](docs/gallery/color.png) |
@@ -423,10 +447,10 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 只写在 `Layer` 上 |
+| 归属 | 只写在 `layer` 上 |
 | 语法 | `<paint> [opacity] [blend]`。opacity 为 `0–1` 或百分比，与混合模式顺序可互换 |
 | paint | 复用第 8 章 |
-| 作用范围 | 按该 Layer 子树墨迹裁切 |
+| 作用范围 | 按该 layer 子树墨迹裁切 |
 | 位置 | 内发光之后、噪点之前 |
 | 图 | [docs/gallery/color.png](docs/gallery/color.png) |
 
@@ -445,7 +469,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 
 | 项 | 说明 |
 | --- | --- |
-| 归属 | 图形和 `Layer` 写属性；文字写 `style` |
+| 归属 | 图形和 `layer` 写属性；文字写 `style` |
 | paint | `noise` 的颜色是一个色值 |
 | 作用范围 | 已绘制像素 / 该元素墨迹 |
 | 图 | [docs/gallery/shadow-glow.png](docs/gallery/shadow-glow.png) 里的 noise、blend 格 |
@@ -461,7 +485,7 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
   "height": 1920,
   "elements": [
     {
-      "path": "Layer/Layer[0]/div[0]/h1[0]",
+      "path": "layer/layer[0]/div[0]/h1[0]",
       "id": "title",
       "tag": "h1",
       "box": { "x": 330, "y": 600, "width": 420, "height": 106, "left": 330, "top": 600, "right": 750, "bottom": 706, "centerX": 540, "centerY": 653 },
@@ -472,13 +496,13 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
     }
   ],
   "issues": [
-    { "level": "warn", "code": "invalid-child", "path": "Layer/div[0]/Line[0]", "message": "线条不能放在 flex 容器内", "hint": "包一层 Layer，例如 <Layer><Line …/></Layer>" }
+    { "level": "warn", "code": "invalid-child", "path": "layer/div[0]/line[0]", "message": "线条不能放在 flex 容器内", "hint": "包一层 layer，例如 <layer><line …/></layer>" }
   ]
 }
 ```
 
 - `box`：布局盒子（含 padding 和 border），只累加平移，不受 `rotate`、`scale` 影响。
-- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 Layer 求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。
+- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 layer 求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。
 - `opacity`：从根到该元素逐层相乘后的透明度。
 
 `opacity` 小于 0.01 的元素仍会出现在 `elements` 里，但不参与下面的越界、安全区、重叠和最小字号检查。最小字号按声明的 `font-size` 判断，不乘 `scale`。
@@ -497,15 +521,16 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 | `non-canonical` | info | 含义明确，但不是规范写法。照常渲染，`hint` 里是规范写法 |
 | `unknown-tag` | warn | 不认识的标签 |
 | `invalid-attr` | warn | 属性放错了位置，或两种写法混用。不认识的属性名不报，留给 `draw` |
-| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，文字盒子里放了 `h1`–`h3`、`p`、`div` 或图片 |
+| `invalid-child` | warn | 非法子元素：线条放进 flex 容器，文字盒子里放了 `h1`–`h3`、`p`、`div` 或图片，`mask` 放错位置或一层写了多个 |
+| `empty-mask` | warn | `mask` 里没有可用的形状或图片，不生效 |
 | `invalid-draw` | error / warn | `<draw>` 语法错误（error）或内容为空（warn） |
 | `missing-image` | warn | `img` 的 `src` 读不到 |
 | `missing-symbol` | warn | `use` 的 `href` 没有对应的 `symbol` |
 | `symbol-cycle` | warn | `symbol` 通过 `use` 引用了自己 |
-| `open-curve-fill` | warn | 开口的 `Curve` 写了 `fill`，没有填充 |
+| `open-curve-fill` | warn | 开口的 `curve` 写了 `fill`，没有填充 |
 | `effect-clipped` | warn | 本体在画布内，阴影、光晕或图层模糊超出画布 |
-| `flatten-3d` | warn | `rotateX`、`rotateY`、`z` 没有落在带 `perspective` 的 Layer 里。仍按二维绘制 |
-| `behind-camera` | warn | 平面的 `z` 大于等于所在 Layer 的 `perspective`，不绘制 |
+| `flatten-3d` | warn | `rotateX`、`rotateY`、`z` 没有落在带 `perspective` 的 layer 里。仍按二维绘制 |
+| `behind-camera` | warn | 平面的 `z` 大于等于所在 layer 的 `perspective`，不绘制 |
 
 每条问题都可以带 `hint`，是可以直接照做的改法。
 
@@ -527,17 +552,17 @@ flexlayer check scene.layer                                      # 只输出检�
 在 `.layer` 文件里用子标签 `<draw>…</draw>`，正文是 JavaScript，可用变量只有 `ctx` 与 `el`（与回调参数相同）。`<draw>` 不参与布局，画在父元素默认内容之后；同一个元素只能有一个 `<draw>`。程序侧已挂 `draw` 回调时，忽略标签并警告。
 
 ```html
-<Layer width="200" height="120" cx="100" cy="60">
+<layer width="200" height="120" cx="100" cy="60">
   <draw>
     ctx.fillStyle = '#3ecfc4'
     ctx.fillRect(0, 0, el.w, el.h)
     ctx.strokeStyle = el.computed.color
     ctx.strokeRect(4, 4, el.w - 8, el.h - 8)
   </draw>
-</Layer>
+</layer>
 ```
 
-绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素盒子的左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`，并且已经包含该元素和所有祖先 `Layer` 的 `rotate`、`scale`（绕各自的 `origin`）。线条的盒子是纯几何范围，所以水平线的 `el.h` 是 0。尺寸用 `el.w`、`el.h`，不要从 `el.attr` 推算。`opacity` 由外层统一乘到 `globalAlpha`。自定义属性原样出现在 `el.attr` 里。
+绘制顺序：先画该元素默认内容（文字、形状、线条、子节点），再调用 `draw`。`ctx` 原点在元素盒子的左上角，坐标范围 `(0,0)` 到 `(el.w, el.h)`，并且已经包含该元素和所有祖先 `layer` 的 `rotate`、`scale`（绕各自的 `origin`）。线条的盒子是纯几何范围，所以水平线的 `el.h` 是 0。尺寸用 `el.w`、`el.h`，不要从 `el.attr` 推算。`opacity` 由外层统一乘到 `globalAlpha`。自定义属性原样出现在 `el.attr` 里。
 
 `el` 字段：
 
@@ -555,8 +580,8 @@ flexlayer check scene.layer                                      # 只输出检�
 ```ts
 import { h, renderLayer } from '@dc/flexlayer'
 
-const root = h('Layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
-  h('Layer', { cx: '540', cy: '700', anchor: 'center' },
+const root = h('layer', { width: '1080', height: '1920', background: '#0f1115', color: '#ffffff' },
+  h('layer', { cx: '540', cy: '700', anchor: 'center' },
     h('h1', {
       style: 'font-size:96px; color:#f7931a',
       draw: (ctx, el) => {
@@ -576,7 +601,7 @@ await renderLayer(root)
 
 JSX 可将 `jsxImportSource` 设为 `@dc/flexlayer`，使用 `@dc/flexlayer/jsx-runtime`。
 
-带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<Layer>` 的 `draw` / `<draw>` 和其它元素一样，在画布底色和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
+带 `draw` 且写了尺寸的自定义元素，定位和形状相同。根节点 `<layer>` 的 `draw` / `<draw>` 和其它元素一样，在画布底色和子元素画完之后执行。`el.w`、`el.h` 是画布尺寸，`el.t` 是当前秒数。`opacity`、`rotate`、`scale` 作用到整幅画面。
 
 ## 13. 帧序列
 
@@ -592,8 +617,8 @@ const scene: Composition = {
   fps: 30,
   durationInFrames: 90,
   component: ({ frame, fps, t }) =>
-    h('Layer', { width: '1080', height: '1920', background: '#0f1115' },
-      h('Layer', { cy: String(700 + Math.sin(t) * 40) },
+    h('layer', { width: '1080', height: '1920', background: '#0f1115' },
+      h('layer', { cy: String(700 + Math.sin(t) * 40) },
         h('h1', {}, '比特币减半'),
       ),
     ),
@@ -621,5 +646,5 @@ const { frames, contactSheet } = await renderComposition(scene)
 - 把帧序列编码成视频，以及时间轴预览。
 - 墨迹布局：按着墨范围计算间距、居中、包裹。
 - `Icon`。
-- `Scene3D` 这个名字仍保留，不要挪作他用。`rotateX`、`rotateY`、`z`、`perspective` 已写在 `Layer` 上，见第 3 章。灯光、网格和 `headless-three` 还没有，讨论见 [docs/proposals/3D.md](docs/proposals/3D.md)。
+- `Scene3D` 这个名字仍保留，不要挪作他用。`rotateX`、`rotateY`、`z`、`perspective` 已写在 `layer` 上，见第 3 章。灯光、网格和 `headless-three` 还没有，讨论见 [docs/proposals/3D.md](docs/proposals/3D.md)。
 - 滤镜设计说明见 [docs/EFFECTS.md](docs/EFFECTS.md)。勿占用：`outer-glow`、`drop-shadow`、`backdrop-filter`、`texture`。

@@ -25,10 +25,10 @@ async function pixelAt(png: Buffer, x: number, y: number) {
 describe('paint containers', () => {
   it('竖向 flex 的子元素画在容器中间', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '100', cy: '100' },
         h('div', { style: 'display:flex; flex-direction:column; width:80px' }, h('div', { style: 'width:80px; height:40px; background:#ffffff' }, 'A')),
       ),
@@ -42,9 +42,9 @@ describe('paint containers', () => {
 
   it('stroke="none" 的多边形只填充，不描边', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '100', height: '100', background: '#ffffff' },
-      h('Polygon', { points: '20,20 80,20 80,80 20,80', fill: '#ff0000', stroke: 'none', 'stroke-width': '12' }),
+      h('polygon', { points: '20,20 80,20 80,80 20,80', fill: '#ff0000', stroke: 'none', 'stroke-width': '12' }),
     )
     const { png } = await renderFvg(root)
     const outside = await pixelAt(png, 16, 50)
@@ -121,14 +121,14 @@ describe('paint containers', () => {
     expect(px[2]).toBeLessThan(40)
   })
 
-  it('Layer 的 rotate 带着子元素绕中心转', async () => {
+  it('layer 的 rotate 带着子元素绕中心转', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '100', cy: '100', width: '100', height: '100', rotate: '90' },
-        h('Rect', { x1: '0', y1: '10', x2: '100', y2: '30', fill: '#ffffff' }),
+        h('rect', { x1: '0', y1: '10', x2: '100', y2: '30', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -139,14 +139,14 @@ describe('paint containers', () => {
     expect(vacated[0]).toBeLessThan(20)
   })
 
-  it('Layer 的 scale 带着子元素一起缩放', async () => {
+  it('layer 的 scale 带着子元素一起缩放', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '100', cy: '100', width: '100', height: '100', scale: '2' },
-        h('Rect', { cx: '50', cy: '50', width: '20', height: '20', fill: '#ffffff' }),
+        h('rect', { cx: '50', cy: '50', width: '20', height: '20', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -159,12 +159,12 @@ describe('paint containers', () => {
 
   it('origin=top-left 时绕左上角旋转', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '220', height: '160', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '100', cy: '20', anchor: 'top-left', width: '100', height: '100', rotate: '90', origin: 'top-left' },
-        h('Rect', { x1: '0', y1: '40', x2: '10', y2: '80', fill: '#ffffff' }),
+        h('rect', { x1: '0', y1: '40', x2: '10', y2: '80', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -175,14 +175,14 @@ describe('paint containers', () => {
     expect(vacated[0]).toBeLessThan(20)
   })
 
-  it('overflow=hidden 裁掉超出 Layer 的部分', async () => {
+  it('overflow=hidden 裁掉超出 layer 的部分', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '200', height: '100', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '0', cy: '0', anchor: 'top-left', width: '100', height: '100', overflow: 'hidden' },
-        h('Rect', { cx: '90', cy: '50', width: '40', height: '40', fill: '#ffffff' }),
+        h('rect', { cx: '90', cy: '50', width: '40', height: '40', fill: '#ffffff' }),
       ),
     )
     const { png } = await renderFvg(root)
@@ -194,7 +194,7 @@ describe('paint containers', () => {
 
   it('文字和线条的 rotate、scale 生效', async () => {
     const text = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
       h('div', { style: 'width:120px; height:20px; background:#ffffff; rotate:90' }, 'A'),
     )
@@ -203,9 +203,9 @@ describe('paint containers', () => {
     expect((await pixelAt(textPng.png, 50, 100))[0]).toBeLessThan(20)
 
     const line = h(
-      'Layer',
+      'layer',
       { width: '200', height: '200', background: '#000000' },
-      h('Line', { x1: '70', y1: '100', x2: '130', y2: '100', stroke: '#ffffff', 'stroke-width': '2', scale: '5' }),
+      h('line', { x1: '70', y1: '100', x2: '130', y2: '100', stroke: '#ffffff', 'stroke-width': '2', scale: '5' }),
     )
     const linePng = await renderFvg(line)
     expect((await pixelAt(linePng.png, 100, 96))[0]).toBeGreaterThan(200)
@@ -213,9 +213,9 @@ describe('paint containers', () => {
 
   it('空 div 色块不报 text-overflow', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '120', height: '80', background: '#000000' },
-      h('Layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('div', { style: 'display:flex; gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
+      h('layer', { cx: '10', cy: '10', anchor: 'top-left' }, h('div', { style: 'display:flex; gap:8px' }, h('div', { style: 'width:28px; height:28px; background:#ffffff' }))),
     )
     const { png, report } = await renderFvg(root)
     expect(report.issues.some((issue) => issue.code === 'text-overflow')).toBe(false)
@@ -224,10 +224,10 @@ describe('paint containers', () => {
 
   it('flex:1 的分隔线占满剩余宽度', async () => {
     const root = h(
-      'Layer',
+      'layer',
       { width: '300', height: '80', background: '#000000' },
       h(
-        'Layer',
+        'layer',
         { cx: '10', cy: '30', anchor: 'top-left' },
         h(
           'div',
@@ -243,10 +243,10 @@ describe('paint containers', () => {
     expect((await pixelAt(png, 150, 48))[0]).toBeGreaterThan(200)
   })
 
-  it('flex 放进 Layer 后位置由 Layer 决定', async () => {
+  it('flex 放进 layer 后位置由 layer 决定', async () => {
     const row = () => h('div', { style: 'display:flex; gap:12px; align-items:center' }, h('p', { style: 'font-size:32px; color:#ffffff' }, '甲乙'))
-    const wrapped = h('Layer', { width: '400', height: '120', background: '#000000' }, h('Layer', { cx: '20', cy: '30', anchor: 'top-left' }, row()))
-    const bare = h('Layer', { width: '400', height: '120', background: '#000000' }, row())
+    const wrapped = h('layer', { width: '400', height: '120', background: '#000000' }, h('layer', { cx: '20', cy: '30', anchor: 'top-left' }, row()))
+    const bare = h('layer', { width: '400', height: '120', background: '#000000' }, row())
     const placed = await renderFvg(wrapped)
     const centered = await renderFvg(bare)
     const placedBox = placed.report.elements.find((element) => element.tag === 'div')!.box

@@ -1,3 +1,4 @@
+import { canonicalTag } from './tags.js'
 import type { DrawFn } from './types.js'
 
 export type FvgNode = {
@@ -5,6 +6,8 @@ export type FvgNode = {
   attrs: Record<string, string>
   children: FvgChild[]
   draw?: DrawFn
+  /** 源码里的标签名。仅当和规范小写不同时记下，用来报 non-canonical。 */
+  writtenTag?: string
 }
 
 export type FvgChild = string | FvgNode
@@ -51,7 +54,14 @@ function parseAttrs(text: string): Record<string, string> {
   return attrs
 }
 
-/** 解析 Flex Layer 标记。标签名保留大小写（`Layer` 与 `layer` 不同）。 */
+function nodeFor(raw: string, attrs: Record<string, string>, children: FvgChild[]): FvgNode {
+  const tag = canonicalTag(raw)
+  const node: FvgNode = { tag, attrs, children }
+  if (raw !== tag) node.writtenTag = raw
+  return node
+}
+
+/** 解析 Flex Layer 标记。已知标签归一成小写；不认识的标签保持原样。 */
 export function parseFvg(source: string): FvgNode[] {
   const src = source.replace(/<!--[\s\S]*?-->/g, '').replace(/<\?xml[\s\S]*?\?>/g, '')
   const root: FvgNode = { tag: '#root', attrs: {}, children: [] }
@@ -73,8 +83,7 @@ export function parseFvg(source: string): FvgNode[] {
     CLOSE_TAG_RE.lastIndex = lt
     const close = CLOSE_TAG_RE.exec(src)
     if (close) {
-      const tag = close[1]
-      const idx = findOpen(stack, tag)
+      const idx = findOpen(stack, canonicalTag(close[1]))
       if (idx > 0) stack.length = idx
       pos = lt + close[0].length
       continue
@@ -87,22 +96,22 @@ export function parseFvg(source: string): FvgNode[] {
       pos = lt + 1
       continue
     }
-    const tag = open[1]
+    const raw = open[1]
+    const tag = canonicalTag(raw)
     const attrs = parseAttrs(open[2] ?? '')
     // <draw> 正文是原始 JS，里面的 < 不要当标签解析
     if (tag === 'draw' && !open[3]) {
       const bodyStart = lt + open[0].length
-      const closeToken = '</draw>'
-      const closeAt = src.indexOf(closeToken, bodyStart)
-      const body = closeAt === -1 ? src.slice(bodyStart) : src.slice(bodyStart, closeAt)
-      const node: FvgNode = { tag, attrs, children: body ? [body] : [] }
+      const closeMatch = /<\/draw\s*>/i.exec(src.slice(bodyStart))
+      const body = closeMatch ? src.slice(bodyStart, bodyStart + closeMatch.index) : src.slice(bodyStart)
+      const node = nodeFor(raw, attrs, body ? [body] : [])
       stack[stack.length - 1].children.push(node)
-      pos = closeAt === -1 ? src.length : closeAt + closeToken.length
+      pos = closeMatch ? bodyStart + closeMatch.index + closeMatch[0].length : src.length
       continue
     }
-    const node: FvgNode = { tag, attrs, children: [] }
+    const node = nodeFor(raw, attrs, [])
     stack[stack.length - 1].children.push(node)
-    if (!open[3] && !VOID_TAGS.has(tag.toLowerCase())) stack.push(node)
+    if (!open[3] && !VOID_TAGS.has(tag)) stack.push(node)
     pos = lt + open[0].length
   }
 

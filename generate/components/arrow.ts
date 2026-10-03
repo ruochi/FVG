@@ -1,6 +1,6 @@
 import { createHostElement, type FvgHostElement } from '../serialize.js'
 
-/** 生成层 Arrow 的参数。默认值只在这里算一次，展开成渲染器的 `<Arrow>`。 */
+/** 生成层 Arrow 组件的参数。默认值只在这里算一次，展开成渲染器的 `<arrow>`。 */
 export type ArrowProps = {
   x1: number | string
   y1: number | string
@@ -34,7 +34,7 @@ function fmt(n: number): string {
   return String(Math.round(n * 100) / 100)
 }
 
-/** 展开成一个 `<Arrow>`，属性不进 style。 */
+/** 展开成一个 `<arrow>`，属性不进 style。 */
 export function arrowElement(props: ArrowProps): FvgHostElement {
   const x1 = coord(props.x1, 'x1')
   const y1 = coord(props.y1, 'y1')
@@ -43,7 +43,7 @@ export function arrowElement(props: ArrowProps): FvgHostElement {
   const strokeWidth = lengthOf(props.strokeWidth ?? props['stroke-width'], 'strokeWidth') ?? 4
   const head = lengthOf(props.head, 'head') ?? Math.max(12, strokeWidth * 4)
   const stroke = props.stroke?.trim() || '#111111'
-  const arrow = createHostElement('Arrow')
+  const arrow = createHostElement('arrow')
   arrow.props = {
     x1: fmt(x1),
     y1: fmt(y1),

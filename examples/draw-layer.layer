@@ -1,17 +1,17 @@
-<Layer width="720" height="480" background="#0f1115" color="#f4f1ea">
-  <Layer cx="40" cy="36" anchor="top-left">
-    <h1 style="font-size:42px">Layer + draw</h1>
-  </Layer>
-  <Layer cx="40" cy="96" anchor="top-left">
-    <p style="font-size:22px; color:#9aa3b2">嵌套 Layer 不填背景，色块用 Rect 或 draw</p>
-  </Layer>
+<layer width="720" height="480" background="#0f1115" color="#f4f1ea">
+  <layer cx="40" cy="36" anchor="top-left">
+    <h1 style="font-size:42px">layer + draw</h1>
+  </layer>
+  <layer cx="40" cy="96" anchor="top-left">
+    <p style="font-size:22px; color:#9aa3b2">嵌套 layer 不填背景，色块用 Rect 或 draw</p>
+  </layer>
 
-  <Rect cx="148" cy="228" width="200" height="120" rx="16" fill="#1c2430" />
-  <Layer cx="48" cy="200" anchor="top-left">
+  <rect cx="148" cy="228" width="200" height="120" rx="16" fill="#1c2430" />
+  <layer cx="48" cy="200" anchor="top-left">
     <p style="font-size:20px; color:#9aa3b2">Rect fill</p>
-  </Layer>
+  </layer>
 
-  <Layer width="200" height="120" cx="396" cy="288">
+  <layer width="200" height="120" cx="396" cy="288">
     <draw>
       const g = ctx.createLinearGradient(0, 0, el.w, el.h)
       g.addColorStop(0, '#3ecfc4')
@@ -30,12 +30,12 @@
       ctx.font = '20px sans-serif'
       ctx.fillText('draw', 16, 36)
     </draw>
-  </Layer>
-  <Layer cx="296" cy="200" anchor="top-left">
+  </layer>
+  <layer cx="296" cy="200" anchor="top-left">
     <p style="font-size:20px; color:#9aa3b2">draw 渐变块</p>
-  </Layer>
+  </layer>
 
-  <Layer width="160" height="160" cx="616" cy="288">
+  <layer width="160" height="160" cx="616" cy="288">
     <draw>
       const cx = el.w / 2
       const cy = el.h / 2
@@ -55,5 +55,5 @@
       ctx.fillStyle = '#0f1115'
       ctx.fill()
     </draw>
-  </Layer>
-</Layer>
+  </layer>
+</layer>

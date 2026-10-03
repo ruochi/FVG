@@ -99,7 +99,7 @@ export type TextLineReport = {
 export type ShadowSpec = { x: number; y: number; blur: number; spread: number; color: string }
 export type GlowSpec = { blur: number; spread: number; color: string }
 export type NoiseSpec = { amount: number; color?: string }
-/** Layer 专用纯色/渐变叠加 */
+/** layer 专用纯色/渐变叠加 */
 export type OverlaySpec = { paint: string; opacity: number; blend: BlendMode }
 export type GlassSpec = {
   variant: 'regular' | 'clear' | 'thick'
@@ -113,7 +113,7 @@ export type GlassSpec = {
 export type GradePresetName = 'lomo' | 'matte' | 'chrome' | 'bleach' | 'mono'
 /** 只取颜色的色相和浓淡；amount 0 到 1。 */
 export type GradeTone = { color: string; amount: number }
-/** Layer 调色。预设已展开，每一项都是最终生效的值。 */
+/** layer 调色。预设已展开，每一项都是最终生效的值。 */
 export type GradeSpec = {
   preset?: GradePresetName
   /** 整体强度 0 到 1，和原图混合。 */
@@ -268,6 +268,11 @@ export type LayerLayoutNode = LayoutNodeBase & {
   overflow?: 'visible' | 'hidden'
   /** 直接子元素共用的视距，像素。灭点是这一层盒子的中心。 */
   perspective?: number
+  /**
+   * 蒙版内容，坐标系是这一层的局部像素。
+   * 绘制时只取 alpha，不进入 children，不参与布局。
+   */
+  mask?: LayoutNode[]
 }
 
 export type FlexLayoutNode = LayoutNodeBase & {

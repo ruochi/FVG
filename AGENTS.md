@@ -24,24 +24,26 @@ Flex Layer 把**生成**和**渲染**分开，中间只交接一份 **`.layer` �
 
 | 规则 | 错误写法 | 正确写法 | 问题码 |
 | --- | --- | --- | --- |
-| HTML 用 `style`，`Layer` 和图形用属性 | `<p font-size="40">`、`<Circle style="fill:#fff">` | `<p style="font-size:40px">`、`<Circle fill="#fff">` | `invalid-attr` |
-| 根与定位用大写 `Layer`，图形首字母大写 | `<circle>`、`<Row>` | `<Circle>`、`<div style="display:flex">` | `unknown-tag` |
-| 嵌套 `Layer` / `use` 不写 `background` | `<Layer background="#fff">` | `<Rect fill="#fff">`、HTML `background`，或 `<draw>` | `invalid-attr` |
+| HTML 用 `style`，`layer` 和图形用属性 | `<p font-size="40">`、`<circle style="fill:#fff">` | `<p style="font-size:40px">`、`<circle fill="#fff">` | `invalid-attr` |
+| 标签一律小写 | `<Circle>`、`<Row>` | `<circle>`、`<div style="display:flex">`。大写标签会渲染并报 `info` | `non-canonical` |
+| 嵌套 `layer` / `use` 不写 `background` | `<layer background="#fff">` | `<rect fill="#fff">`、HTML `background`，或 `<draw>` | `invalid-attr` |
 | 排布用 `div` 的 `display:flex` | `<Column>` | `<div style="display:flex; flex-direction:column">` | `unknown-tag` |
-| 线条放在 `Layer` 里，用 `x1`…`d` | 线条直接放进 flex | `<Layer><Line x1 y1 x2 y2 /></Layer>` | `invalid-child` |
-| 文字的位置写在外包的 `Layer` 上 | `<h1 cx="120">` | `<Layer cx="120" cy="64" anchor="top-left"><h1>…</h1></Layer>` | `invalid-attr` |
+| 线条放在 `layer` 里，用 `x1`…`d` | 线条直接放进 flex | `<layer><line x1 y1 x2 y2 /></layer>` | `invalid-child` |
+| 文字的位置写在外包的 `layer` 上 | `<h1 cx="120">` | `<layer cx="120" cy="64" anchor="top-left"><h1>…</h1></layer>` | `invalid-attr` |
 | 图片是 HTML | `<Image width="320">` | `<img src="cover.png" style="width:320px; height:180px">`。`image` 同样可用 | `invalid-attr` |
-| 作用于整棵子树的效果只写在 `Layer` 上 | `<Rect grade="lomo">`、`<p style="overlay:#000">` | `<Layer grade="lomo" overlay="#00000066">` | `invalid-attr` |
-| 调色先选预设再改一两项 | `grade="contrast 5"` | `<Layer grade="lomo 0.8, fade 0.1">` | `invalid-attr` |
+| 作用于整棵子树的效果只写在 `layer` 上 | `<rect grade="lomo">`、`<p style="overlay:#000">` | `<layer grade="lomo" overlay="#00000066">` | `invalid-attr` |
+| 调色先选预设再改一两项 | `grade="contrast 5"` | `<layer grade="lomo 0.8, fade 0.1">` | `invalid-attr` |
 | 多段文字用 flex | `<p><div>…</div></p>` | `<div style="display:flex; flex-direction:column">` | `invalid-child` |
+| 整层裁切用 `<mask>`，里面直接写形状或 `<img>` | 把 mask 写成属性，或放进 flex | `<layer><mask><circle cx="160" cy="90" r="90" /></mask>…</layer>`。省略 `fill` 为不透明白 | `invalid-child` |
+| 透视写在父 `layer`，转动和 `z` 写在子元素 | `<rect perspective="900" rotateY="20">` | `<layer perspective="900"><rect rotateY="20" z="40" /></layer>` | `invalid-attr`、`flatten-3d` |
 
-根节点 `<Layer width height background>` 上的 `background` 是画布底色，只有这一处可以写。
+根节点 `<layer width height background>` 上的 `background` 是画布底色，只有这一处可以写。
 
 ## 3. 生成
 
 - 直接写 `.layer`：海报、单帧。速查见 [docs/CHEATSHEET.md](docs/CHEATSHEET.md)，例子在 [examples/](examples/)。
 - Vue：循环和 `:cx` 用模板算。抄 [generate/vue/example.ts](generate/vue/example.ts)。模板会压空白，`<draw>` 里多句 JS 写在一行并用 `;` 分隔。
-- React：抄 [generate/react/example.tsx](generate/react/example.tsx)。大写标签从 `generate/react/tags.ts` 引入，因为 React 会把大写 JSX 当成变量。
+- React：抄 [generate/react/example.tsx](generate/react/example.tsx)。`<layer>`、`<circle>` 直接写，不用 import。大写开头的才是要展开的函数组件。
 
 ```ts
 import { renderLayer } from '@dc/flexlayer'
@@ -72,7 +74,7 @@ npx tsx src/cli.ts render scene.layer -o scene.png --report scene.json
 
 ### 4.4 报告里关键字段
 
-- **`path`**：如 `Layer/Layer[0]/div[0]/h1[0]`，与 `issues[].path` 一致。
+- **`path`**：如 `layer/layer[0]/div[0]/h1[0]`，与 `issues[].path` 一致。
 - **`box`**：布局盒（含 padding）；flex 的 `gap` 体现在相邻元素 box 之间的空隙。
 - **`ink`**：字形或图形真实着墨。核对字距看 ink 与 ink。
 - **`effect`**：阴影 / 光晕可能占用的范围；`effect-clipped` 表示被画布裁切。
@@ -97,6 +99,7 @@ flowchart TD
 3. 改 `gap` / `padding` 时看相邻元素的 box / ink。
 4. 动态海报在 Vue / React 里改数据，重新生成 `.layer`，再跑 check。
 5. 字体用根上的 `<font family src>`，或内置名 `Song`、`Kai`、`Brush`。
+6. 合并进 `main` 时，把根 `package.json` 和 `package-lock.json` 的 `version` 补丁号加一（`0.1.1` → `0.1.2`）。每次合并都加。
 
 ## 6. 现象怎么查
 
@@ -107,7 +110,7 @@ flowchart TD
 | 字距和 `gap` 不一致 | 看 debug 里的 ink 间距 |
 | flex 子项被挤爆 | 加宽 flex 容器或缩小子项 |
 | 阴影或光晕看不见 | 查颜色与背景对比；看 `effect` 矩形 |
-| 嵌套 Layer 写了 background 没颜色 | 改成 `Rect`、HTML `background` 或 `<draw>` |
+| 嵌套 layer 写了 background 没颜色 | 改成 `rect`、HTML `background` 或 `<draw>` |
 | 不知道改哪个节点 | 报告里的 `path` 和 `hint` |
 
 ## 7. 文档索引

@@ -12,6 +12,20 @@ export type Matrix = {
 
 export const IDENTITY: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
 
+/** 逆矩阵。缩放为 0 时返回 null。 */
+export function invert(m: Matrix): Matrix | null {
+  const det = m.a * m.d - m.b * m.c
+  if (Math.abs(det) < 1e-12) return null
+  return {
+    a: m.d / det,
+    b: -m.b / det,
+    c: -m.c / det,
+    d: m.a / det,
+    e: (m.c * m.f - m.d * m.e) / det,
+    f: (m.b * m.e - m.a * m.f) / det,
+  }
+}
+
 /** 先应用 n，再应用 m。 */
 export function multiply(m: Matrix, n: Matrix): Matrix {
   return {

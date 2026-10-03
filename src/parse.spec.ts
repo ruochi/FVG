@@ -2,11 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { decodeEntities, parseFvg } from './parse.js'
 
 describe('parseFvg', () => {
-  it('保留标签大小写', () => {
+  it('不认识的标签保留大小写', () => {
     const nodes = parseFvg('<Row><Column /></Row>')
     expect(nodes[0]?.tag).toBe('Row')
     const row = nodes[0]!
     expect((row.children[0] as { tag: string }).tag).toBe('Column')
+  })
+
+  it('已知标签归一成小写，并记下原来的写法', () => {
+    const nodes = parseFvg('<Layer><Circle /></Layer>')
+    expect(nodes[0]?.tag).toBe('layer')
+    expect(nodes[0]?.writtenTag).toBe('Layer')
+    const circle = nodes[0]!.children[0] as { tag: string; writtenTag?: string }
+    expect(circle.tag).toBe('circle')
+    expect(circle.writtenTag).toBe('Circle')
   })
 
   it('解析 br 与注释', () => {
@@ -20,11 +29,11 @@ describe('parseFvg', () => {
   })
 
   it('<draw> 正文按原文保留，含 < 比较符', () => {
-    const nodes = parseFvg(`<Layer width="10" height="10">
+    const nodes = parseFvg(`<layer width="10" height="10">
       <draw>
         if (el.w < 100) ctx.fillRect(0, 0, el.w, el.h)
       </draw>
-    </Layer>`)
+    </layer>`)
     const layer = nodes[0]!
     const draw = layer.children.find((c) => typeof c !== 'string' && c.tag === 'draw') as {
       tag: string

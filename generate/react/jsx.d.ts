@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-/** HTML 用 style；Layer 和图形用属性。 */
+/** HTML 用 style；layer 和图形用属性。 */
 type FvgStyle = string | Record<string, string | number | undefined>
 
 type FvgCommon = {
@@ -40,7 +40,7 @@ type FvgEffects = {
 // jsx-effects:end
 }
 
-/** 仅 Layer：纯色/渐变叠加 */
+/** 仅 layer：纯色/渐变叠加 */
 type FvgLayerOverlay = {
   // jsx-overlay:begin
   /** #00000066 */
@@ -48,7 +48,7 @@ type FvgLayerOverlay = {
 // jsx-overlay:end
 }
 
-/** 仅 Layer：调色 */
+/** 仅 layer：调色。例如 grade="lomo 0.8, fade 0.1"，grade-mask 的 alpha 是强度 */
 type FvgLayerGrade = {
   // jsx-grade:begin
   /** lomo 0.8, fade 0.1 */
@@ -78,15 +78,15 @@ declare global {
       font: { family?: string; src?: string }
       /**
        * 根画布与定位容器。
-       * `background` 只在根上当画布底色；嵌套 Layer 不填背景，色块用 Rect / HTML / draw。
+       * `background` 只在根上当画布底色；嵌套 layer 不填背景，色块用 rect / HTML / draw。
        */
-      Layer: FvgPositioned &
+      layer: FvgPositioned &
         FvgEffects &
         FvgLayerOverlay &
         FvgLayerGrade & {
           width?: number | string
           height?: number | string
-          /** 仅根节点：画布底色。嵌套 Layer 写了会 warn 并忽略 */
+          /** 仅根节点：画布底色。嵌套 layer 写了会 warn 并忽略 */
           background?: string
           color?: string
           'font-family'?: string
@@ -108,18 +108,23 @@ declare global {
       /** 子标签：正文 JS，可用 ctx、el；不参与布局 */
       draw: FvgCommon
       symbol: FvgCommon & { width?: number | string; height?: number | string }
+      /**
+       * 蒙版。只作为 layer 的直接子元素。
+       * 里面写 rect / circle / ellipse / polygon / path / img；省略 fill 为 #fff，只取 alpha。
+       */
+      mask: FvgCommon
       use: FvgPositioned & {
         href?: string
         rotate?: number | string
         scale?: number | string
-        /** 忽略；色块用 Rect / HTML / draw */
+        /** 忽略；色块用 rect / HTML / draw */
         background?: string
       }
-      Rect: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
-      Circle: FvgShape
-      Ellipse: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
-      Line: FvgCommon & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string; stroke?: string; strokeWidth?: number | string }
-      Arrow: FvgCommon & {
+      rect: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
+      circle: FvgShape
+      ellipse: FvgShape & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string }
+      line: FvgCommon & { x1?: number | string; y1?: number | string; x2?: number | string; y2?: number | string; stroke?: string; strokeWidth?: number | string }
+      arrow: FvgCommon & {
         x1?: number | string
         y1?: number | string
         x2?: number | string
@@ -128,10 +133,10 @@ declare global {
         stroke?: string
         strokeWidth?: number | string
       }
-      Polyline: FvgCommon & { points?: string }
-      Polygon: FvgCommon & { points?: string; fill?: string }
-      Path: FvgCommon & { d?: string; fill?: string }
-      Curve: FvgCommon & { points?: string; closed?: boolean | string; fill?: string; stroke?: string }
+      polyline: FvgCommon & { points?: string }
+      polygon: FvgCommon & { points?: string; fill?: string }
+      path: FvgCommon & { d?: string; fill?: string }
+      curve: FvgCommon & { points?: string; closed?: boolean | string; fill?: string; stroke?: string }
       h1: FvgCommon
       h2: FvgCommon
       h3: FvgCommon

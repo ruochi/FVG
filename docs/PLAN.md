@@ -30,7 +30,7 @@ GENERATE.md / COMPONENTS.md  只写 Vue / React 特有的坑，规则链接回 A
 ## 第 1 步：只修错
 
 - `AI.md`：把「SPEC §9 问题码表」改成正确的章节号（问题码表现在在 §8）。
-- `MATHML.md`：移到 `docs/proposals/MATHML.md`，开头标注「未实现」；把 `row`、`column`、`layer` 改成 `<div style="display:flex">` 和 `Layer`。
+- `MATHML.md`：移到 `docs/proposals/MATHML.md`，开头标注「未实现」；把 `row`、`column`、`layer` 改成 `<div style="display:flex">` 和 `layer`。
 - `SPEC.md` §12：删掉预留名里的 `Image`（`image` 已是 `img` 的别名）。
 - `docs/EFFECTS.md`：把「六个参数」改成和 SPEC 一致的八个参数说法。
 - `SPEC.md`：把效果表从 §7「线条」里移出来，单独成章。
@@ -59,7 +59,7 @@ GENERATE.md / COMPONENTS.md  只写 Vue / React 特有的坑，规则链接回 A
 - `AI.md` 改名为 `AGENTS.md`。写出唯一一份硬性约定表，列：规则、错误写法、正确写法、问题码。原来 §2.1、§5、§6 里重复的内容合并进这张表。
 - `docs/CHEATSHEET.md`：保留写法示例，删掉规则解释，改成链接到硬性约定。
 - `GENERATE.md`：删掉「规则（AI 必守）」表，只保留 Vue / React 特有的注意点。
-- `generate/COMPONENTS.md` §3、`README.md`：删掉重复的 Layer 背景等规则，改成一句话加链接。
+- `generate/COMPONENTS.md` §3、`README.md`：删掉重复的 layer 背景等规则，改成一句话加链接。
 - `docs/EFFECTS.md`：删掉「已实现」表和绘制顺序，只保留算法、取舍和实现触点。
 - 全仓替换文档里的 `AI.md` 链接。
 
@@ -74,7 +74,7 @@ SPEC 第 9 章分四个小节：
 
 每个效果固定写这几项：归属、语法、是否复用 paint、作用范围（按墨迹）、在绘制流水线中的位置、报告回显和问题码、对应图格、保留名。
 
-再加一条总规则「作用于整棵子树的效果只写在 Layer 上」，覆盖 `overlay`、`grade`、`grade-mask`。绘制流水线只在第 9 章开头写一次。
+再加一条总规则「作用于整棵子树的效果只写在 layer 上」，覆盖 `overlay`、`grade`、`grade-mask`。绘制流水线只在第 9 章开头写一次。
 
 ## 第 4 步：效果图库
 
@@ -86,7 +86,7 @@ SPEC 第 9 章分四个小节：
 
 ## 第 5 步（可选）：属性注册表、语法统一、API 改名
 
-- 新建 `src/schema.ts`，每个属性记录名称、归属、语法、默认值、示例和问题码。`src/rules.ts` 的 `HTML_STYLE_ATTRS` 和「仅 Layer」检查改为读取这张表。`generate/serialize.ts` 和 `generate/react/jsx.d.ts` 也对齐到这张表。
+- 新建 `src/schema.ts`，每个属性记录名称、归属、语法、默认值、示例和问题码。`src/rules.ts` 的 `HTML_STYLE_ATTRS` 和「仅 layer」检查改为读取这张表。`generate/serialize.ts` 和 `generate/react/jsx.d.ts` 也对齐到这张表。
 - 增加一个脚本，从注册表生成 SPEC 归属总表和 CHEATSHEET 效果行（写入标记区块之间）。
 - `glass` 支持 `clear, blur 8, tint #fff2` 这种逗号写法，旧写法继续兼容；在 `src/style.ts` 中实现，并补测试。
 - 在 `src/index.ts` 导出 `renderLayer`，保留 `renderFvg` 作为别名；文档统一改用新名字。
