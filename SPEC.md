@@ -69,9 +69,9 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | `scale` | 绕 `origin` 缩放，同样作用到整棵子树 |
 | `origin` | 旋转和缩放的支点，取值和 `anchor` 一样，默认 `center` |
 
-`rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。
+`rotate`、`scale` 只影响绘制，不影响布局。报告里的 `box` 是变换前的布局盒子（只累加平移），`ink` 是变换后的外接矩形。有透视时 `ink` 改成投影后的外接矩形，并多一个 `quad`（投影后的四个角）。
 
-`perspective` 只写在 `layer` 上，单位是像素，是直接子元素共用的视距。灭点是这一层盒子的中心，`z` 正方向朝观众，数值越大看起来越大。`rotateX`、`rotateY`、`z` 的归属和 `rotate` 相同，写在要转动或推近的那一层上，不改变布局。没有祖先写 `perspective` 时仍按二维绘制，并报 `flatten-3d`。子元素的 `z` 大于等于视距时报 `behind-camera`，该元素不绘制。带三维姿态的平面先按 4 倍分辨率绘制，再平均缩回逻辑像素，斜边因此抗锯齿。没有三维姿态的内容仍走原来的二维绘制。灯光和网格不在这一步。
+`perspective` 只写在 `layer` 上，单位是像素，是直接子元素共用的视距。灭点是这一层盒子的中心，`z` 正方向朝观众，数值越大看起来越大。`rotateX`、`rotateY`、`z` 的归属和 `rotate` 相同，写在要转动或推近的那一层上，不改变布局。没有祖先写 `perspective` 时仍按二维绘制，并报 `flatten-3d`。子元素的 `z` 大于等于视距时报 `behind-camera`，该元素不绘制。带三维姿态的平面先按 4 倍分辨率绘制，再平均缩回逻辑像素，斜边因此抗锯齿。平面上的 `shadow` 和 `glow` 画在这张位图的外侧，再一起投影，不会被裁在平面自己的框里。没有三维姿态的内容仍走原来的二维绘制。灯光和网格不在这一步。
 
 属性归属（由 [src/schema.ts](src/schema.ts) 生成，不要手改两行标记之间的表）：
 
@@ -108,9 +108,9 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 - 写了 `width`、`height`：layer 就是这么大，原点固定。内容可以画出盒子。做动画的分组建议写上宽高，这样坐标不会跟着内容变。
 - 没写：宽高等于从原点到内容右下角的距离，没写 `cx`、`cy` 的子元素放在这个盒子的中心。坐标在负方向的子元素会画到盒子外面，但不会把其他子元素一起平移。
 
-`overflow="hidden"` 按 layer 的盒子裁剪子元素。默认 `visible`。被裁掉的是子元素；阴影、模糊仍可以画到盒子外面。
+`overflow="hidden"` 按 layer 的盒子裁剪子元素。默认 `visible`。被裁掉的是子元素；这一层自己的阴影、模糊仍可以画到盒子外面。祖先的 `overflow="hidden"` 会把子元素的阴影和光晕一起裁掉。已经被这样裁掉、画布上看不见的部分不报 `effect-clipped`。
 
-`<mask>` 裁的是这一层合成完的画面，包括阴影、模糊、调色和颗粒。它写在 `layer` 里面，和要裁的内容并列。自己不画出来，不占布局，不把层撑大，不出现在报告里，也不触发 `overflow-canvas`。一层最多一个，多出来的 `warn` 并忽略。坐标和同层的图形一样，原点在 layer 左上角。
+`<mask>` 裁的是这一层合成完的画面，包括阴影、模糊、调色和颗粒。它写在 `layer` 里面，和要裁的内容并列。自己不画出来，不占布局，不把层撑大，不出现在报告里，也不触发 `overflow-canvas`。被它挡住的内容同样不报 `overflow-canvas` 或 `effect-clipped`：报告里的 `ink` 先和 mask 形状的外接范围求交。一层最多一个，多出来的 `warn` 并忽略。坐标和同层的图形一样，原点在 layer 左上角。
 
 里面直接写 `rect`、`circle`、`ellipse`、`polygon`、`path`，也可以放 `img`（用图片自己的 alpha）。`line`、`arrow`、`polyline`、`curve`、文字、`div`、嵌套 `layer` 会 `warn` 并忽略。空的 `mask` 报 `empty-mask`，并且不生效。
 
@@ -200,7 +200,7 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 | 属性 | 说明 |
 | --- | --- |
 | `font-size`、`font-weight`、`font-family`、`color`、`letter-spacing` | 同 CSS，行内标签也可以写 |
-| （字重规则） | `ChillDuanSans` 按可变字重。`Song`、`Kai` 在 400 和 700 两档里取最近的一档。`Brush` 和其它只注册了一个文件的字体按 400 |
+| （字重规则） | `ChillDuanSans` 按可变字重绘制，字重轴约 300 到 800，中间的字重不会收成 400 和 700 两档。`Song`、`Kai` 在 400 和 700 两档里取最近的一档。`Brush` 和其它只注册了一个文件的字体按 400 |
 | `writing-mode` | `horizontal-tb`（默认）或 `vertical-rl`。竖排时字从上到下，列从右到左，`letter-spacing` 是字与字之间的额外间距 |
 | `line-height` | 倍数，单行默认 1.2，多行默认 1.4 |
 | `text-align` | `left`（默认）、`center`、`right` |
@@ -242,11 +242,11 @@ Flex Layer 用标签描述**一帧画面**。HTML 标签用 `style`，其余标�
 
 ### 7.1 形状
 
-两种写法只能选一种。两点可以反着写，取最小最大。`circle` 只有中心写法。
+两种写法只能选一种。两点可以反着写，取最小最大。`circle` 只有中心写法。`rect` 的 `rx` 是圆角，中心写法和两点写法都可以加，不算混用。
 
 | 标签 | 中心写法 | 两点写法 |
 | --- | --- | --- |
-| `rect` | `cx` `cy` `width` `height`，另有 `rx`（圆角） | `x1` `y1` `x2` `y2`，对角两个角 |
+| `rect` | `cx` `cy` `width` `height`，另有 `rx`（圆角） | `x1` `y1` `x2` `y2`，对角两个角，`rx` 仍是圆角 |
 | `ellipse` | `cx` `cy` `rx` `ry` | `x1` `y1` `x2` `y2`，外接矩形的对角 |
 | `circle` | `cx` `cy` `r` | 不支持 |
 
@@ -501,8 +501,9 @@ gradient( [映射 ,] 颜色行 [ / 颜色行 ]* )
 }
 ```
 
-- `box`：布局盒子（含 padding 和 border），只累加平移，不受 `rotate`、`scale` 影响。
-- `ink`：实际着墨经过旋转、缩放之后的外接矩形，并和祖先里 `overflow="hidden"` 的 layer 求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。
+- `box`：布局盒子（含 padding 和 border），只累加平移，不受 `rotate`、`scale` 和透视影响。
+- `ink`：实际着墨经过旋转、缩放之后的外接矩形；落在带 `perspective` 的平面上时，改成投影后的外接矩形。并和祖先里 `overflow="hidden"` 的 layer、以及 `<mask>` 的外接范围求过交集。文字是字形的真实边界，形状是布局盒子变换后的范围。`overflow-canvas` 看的是这个投影后的 `ink`，不是 `box`。
+- `quad`：有透视投影时才有。投影后的四个角，画布坐标，顺序为左上、右上、右下、左下。用来看斜着的平面实际落在哪儿。
 - `opacity`：从根到该元素逐层相乘后的透明度。
 
 `opacity` 小于 0.01 的元素仍会出现在 `elements` 里，但不参与下面的越界、安全区、重叠和最小字号检查。最小字号按声明的 `font-size` 判断，不乘 `scale`。

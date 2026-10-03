@@ -19,6 +19,16 @@ describe('属性归属', () => {
     expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.level === 'warn' && issue.hint)).toBe(true)
   })
 
+  it('rect 两点写法加 rx 不算混用', async () => {
+    const report = await issues(`<layer width="80" height="80"><rect x1="8" y1="8" x2="60" y2="40" rx="6" fill="#fff" /></layer>`)
+    expect(report.issues.some((issue) => issue.code === 'invalid-attr')).toBe(false)
+  })
+
+  it('ellipse 两点写法再写 rx 仍算混用', async () => {
+    const report = await issues(`<layer width="80" height="80"><ellipse x1="8" y1="8" x2="60" y2="40" rx="6" fill="#fff" /></layer>`)
+    expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('两点'))).toBe(true)
+  })
+
   it('线条写 cx 报 warn', async () => {
     const report = await issues(`<layer width="400" height="200"><line cx="10" x1="0" y1="0" x2="40" y2="0" /></layer>`)
     expect(report.issues.some((issue) => issue.code === 'invalid-attr' && issue.message.includes('线条'))).toBe(true)

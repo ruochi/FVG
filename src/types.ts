@@ -145,8 +145,10 @@ export type ElementReport = {
   id?: string
   tag: string
   box: Rect
-  /** 变换并裁剪后的着墨外接矩形。 */
+  /** 变换并裁剪后的着墨外接矩形。有透视时是投影后的范围。 */
   ink: Rect
+  /** 投影后的四个角，画布坐标，顺序为左上、右上、右下、左下。没有透视投影时不写。 */
+  quad?: [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }]
   /** 逐层相乘后的有效透明度。 */
   opacity: number
   fontSize?: number

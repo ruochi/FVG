@@ -1,5 +1,5 @@
 import type { FvgChild, FvgNode } from './parse.js'
-import { buildFontString } from './fonts.js'
+import { applyCanvasFont } from './fonts.js'
 import { getMeasureCtx } from './measureCtx.js'
 import { parseFontWeight, parsePx } from './style.js'
 import type { Box, TextLayoutResult, TextRunStyle, TextSegment } from './types.js'
@@ -170,7 +170,7 @@ function measureTextWidth(text: string, style: TextRunStyle): number {
   const cached = measureCache.get(key)
   if (cached != null) return cached
   const ctx = getMeasureCtx()
-  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize)
+  applyCanvasFont(ctx, style.fontFamily, style.fontWeight, style.fontSize)
   ctx.letterSpacing = `${style.letterSpacing}px`
   const m = ctx.measureText(text)
   const w = m.width
@@ -180,7 +180,7 @@ function measureTextWidth(text: string, style: TextRunStyle): number {
 
 function measureInk(text: string, style: TextRunStyle): { width: number; ascent: number; descent: number } {
   const ctx = getMeasureCtx()
-  ctx.font = buildFontString(style.fontFamily, style.fontWeight, style.fontSize)
+  applyCanvasFont(ctx, style.fontFamily, style.fontWeight, style.fontSize)
   ctx.letterSpacing = `${style.letterSpacing}px`
   const m = ctx.measureText(text)
   return {

@@ -21,7 +21,7 @@ type PaintCtx = CanvasRenderingContext2D & {
   ): { addColorStop(offset: number, color: string): void }
   getTransform(): { a: number; b: number; c: number; d: number; e: number; f: number }
 }
-import { buildFontString } from './fonts.js'
+import { applyCanvasFont } from './fonts.js'
 import { fitImageRect } from './image.js'
 import { applyGrade } from './grade.js'
 import { canvasPaint, isGradient } from './gradient.js'
@@ -168,7 +168,7 @@ function drawTextNode(ctx: CanvasRenderingContext2D, node: TextLayoutNode, inkCo
     if (node.textAlign === 'center') offsetX = (node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width) / 2
     if (node.textAlign === 'right') offsetX = node.width - node.padding.left - node.padding.right - (node.border?.width ?? 0) * 2 - line.width
     for (const seg of line.segments) {
-      ctx.font = buildFontString(seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize)
+      applyCanvasFont(ctx, seg.style.fontFamily, seg.style.fontWeight, seg.style.fontSize)
       ctx.fillStyle = inkColor ?? seg.style.color
       ctx.letterSpacing = `${seg.style.letterSpacing}px`
       ctx.fillText(seg.text, contentX + offsetX + seg.x, contentY + line.baselineY)
@@ -963,14 +963,46 @@ function paintGlass(ctx: PaintCtx, node: LayoutNode, glass: GlassSpec, drawShado
   ctx.restore()
 }
 
-function paintChildBitmap(child: LayoutNode, k: number, t: number, state: PaintState): Canvas {
-  const w = Math.max(1, Math.ceil(child.width * k))
-  const h = Math.max(1, Math.ceil(child.height * k))
+function outwardPad(node: LayoutNode): number {
+  const shadow = node.shadow
+    ? node.shadow.blur * 2 + node.shadow.spread + Math.max(Math.abs(node.shadow.x), Math.abs(node.shadow.y))
+    : 0
+  let glass = 0
+  if (!node.shadow && node.glass) {
+    const depth = node.glass.variant === 'thick' ? 18 : node.glass.variant === 'clear' ? 12 : 14
+    glass = depth * 2 + Math.abs(depth * 0.35)
+  }
+  const glow = node.glow ? node.glow.blur * 2 + node.glow.spread : 0
+  const blur = node.blur != null ? node.blur * 2 : 0
+  return Math.max(shadow, glass, glow, blur)
+}
+
+/** 平面位图要比盒子大一圈，否则发光和阴影会被裁在平面自己的框里。 */
+function planeBitmapPad(node: LayoutNode): number {
+  let pad = outwardPad(node)
+  if (node.kind === 'layer' || node.kind === 'flex') {
+    for (const child of node.children) pad = Math.max(pad, planeBitmapPad(child))
+  }
+  return pad > 0 ? Math.ceil(pad + 2) : 0
+}
+
+function paintChildBitmap(
+  child: LayoutNode,
+  k: number,
+  t: number,
+  state: PaintState,
+): { canvas: Canvas; pad: number; logicalWidth: number; logicalHeight: number } {
+  const pad = planeBitmapPad(child)
+  const logicalWidth = child.width + pad * 2
+  const logicalHeight = child.height + pad * 2
+  const w = Math.max(1, Math.ceil(logicalWidth * k))
+  const h = Math.max(1, Math.ceil(logicalHeight * k))
   const canvas = createCanvas(w, h)
   const octx = canvas.getContext('2d') as PaintCtx
-  octx.setTransform(k, 0, 0, k, -child.x * k, -child.y * k)
-  paintNode(octx, child, false, t, state)
-  return canvas
+  // 位图是平面局部像素。rotate / scale 交给 posePoint，避免和投影各转一次。
+  octx.setTransform(k, 0, 0, k, (-child.x + pad) * k, (-child.y + pad) * k)
+  paintNode(octx, child, false, t, state, true)
+  return { canvas, pad, logicalWidth, logicalHeight }
 }
 
 function paintPerspectiveChildren(ctx: PaintCtx, node: LayerLayoutNode, debug: boolean, t: number, state: PaintState) {
@@ -988,12 +1020,44 @@ function paintPerspectiveChildren(ctx: PaintCtx, node: LayerLayoutNode, debug: b
       paintNode(ctx, child, debug, t, state)
       continue
     }
-    const bitmap = paintChildBitmap(child, k * PERSPECTIVE_AA, t, state)
-    drawTexturedPlane(ctx, bitmap, child.width, child.height, (u, v) => {
-      const p = posePoint(child, u, v)
+    const { canvas: bitmap, pad, logicalWidth, logicalHeight } = paintChildBitmap(child, k * PERSPECTIVE_AA, t, state)
+    const at = (u: number, v: number) => {
+      const p = posePoint(child, u - pad, v - pad)
       return project(vx, vy, perspective, p)
-    })
+    }
+    drawTexturedPlane(ctx, bitmap, logicalWidth, logicalHeight, at)
+    if (debug) strokeProjectedQuad(ctx, child, vx, vy, perspective)
   }
+}
+
+function strokeProjectedQuad(
+  ctx: PaintCtx,
+  child: LayoutNode,
+  vx: number,
+  vy: number,
+  perspective: number,
+) {
+  const locals: Array<[number, number]> = [
+    [0, 0],
+    [child.width, 0],
+    [child.width, child.height],
+    [0, child.height],
+  ]
+  const pts = []
+  for (const [u, v] of locals) {
+    const q = project(vx, vy, perspective, posePoint(child, u, v))
+    if (!q) return
+    pts.push(q)
+  }
+  ctx.save()
+  ctx.strokeStyle = 'rgba(0, 210, 90, 0.95)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(pts[0]!.x, pts[0]!.y)
+  for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y)
+  ctx.closePath()
+  ctx.stroke()
+  ctx.restore()
 }
 
 function paintBody(ctx: PaintCtx, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
@@ -1183,11 +1247,18 @@ function paintWithLayerFilter(ctx: PaintCtx, node: LayoutNode, debug: boolean, t
   ctx.restore()
 }
 
-function paintNode(ctx: CanvasRenderingContext2D, node: LayoutNode, debug: boolean, t: number, state: PaintState) {
+function paintNode(
+  ctx: CanvasRenderingContext2D,
+  node: LayoutNode,
+  debug: boolean,
+  t: number,
+  state: PaintState,
+  skipTransform = false,
+) {
   const pctx = ctx as PaintCtx
   pctx.save()
   pctx.globalAlpha *= node.opacity
-  applyNodeTransform(pctx, node)
+  if (!skipTransform) applyNodeTransform(pctx, node)
   if (node.blend && node.blend !== 'source-over') {
     pctx.globalCompositeOperation = node.blend
   }

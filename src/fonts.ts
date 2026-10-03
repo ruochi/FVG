@@ -173,6 +173,47 @@ export function buildFontString(family: string, weight: number, sizePx: number):
   return `${w} ${sizePx}px ${family}, ${DEFAULT_FONT_FAMILY}, sans-serif`
 }
 
+const WGHT_TAG = 0x77676874
+const axisCache = new Map<string, { min: number; max: number } | null>()
+
+/** 可变字体的 wght 轴。静态字体返回 null。字体还没注册时不缓存，避免第一次测量锁死。 */
+function wghtAxis(family: string): { min: number; max: number } | null {
+  const key = family.trim()
+  if (axisCache.has(key)) return axisCache.get(key) ?? null
+  if (!GlobalFonts.has(key)) return null
+  let axis: { min: number; max: number } | null = null
+  try {
+    if (GlobalFonts.hasVariations(key, 400, 5, 0)) {
+      const found = GlobalFonts.getVariationAxes(key, 400, 5, 0).find((item) => item.tag === WGHT_TAG)
+      if (found) axis = { min: found.min, max: found.max }
+    }
+  } catch {
+    axis = null
+  }
+  axisCache.set(key, axis)
+  return axis
+}
+
+/**
+ * 只写 `ctx.font` 的数字字重时，可变字体会被收成常规和粗体两档。
+ * 这里把字重写进 wght 轴，测量和绘制共用。
+ */
+export function applyCanvasFont(
+  ctx: { font: string; fontVariationSettings: string },
+  family: string,
+  weight: number,
+  sizePx: number,
+): void {
+  ctx.font = buildFontString(family, weight, sizePx)
+  const axis = wghtAxis(family)
+  if (!axis) {
+    ctx.fontVariationSettings = 'normal'
+    return
+  }
+  const value = Math.min(axis.max, Math.max(axis.min, weight))
+  ctx.fontVariationSettings = `'wght' ${value}`
+}
+
 async function ensureFace(face: FontFace): Promise<void> {
   if (registered.has(face.registeredAs)) return
   const dest = join(getFontsCacheDir(), face.file)

@@ -1,8 +1,23 @@
-import { applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
+import { apply, applyToBox, aroundPivot, IDENTITY, intersectBox, multiply, originOffset, translated, type Matrix } from './matrix.js'
+import { has3dPose, planeDepth, posePoint, project as projectPoint } from './perspective.js'
 import type { Box, ElementReport, FvgDocument, FvgReport, Issue, LayoutNode } from './types.js'
-import { boxToRect, translateBox, unionBoxes } from './types.js'
+import { boxToRect, emptyBox, translateBox, unionBoxes } from './types.js'
 
 const VISIBLE_OPACITY = 0.01
+
+type Pt = { x: number; y: number }
+type Quad = [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }]
+type Projector = (u: number, v: number) => Pt | null
+
+/** 把平面局部坐标投到画布。localClip 在平面局部里，canvasClip 在画布上。 */
+type PlaneSpace = {
+  project: Projector
+  toPlane: Matrix
+  localClip?: Box
+  canvasClip?: Box
+}
+
+type EffectRecord = { plane: true; box: Box | null } | { plane: false; clip?: Box }
 
 function inkOverlap(a: Box, b: Box): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
@@ -16,10 +31,105 @@ function clipInk(ink: Box, clip: Box | undefined): Box {
   return clip ? intersectBox(ink, clip) : ink
 }
 
+function tighten(clip: Box | undefined, next: Box): Box {
+  return clip ? intersectBox(clip, next) : next
+}
+
 function nodeMatrix(parent: Matrix, node: LayoutNode): Matrix {
   if (node.rotate === 0 && node.scale === 1) return parent
   const o = originOffset(node.origin, node.width, node.height)
   return multiply(parent, aroundPivot(node.x + o.x, node.y + o.y, node.rotate, node.scale))
+}
+
+function cornerList(box: Box): Array<[number, number]> {
+  return [
+    [box.x, box.y],
+    [box.x + box.width, box.y],
+    [box.x + box.width, box.y + box.height],
+    [box.x, box.y + box.height],
+  ]
+}
+
+function boxFromPoints(pts: Pt[]): Box | null {
+  if (pts.length === 0) return null
+  const xs = pts.map((p) => p.x)
+  const ys = pts.map((p) => p.y)
+  const minX = Math.min(...xs)
+  const minY = Math.min(...ys)
+  return { x: minX, y: minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY }
+}
+
+function expandBox(box: Box, pad: number): Box {
+  return { x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }
+}
+
+function effectPadOf(node: LayoutNode): number {
+  return Math.max(
+    node.shadow ? node.shadow.blur * 2 + node.shadow.spread + Math.max(Math.abs(node.shadow.x), Math.abs(node.shadow.y)) : 0,
+    node.glow ? node.glow.blur * 2 + node.glow.spread : 0,
+    node.blur != null ? node.blur * 2 : 0,
+    node.glass ? node.glass.blur * 2 : 0,
+  )
+}
+
+function localMaskBounds(shapes: LayoutNode[]): Box | undefined {
+  let union: Box | null = null
+  for (const shape of shapes) {
+    const bounds = applyToBox(nodeMatrix(IDENTITY, shape), {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height,
+    })
+    union = union ? unionBoxes(union, bounds) : bounds
+  }
+  return union ?? undefined
+}
+
+function projectBox(project: Projector, box: Box): Box {
+  if (box.width <= 1e-6 || box.height <= 1e-6) return emptyBox()
+  const pts: Pt[] = []
+  for (const [x, y] of cornerList(box)) {
+    const p = project(x, y)
+    if (p) pts.push(p)
+  }
+  return boxFromPoints(pts) ?? emptyBox()
+}
+
+function placement(plane: PlaneSpace, node: LayoutNode): Matrix {
+  const o = originOffset(node.origin, node.width, node.height)
+  return multiply(plane.toPlane, aroundPivot(node.x + o.x, node.y + o.y, node.rotate, node.scale))
+}
+
+/** 节点局部盒子变成平面局部的轴对齐范围。平面根的局部坐标就是平面坐标。 */
+function toPlaneBox(plane: PlaneSpace, node: LayoutNode, local: Box, planeRoot: boolean): Box {
+  if (planeRoot) return local
+  return applyToBox(placement(plane, node), translateBox(local, node.x, node.y))
+}
+
+function finishCanvas(box: Box, canvasClip: Box | undefined): Box {
+  if (!hasArea(box)) return emptyBox()
+  return clipInk(box, canvasClip)
+}
+
+function contentToPlane(plane: PlaneSpace, node: LayoutNode, planeRoot: boolean, insetX: number, insetY: number): Matrix {
+  if (planeRoot) return translated(insetX, insetY)
+  return multiply(placement(plane, node), translated(node.x + insetX, node.y + insetY))
+}
+
+function makeProjector(
+  node: LayoutNode,
+  mapLayerLocal: (x: number, y: number) => Pt | null,
+  perspective: number,
+  vx: number,
+  vy: number,
+): Projector {
+  return (u, v) => {
+    if (planeDepth(node) >= perspective) return null
+    const q = projectPoint(vx, vy, perspective, posePoint(node, u, v))
+    if (!q) return null
+    return mapLayerLocal(q.x, q.y)
+  }
 }
 
 function walk(
@@ -30,15 +140,41 @@ function walk(
   oy: number,
   clip: Box | undefined,
   elements: ElementReport[],
+  effects: EffectRecord[],
+  plane: PlaneSpace | undefined,
+  planeRoot: boolean,
 ) {
   const absX = ox + node.x
   const absY = oy + node.y
   const matrix = nodeMatrix(parentMatrix, node)
   const opacity = parentOpacity * node.opacity
-  let ink = clipInk(applyToBox(matrix, translateBox(node.ink, node.x, node.y)), clip)
-  if (node.kind === 'layer' && node.overflow === 'hidden') {
-    const selfClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
-    ink = intersectBox(ink, clip ? intersectBox(selfClip, clip) : selfClip)
+  const ownMask = node.kind === 'layer' && node.mask?.length ? localMaskBounds(node.mask) : undefined
+
+  let ink: Box
+  let quad: Quad | undefined
+  let planeEffect: Box | null = null
+  if (plane) {
+    const localInk = toPlaneBox(plane, node, node.ink, planeRoot)
+    let visible = plane.localClip ? intersectBox(localInk, plane.localClip) : localInk
+    if (planeRoot && ownMask) visible = intersectBox(visible, ownMask)
+    ink = finishCanvas(projectBox(plane.project, visible), plane.canvasClip)
+    quad = layoutQuad(node, plane, planeRoot)
+    const pad = effectPadOf(node)
+    if (pad > 0) {
+      const grown = toPlaneBox(plane, node, expandBox(node.ink, pad), planeRoot)
+      let effectLocal = plane.localClip ? intersectBox(grown, plane.localClip) : grown
+      if (ownMask) {
+        const maskPlane = planeRoot ? ownMask : applyToBox(contentToPlane(plane, node, false, 0, 0), ownMask)
+        effectLocal = intersectBox(effectLocal, maskPlane)
+      }
+      planeEffect = finishCanvas(projectBox(plane.project, effectLocal), plane.canvasClip)
+    }
+  } else {
+    ink = clipInk(applyToBox(matrix, translateBox(node.ink, node.x, node.y)), clip)
+    if (node.kind === 'layer' && node.overflow === 'hidden') {
+      const selfClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
+      ink = intersectBox(ink, clip ? intersectBox(selfClip, clip) : selfClip)
+    }
   }
 
   const entry: ElementReport = {
@@ -49,6 +185,7 @@ function walk(
     ink: boxToRect(ink),
     opacity,
   }
+  if (quad) entry.quad = quad
   if (node.shadow) entry.shadow = node.shadow
   if (node.glow) entry.glow = node.glow
   if (node.innerShadow) entry.innerShadow = node.innerShadow
@@ -66,50 +203,149 @@ function walk(
     const contentX = node.x + node.padding.left + (node.border?.width ?? 0)
     const contentY = node.y + node.padding.top + (node.border?.width ?? 0)
     entry.fontSize = node.textLayout.fontSize
-    entry.lines = node.textLayout.lines.map((line) => ({
-      text: line.segments.map((s) => s.text).join(''),
-      box: boxToRect(clipInk(applyToBox(matrix, translateBox(line.ink, contentX, contentY)), clip)),
-    }))
+    entry.lines = node.textLayout.lines.map((line) => {
+      const local = translateBox(line.ink, node.padding.left + (node.border?.width ?? 0), node.padding.top + (node.border?.width ?? 0))
+      const lineBox = plane
+        ? finishCanvas(
+            projectBox(plane.project, plane.localClip ? intersectBox(toPlaneBox(plane, node, local, planeRoot), plane.localClip) : toPlaneBox(plane, node, local, planeRoot)),
+            plane.canvasClip,
+          )
+        : clipInk(applyToBox(matrix, translateBox(line.ink, contentX, contentY)), clip)
+      return { text: line.segments.map((s) => s.text).join(''), box: boxToRect(lineBox) }
+    })
   }
   elements.push(entry)
 
+  const inset = node.kind === 'flex' ? node.padding.left + (node.border?.width ?? 0) : 0
+  const insetY = node.kind === 'flex' ? node.padding.top + (node.border?.width ?? 0) : 0
+  const childMatrix = multiply(matrix, translated(node.x + inset, node.y + insetY))
+  let effectClip = clip
+  if (!plane && ownMask) effectClip = tighten(effectClip, applyToBox(childMatrix, ownMask))
+  effects.push(plane ? { plane: true, box: planeEffect } : { plane: false, clip: effectClip })
+
   if (node.kind === 'layer' || node.kind === 'flex') {
-    const inset = node.kind === 'flex' ? node.padding.left + (node.border?.width ?? 0) : 0
-    const insetY = node.kind === 'flex' ? node.padding.top + (node.border?.width ?? 0) : 0
-    const childMatrix = multiply(matrix, translated(node.x + inset, node.y + insetY))
     let childClip = clip
-    if (node.kind === 'layer' && node.overflow === 'hidden') {
-      const layerClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
-      childClip = clip ? intersectBox(layerClip, clip) : layerClip
+    let childPlane = plane
+    if (plane) {
+      const toPlane = contentToPlane(plane, node, planeRoot, inset, insetY)
+      let localClip = plane.localClip
+      if (node.kind === 'layer' && node.overflow === 'hidden') {
+        localClip = tighten(localClip, planeRoot ? { x: 0, y: 0, width: node.width, height: node.height } : applyToBox(toPlane, { x: 0, y: 0, width: node.width, height: node.height }))
+      }
+      if (ownMask) localClip = tighten(localClip, planeRoot ? ownMask : applyToBox(toPlane, ownMask))
+      childPlane = { ...plane, toPlane, localClip }
+    } else {
+      if (node.kind === 'layer' && node.overflow === 'hidden') {
+        const layerClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
+        childClip = tighten(childClip, layerClip)
+      }
+      if (ownMask) childClip = tighten(childClip, applyToBox(childMatrix, ownMask))
     }
+
+    const perspective = node.kind === 'layer' ? node.perspective : undefined
+    const opens = perspective != null && perspective > 0
+    const mapLayerLocal = (x: number, y: number): Pt | null => {
+      if (childPlane) {
+        const [u, v] = apply(childPlane.toPlane, x, y)
+        return childPlane.project(u, v)
+      }
+      const [cx, cy] = apply(childMatrix, x, y)
+      return { x: cx, y: cy }
+    }
+
     const start = elements.length
-    for (const ch of node.children) walk(ch, childMatrix, opacity, absX + inset, absY + insetY, childClip, elements)
-    // 容器的着墨改用子元素报告（已经带上变换和裁剪），避免把被裁掉的部分算进父级。
+    for (const ch of node.children) {
+      if (opens && has3dPose(ch)) {
+        walk(
+          ch,
+          childMatrix,
+          opacity,
+          absX + inset,
+          absY + insetY,
+          childClip,
+          elements,
+          effects,
+          {
+            project: makeProjector(ch, mapLayerLocal, perspective!, node.width / 2, node.height / 2),
+            toPlane: IDENTITY,
+            canvasClip: childPlane ? childPlane.canvasClip : childClip,
+            localClip: undefined,
+          },
+          true,
+        )
+      } else if (childPlane) {
+        walk(ch, childMatrix, opacity, absX + inset, absY + insetY, childClip, elements, effects, childPlane, false)
+      } else {
+        walk(ch, childMatrix, opacity, absX + inset, absY + insetY, childClip, elements, effects, undefined, false)
+      }
+    }
     let union: Box | null = null
     const add = (b: Box) => {
       if (b.width <= 1e-3 || b.height <= 1e-3) return
       union = union ? unionBoxes(union, b) : b
     }
     if ((node.background && node.background !== 'transparent') || (node.border && node.border.width > 0)) {
-      add(clipInk(applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height }), clip))
+      const chrome = plane
+        ? finishCanvas(
+            projectBox(
+              plane.project,
+              plane.localClip
+                ? intersectBox(toPlaneBox(plane, node, { x: 0, y: 0, width: node.width, height: node.height }, planeRoot), plane.localClip)
+                : toPlaneBox(plane, node, { x: 0, y: 0, width: node.width, height: node.height }, planeRoot),
+            ),
+            plane.canvasClip,
+          )
+        : clipInk(applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height }), clip)
+      add(chrome)
     }
     for (let i = start; i < elements.length; i++) add(elements[i]!.ink)
-    if (union && node.kind === 'layer' && node.overflow === 'hidden') {
+    if (union && !plane && node.kind === 'layer' && node.overflow === 'hidden') {
       const selfClip = applyToBox(matrix, { x: node.x, y: node.y, width: node.width, height: node.height })
       union = intersectBox(union, clip ? intersectBox(selfClip, clip) : selfClip)
     }
+    if (union && !plane && ownMask) union = intersectBox(union, applyToBox(childMatrix, ownMask))
     if (union) entry.ink = boxToRect(union)
   }
 }
 
+function layoutQuad(node: LayoutNode, plane: PlaneSpace, planeRoot: boolean): Quad | undefined {
+  const pts: Pt[] = []
+  const placed = planeRoot ? null : placement(plane, node)
+  for (const [lx, ly] of [
+    [0, 0],
+    [node.width, 0],
+    [node.width, node.height],
+    [0, node.height],
+  ] as const) {
+    let u = lx
+    let v = ly
+    if (placed) {
+      const mapped = apply(placed, node.x + lx, node.y + ly)
+      u = mapped[0]
+      v = mapped[1]
+    }
+    const p = plane.project(u, v)
+    if (!p) return undefined
+    pts.push(p)
+  }
+  return [pts[0]!, pts[1]!, pts[2]!, pts[3]!]
+}
+
+function effectOutside(box: Box, doc: FvgDocument): boolean {
+  return box.x < -1e-3 || box.y < -1e-3 || box.x + box.width > doc.width + 1e-3 || box.y + box.height > doc.height + 1e-3
+}
+
 export function buildReport(doc: FvgDocument): FvgReport {
   const elements: ElementReport[] = []
-  walk(doc.root, IDENTITY, 1, 0, 0, undefined, elements)
+  const effects: EffectRecord[] = []
+  walk(doc.root, IDENTITY, 1, 0, 0, undefined, elements, effects, undefined, false)
 
   const issues: Issue[] = [...doc.issues]
   const visible = elements.filter((el) => el.opacity >= VISIBLE_OPACITY && hasArea(el.ink))
 
-  for (const el of visible) {
+  for (let index = 0; index < elements.length; index++) {
+    const el = elements[index]!
+    if (el.opacity < VISIBLE_OPACITY || !hasArea(el.ink)) continue
     const inkOutside = el.ink.right > doc.width + 1e-3 || el.ink.bottom > doc.height + 1e-3 || el.ink.left < -1e-3 || el.ink.top < -1e-3
     if (inkOutside) {
       issues.push({
@@ -125,21 +361,18 @@ export function buildReport(doc: FvgDocument): FvgReport {
       el.blur != null ? el.blur * 2 : 0,
       el.glass ? el.glass.blur * 2 : 0,
     )
-    if (!inkOutside && effectPad > 0) {
-      const outside =
-        el.ink.left - effectPad < -1e-3 ||
-        el.ink.top - effectPad < -1e-3 ||
-        el.ink.right + effectPad > doc.width + 1e-3 ||
-        el.ink.bottom + effectPad > doc.height + 1e-3
-      if (outside) {
-        issues.push({
-          level: 'warn',
-          code: 'effect-clipped',
-          path: el.path,
-          message: '本体在画布内，但阴影、光晕或模糊超出画布',
-          hint: '把元素往里移，或减小 blur',
-        })
-      }
+    const recorded = effects[index]
+    let effectBox: Box | null = null
+    if (recorded?.plane) effectBox = recorded.box
+    else if (effectPad > 0) effectBox = clipInk(expandBox(el.ink, effectPad), recorded?.clip)
+    if (!inkOutside && effectBox && hasArea(effectBox) && effectOutside(effectBox, doc)) {
+      issues.push({
+        level: 'warn',
+        code: 'effect-clipped',
+        path: el.path,
+        message: '本体在画布内，但阴影、光晕或模糊超出画布',
+        hint: '把元素往里移，或减小 blur',
+      })
     }
     if (el.lines != null && (el.tag === 'h1' || el.tag === 'h2' || el.tag === 'h3' || el.tag === 'p' || el.tag === 'div' || el.tag === 'span')) {
       if (el.ink.left < doc.safe.left - 1e-3 || el.ink.right > doc.width - doc.safe.right + 1e-3) {

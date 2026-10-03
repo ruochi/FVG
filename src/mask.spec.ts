@@ -199,6 +199,28 @@ describe('mask', () => {
     expect(report.elements.some((el) => el.tag === 'circle' || el.tag === 'mask')).toBe(false)
   })
 
+  it('被 mask 挡住、落到画布外的内容不报 overflow-canvas', async () => {
+    const hidden = await checkFvg(
+      `<layer width="80" height="80" background="#000"><mask><circle cx="40" cy="40" r="24" /></mask><rect x1="-30" y1="-30" x2="110" y2="110" fill="#fff" /></layer>`,
+    )
+    expect(hidden.issues.some((issue) => issue.code === 'overflow-canvas')).toBe(false)
+    const shown = await checkFvg(
+      `<layer width="80" height="80" background="#000"><mask><rect x1="-8" y1="0" x2="88" y2="80" /></mask><rect x1="-8" y1="0" x2="88" y2="80" fill="#fff" /></layer>`,
+    )
+    expect(shown.issues.some((issue) => issue.code === 'overflow-canvas')).toBe(true)
+  })
+
+  it('mask 挡住的光晕不报 effect-clipped', async () => {
+    const masked = await checkFvg(
+      `<layer width="80" height="80" background="#000"><mask><circle cx="40" cy="40" r="18" /></mask><rect x1="0" y1="0" x2="80" y2="80" fill="#fff" glow="36 #fff" /></layer>`,
+    )
+    expect(masked.issues.some((issue) => issue.code === 'effect-clipped')).toBe(false)
+    const open = await checkFvg(
+      `<layer width="80" height="80" background="#000"><rect x1="0" y1="0" x2="80" y2="80" fill="#fff" glow="36 #fff" /></layer>`,
+    )
+    expect(open.issues.some((issue) => issue.code === 'effect-clipped')).toBe(true)
+  })
+
   it('空 mask、第二个 mask、放错位置都会 warn', async () => {
     const empty = await checkFvg(`<layer width="40" height="40" background="#00ff00"><mask></mask><rect x1="0" y1="0" x2="40" y2="40" fill="#ff0000" /></layer>`)
     expect(empty.issues.some((issue) => issue.code === 'empty-mask')).toBe(true)

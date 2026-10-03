@@ -109,6 +109,38 @@ describe('paint containers', () => {
     expect((await pixelAt(png, x, Math.floor(yEdge) - 6))[0]).toBeLessThan(8)
   })
 
+  it('透视平面的发光和阴影画到平面外面', async () => {
+    const glow = h(
+      'layer',
+      { width: '180', height: '180', background: '#000000', perspective: '400' },
+      h('rect', { cx: '90', cy: '90', width: '50', height: '50', fill: '#ffffff', rotateX: '14', glow: '16 #00ff00' }),
+    )
+    const glowPng = (await renderFvg(glow)).png
+    const plane = { x: 65, y: 65, width: 50, height: 50, rotateX: 14, scale: 1, rotate: 0 } as LayoutNode
+    const glowAt = project(90, 90, 400, posePoint(plane, -8, 25))!
+    const bodyAt = project(90, 90, 400, posePoint(plane, 25, 25))!
+    const glowPx = await pixelAt(glowPng, Math.round(glowAt.x), Math.round(glowAt.y))
+    const bodyPx = await pixelAt(glowPng, Math.round(bodyAt.x), Math.round(bodyAt.y))
+    expect(glowPx[1]).toBeGreaterThan(25)
+    expect(bodyPx[0]).toBeGreaterThan(220)
+    expect(bodyPx[1]).toBeGreaterThan(220)
+
+    const shadow = h(
+      'layer',
+      { width: '180', height: '180', background: '#000000', perspective: '400' },
+      h('rect', { cx: '90', cy: '90', width: '50', height: '50', fill: '#ffffff', rotateX: '14', shadow: '18 0 4 #ff0000' }),
+    )
+    const shadowPng = (await renderFvg(shadow)).png
+    const shadowAt = project(90, 90, 400, posePoint(plane, 62, 25))!
+    const cornerAt = project(90, 90, 400, posePoint(plane, 4, 4))!
+    const shadowPx = await pixelAt(shadowPng, Math.round(shadowAt.x), Math.round(shadowAt.y))
+    const cornerPx = await pixelAt(shadowPng, Math.round(cornerAt.x), Math.round(cornerAt.y))
+    expect(shadowPx[0]).toBeGreaterThan(40)
+    expect(cornerPx[0]).toBeGreaterThan(220)
+    expect(cornerPx[1]).toBeGreaterThan(220)
+    expect(cornerPx[2]).toBeGreaterThan(220)
+  })
+
   it('z 大的平面盖住后写但更远的平面', async () => {
     const root = h(
       'Layer',
