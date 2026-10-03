@@ -118,7 +118,7 @@ flowchart TD
 | [docs/CHEATSHEET.md](docs/CHEATSHEET.md) | 一页写法 |
 | [docs/GALLERY.md](docs/GALLERY.md) | 效果对应哪张图的哪一格 |
 | [docs/EFFECTS.md](docs/EFFECTS.md) | 算法与实现备注 |
-| [docs/proposals/3D.md](docs/proposals/3D.md) | 3D 方案与点选（未实现，名字已在 SPEC 预留） |
+| [docs/proposals/3D.md](docs/proposals/3D.md) | 3D 参数写在 Layer 上，以及点选（未实现） |
 | [GENERATE.md](GENERATE.md) | Vue / React 怎么生成 `.layer` |
 | [README.md](README.md) | 安装与命令 |
 | **本文** | 硬性约定和验证闭环 |
